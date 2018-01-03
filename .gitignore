@@ -1,0 +1,15 @@
+.idea
+*.jar
+*.original
+*.jar
+*.lst
+*.iml
+*.class
+.settings/
+.project
+*/.project
+.classpath
+*/.classpath
+*/target/
+*/bin/
+
