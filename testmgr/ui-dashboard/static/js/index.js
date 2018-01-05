@@ -52,8 +52,8 @@ app.controller('indexCtrl', function ($scope, $http,$window,loadDataService) {
 
     $('#fileTree').on('selected.tree.amui', function (event, data) {
         // console.log(data);
-        // $scope.testName = data.target.title.split(".")[0];
-        $scope.testName = data.target.title;
+        $scope.testName = data.target.title.split(".")[0];
+        // $scope.testName = data.target.title;
         $scope.resultCount = "";
         $scope.results = [];
     });

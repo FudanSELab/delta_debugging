@@ -155,7 +155,7 @@
 
     <div class="admin-biaoge" style="padding-left: 60px;margin-top: 20px">
       <div class="xinxitj">
-        <span>{{resultCount}}</span>
+        <span style="font-size: medium;font-weight: bold">{{resultCount}}</span>
         <button class="am-btn am-btn-primary am-btn-xs am-radius am-align-right" ng-click="startTest()">Start Test
          </button>
       </div>
@@ -174,7 +174,11 @@
               <td>{{result.className}}</td>
               <td>{{result.methodName}}</td>
               <td>{{result.duration}} ms</td>
-              <td>{{result.status}}</td>
+              <td >
+                <img ng-if="result.status == 'SUCCESS'" ng-src="img/pass.png">
+                <img ng-if="result.status == 'FAILURE'" ng-src="img/failed.png">
+                <img ng-if="result.status == 'SKIP'" ng-src="img/skip.png">
+              </td>
               <td>{{result.startTime}}</td>
             </tr>
 

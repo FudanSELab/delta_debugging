@@ -1,0 +1,8 @@
+{
+  "testDir": "../testCase/ts-ui-test/src/main/java/test",
+  "classDir": "../testCase/ts-ui-test/target/classes",
+  "testCases":{
+      "SimpleTest": "test.SimpleTest",
+      "TestSelenium": "test.TestSelenium"
+  }
+}
