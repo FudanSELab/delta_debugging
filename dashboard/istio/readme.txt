@@ -17,10 +17,10 @@ Steps:
 
 
 
-Prometheus add-on：
+Prometheus add-on:
 https://prometheus.io/
 
-Grafana add-on：
+Grafana add-on:
 https://grafana.com/
 
 
