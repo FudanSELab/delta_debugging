@@ -1,0 +1,57 @@
+
+
+go:
+tar -C /usr/local -xzf go1.9.2.linux-amd64.tar.gz
+cat << EOF > /root/.bash_profile
+export GOROOT=/usr/local/go
+export PATH=$PATH:$GOROOT/bin
+export GOPATH=$HOME/gopath
+EOF
+source /root/.bash_profile
+
+
+nvm:
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash
+-------------------------
+
+cat << EOF > /root/.bash_profile
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+EOF
+source /root/.bash_profile
+nvm install node
+nvm use node
+
+
+jdk:
+tar -C /usr/local -xzf jdk-8u131-linux-x64.tar.gz
+cat << EOF > /root/.bash_profile
+export JAVA_HOME=/usr/local/jdk1.8.0_131
+export PATH=$PATH:$JAVA_HOME/bin
+EOF
+source /root/.bash_profile
+java -version
+
+
+gulp:
+npm install --global gulp-cli
+npm install --global gulp
+
+
+git:
+yum install git
+
+
+base:
+yum install make g++ gcc gcc-c++
+
+
+patch:
+yum install -y patch
+
+
+
+
+
+
