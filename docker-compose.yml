@@ -1,0 +1,32 @@
+version: '3'
+services:
+
+  test-backend:
+    build: test-backend
+    image: test/test-backend
+    restart: always
+    ports:
+      - 5001:5001
+    networks:
+      - my-network
+
+
+  test-ui-dashboard:
+    build: test-ui-dashboard
+    image: test/test-ui-dashboard
+    restart: always
+    ports:
+      - 80:8082
+    networks:
+      - my-network
+
+
+networks:
+    my-network:
+      # driver: overlay
+      driver: bridge
+
+
+
+
+
