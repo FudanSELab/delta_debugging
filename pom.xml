@@ -15,7 +15,7 @@
     </parent>
 
 	<modules>
-		<module>test-backend</module>
+		<!--<module>test-backend</module>-->
         <module>dashboard/apiserver</module>
     </modules>
 
