@@ -1,8 +1,17 @@
 version: '3'
 services:
 
+#  remote-driver:
+#      build: cscontrol/remote-driver
+#      image: cscontrol/remote-driver
+#      restart: always
+#      ports:
+#        - 4444:4444
+#      networks:
+#        - my-network
+
   test-backend:
-    build: test-backend
+    build: testmgr/test-backend
     image: test/test-backend
     restart: always
     ports:
@@ -12,7 +21,7 @@ services:
 
 
   test-ui-dashboard:
-    build: test-ui-dashboard
+    build: testmgr/test-ui-dashboard
     image: test/test-ui-dashboard
     restart: always
     ports:
@@ -20,6 +29,52 @@ services:
     networks:
       - my-network
 
+  delta-test-ui-dashboard:
+      build: cscontrol/delta-test-ui-dashboard
+      image: test/delta-test--ui-dashboard
+      restart: always
+      ports:
+        - 8083:8083
+      networks:
+        - my-network
+
+  delta-test-backend:
+      build: cscontrol/delta-test-backend
+      image: test/delta-test-backend
+      restart: always
+      ports:
+        - 5002:5002
+      networks:
+        - my-network
+
+#  firefox:
+#      image: selenium/node-firefox:3.8.1-erbium
+#      volumes:
+#        - /dev/shm:/dev/shm
+#      depends_on:
+#        - hub
+#      environment:
+#        HUB_HOST: hub
+#      networks:
+#        - my-network
+
+  chrome:
+      image: selenium/node-chrome:3.8.1-erbium
+      volumes:
+        - /dev/shm:/dev/shm
+      depends_on:
+        - hub
+      environment:
+        HUB_HOST: hub
+      networks:
+        - my-network
+
+  hub:
+    image: selenium/hub:3.8.1-erbium
+    ports:
+      - 4444:4444
+    networks:
+      - my-network
 
 networks:
     my-network:
@@ -28,5 +83,11 @@ networks:
 
 
 
+#test:
+#  image: registry.aliyuncs.com/denverdino/selenium-test
+#  links:
+#    - hub
+#    - firefox
+#    - chrome
 
 

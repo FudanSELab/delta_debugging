@@ -3,15 +3,17 @@ package backend.service;
 import net.sf.json.JSONObject;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 @Service
 public class ConfigService {
 
-    private String jsonPath = this.getClass().getResource("/").getPath() + "testConfig.json";
+//    private String jsonPath = this.getClass().getResource("/").getPath() + "testConfig.json";
+//    private String jsonPath = "/testConfig.json";
+    private String jsonPath = "/docker-testConfig.json";
     private String fileString;
     private String testDir;
     private String classDir;
@@ -21,8 +23,9 @@ public class ConfigService {
         BufferedReader reader = null;
         fileString = "";
         try{
-            FileInputStream fileInputStream = new FileInputStream(jsonPath);
-            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, "UTF-8");
+//            FileInputStream fileInputStream = new FileInputStream();
+//            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, "UTF-8");
+            InputStreamReader inputStreamReader = new InputStreamReader(this.getClass().getResourceAsStream(jsonPath));
             reader = new BufferedReader(inputStreamReader);
             String tempString = null;
             while((tempString = reader.readLine()) != null){
@@ -95,6 +98,23 @@ public class ConfigService {
         classDir = null;
         testCases = null;
         init();
+    }
+
+    public List<String> getTestFileNames(){
+        List<String> s = new ArrayList<String>();
+        if(testCases == null){
+           init();
+        }
+        Iterator<String> sIterator = testCases.keys();
+        while(sIterator.hasNext()){
+            // 获得key
+            String key = sIterator.next();
+            // 根据key获得value, value也可以是JSONObject,JSONArray,使用对应的参数接收即可
+            String value = testCases.getString(key);
+            s.add(key);
+//            System.out.println("key: "+key+",value: "+value);
+        }
+        return s;
     }
 
 }

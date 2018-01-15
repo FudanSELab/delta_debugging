@@ -8,7 +8,7 @@
     });
 
     $(document).on($.AMUI.fullscreen.raw.fullscreenchange, function() {
-      $.AMUI.fullscreen.isFullscreen ? $fullText.text('关闭全屏') : $fullText.text('开启全屏');
+      $.AMUI.fullscreen.isFullscreen ? $fullText.text('Exit') : $fullText.text('Full Screen');
     });
   });
 })(jQuery);

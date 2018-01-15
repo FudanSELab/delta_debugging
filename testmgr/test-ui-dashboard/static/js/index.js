@@ -57,50 +57,56 @@ app.controller('indexCtrl', function ($scope, $http,$window,loadDataService) {
         $scope.results = [];
     });
 
-    $scope.startTest = function(){
-        if( null != $scope.testName && "" != $scope.testName){
-            $http({
-                method: "post",
-                url: "/testBackend/test",
-                data:{testString:$scope.testName},
-                withCredentials: true
-            }).success(function (data, status, headers, config) {
-                console.log(data);
-                if(data.status){
-                    $scope.results = data.resultList;
-                    var count = data.resultCount;
-                    var all = parseInt(count[0]) + parseInt(count[1]) + parseInt(count[2]) + parseInt(count[3]);
-                    $scope.resultCount = count[0] + "/" + all + "   " + data.message;
-                } else {
-                    $scope.resultCount = data.message;
-                }
-            });
-        }
-    }
+    // $scope.startTest = function(){
+    //     if( null != $scope.testName && "" != $scope.testName){
+    //         $http({
+    //             method: "post",
+    //             url: "/testBackend/test",
+    //             data:{testString:$scope.testName},
+    //             withCredentials: true
+    //         }).success(function (data, status, headers, config) {
+    //             console.log(data);
+    //             if(data.status){
+    //                 $scope.results = data.resultList;
+    //                 var count = data.resultCount;
+    //                 var all = parseInt(count[0]) + parseInt(count[1]) + parseInt(count[2]) + parseInt(count[3]);
+    //                 $scope.resultCount = count[0] + "/" + all + "   " + data.message;
+    //             } else {
+    //                 $scope.resultCount = data.message;
+    //             }
+    //         });
+    //     }
+    // }
 
 
     //  /msg/sendcommuser
     var stompClient = null;
     //传递用户key值
-    var login = new UUID();
+    var loginId = new UUID().id;
 
     function setConnected(connected) {
         $('#test-button').css('display', 'block');
     }
 
     function connect() {
-        var socket = new SockJS('/testBackend/ricky-websocket');
+        var socket = new SockJS('/test-socket');
         stompClient = Stomp.over(socket);
-        stompClient.connect({login:login}, function (frame) {
+        stompClient.connect({login:loginId}, function (frame) {
             setConnected(true);
             console.log('Connected: ' + frame);
-            stompClient.subscribe('/user/topic/greetings', function (greeting) {
-                // console.log("greeting:\n");
-                // console.log(greeting);
-                $scope.deltaResults = $scope.deltaResults.concat(JSON.parse(greeting.body).testResult.resultList);
-                console.log($scope.deltaResults);
+
+            stompClient.subscribe('/user/topic/testresponse', function (data) {
+                console.log(data.body);
+                var response = JSON.parse(data.body);
+                if(response.status){
+                    $scope.testResults = response.testResult.resultList;
+                    var count = response.testResult.resultCount;
+                    var all = parseInt(count[0]) + parseInt(count[1]) + parseInt(count[2]) + parseInt(count[3]);
+                    $scope.resultCount = count[0] + "/" + all + "   " + response.message;
+                } else {
+                    $scope.resultCount = response.message;
+                }
                 $scope.$apply();
-                // showGreeting(JSON.parse(greeting.body));
             });
         });
     }
@@ -113,31 +119,30 @@ app.controller('indexCtrl', function ($scope, $http,$window,loadDataService) {
         console.log("Disconnected");
     }
 
-    function sendName() {
-        stompClient.send("/app/msg/hellosingle", {}, JSON.stringify(login));
-    }
 
-    function showGreeting(message) {
-        // alert(message);
-        console.log(message);
-        // $("#greetings").append("<tr><td>" + message + "</td></tr>");
-    }
-
-
-    $scope.showDelta = function(){
+    $scope.showTestButton = function(){
         if( null != $scope.testName && "" != $scope.testName){
-            $scope.deltaResults = [];
+            $scope.testResults = [];
             connect();
         }
     };
 
-    $scope.startDeltaTest = function(){
-        sendName();
+    $scope.startTest = function(){
+        var data = {
+            id: loginId,
+            testName: $scope.testName
+        };
+        stompClient.send("/app/msg/testsingle", {}, JSON.stringify(data));
     };
 
-    $scope.beforeunload = function(){
+    $window.onbeforeunload = function(){
         disconnect();
     };
 
+
+
+    // $scope.$on('$destroy', function() {
+    //     $window.onbeforeunload = undefined;
+    // });
 
 });

@@ -23,7 +23,7 @@
 <script src="js/lib/amazeui.tree.min.js"></script>
 <script type="text/javascript" src="js/lib/angular.js"></script>
 <script type="text/javascript" src="js/index.js"></script>
-  <script src="https://cdn.bootcss.com/sockjs-client/1.1.4/sockjs.min.js"></script>
+  <script src="https://cdn.bootcss.com/sockjs-client/1.0.0/sockjs.min.js"></script>
   <script src="https://cdn.bootcss.com/stomp.js/2.3.3/stomp.min.js"></script>
   <script src="js/lib/UUID.js"></script>
 
@@ -81,7 +81,7 @@
       <li class="am-hide-sm-only" style="float: right;">
         <a href="javascript:;" id="admin-fullscreen">
           <span class="am-icon-arrows-alt"></span>
-          <span class="admin-fullText">开启全屏</span>
+          <span class="admin-fullText">Full Screen</span>
         </a>
       </li>
     </ul>
@@ -131,73 +131,13 @@
   </div>
 
 <div class="admin">
-	
 
-   <!--<div class="admin-index">-->
-      <!--<dl data-am-scrollspy="{animation: 'slide-right', delay: 100}">-->
-        <!--<dt class="qs"><i class="am-icon-users"></i></dt>-->
-        <!--<dd>455</dd>-->
-        <!--<dd class="f12">团队数量</dd>-->
-      <!--</dl>-->
-      <!--<dl data-am-scrollspy="{animation: 'slide-right', delay: 300}">-->
-        <!--<dt class="cs"><i class="am-icon-area-chart"></i></dt>-->
-        <!--<dd>455</dd>-->
-        <!--<dd class="f12">今日收入</dd>-->
-      <!--</dl>-->
-      <!--<dl data-am-scrollspy="{animation: 'slide-right', delay: 600}">-->
-        <!--<dt class="hs"><i class="am-icon-shopping-cart"></i></dt>-->
-        <!--<dd>455</dd>-->
-        <!--<dd class="f12">商品数量</dd>-->
-      <!--</dl>-->
-      <!--<dl data-am-scrollspy="{animation: 'slide-right', delay: 900}">-->
-        <!--<dt class="ls"><i class="am-icon-cny"></i></dt>-->
-        <!--<dd>455</dd>-->
-        <!--<dd class="f12">全部收入</dd>-->
-      <!--</dl>-->
-    <!--</div>-->
-
-    <div class="admin-biaoge" style="padding-left: 60px;margin-top: 20px">
-      <div class="xinxitj">
-        <span style="font-size: medium;font-weight: bold">{{resultCount}}</span>
-        <button class="am-btn am-btn-primary am-btn-xs am-radius am-align-right" ng-click="startTest()">Start Test
-         </button>
-      </div>
-      <table class="am-table" style="margin-top: 30px">
-        <thead>
-          <tr>
-            <th>ClassName</th>
-            <th>MethodName</th>
-            <th>Duration</th>
-            <th>Result</th>
-            <th>Time</th>
-          </tr>
-        </thead>
-        <tbody>
-            <tr  ng-repeat=" result in results">
-              <td>{{result.className}}</td>
-              <td>{{result.methodName}}</td>
-              <td>{{result.duration}} ms</td>
-              <td >
-                <img ng-if="result.status == 'SUCCESS'" ng-src="img/pass.png">
-                <img ng-if="result.status == 'FAILURE'" ng-src="img/failed.png">
-                <img ng-if="result.status == 'SKIP'" ng-src="img/skip.png">
-              </td>
-              <td>{{result.startTime}}</td>
-            </tr>
-
-        </tbody>
-      </table>
-
-    </div>
-
-
-
-  <div class="admin-biaoge" style="padding-left: 60px;margin-top: 50px">
+  <div class="admin-biaoge" style="padding-left: 60px;margin-top: 50px;width:90%">
     <div class="xinxitj">
       <span style="font-size: medium;font-weight: bold">{{resultCount}}</span>
-      <button class="am-btn am-btn-primary am-btn-xs am-radius am-align-right" ng-click="showDelta()">Delta
+      <button class="am-btn am-btn-primary am-btn-xs am-radius am-align-right" ng-click="showTestButton()">Delta
       </button>
-      <button class="am-btn am-btn-primary am-btn-xs am-radius am-align-right" id="test-button" ng-click="startDeltaTest()" style="display: none">Test
+      <button class="am-btn am-btn-primary am-btn-xs am-radius am-align-right" id="test-button" ng-click="startTest()" style="display: none">Test
       </button>
     </div>
     <table class="am-table" style="margin-top: 30px">
@@ -211,7 +151,7 @@
       </tr>
       </thead>
       <tbody>
-      <tr  ng-repeat=" result in deltaResults">
+      <tr  ng-repeat=" result in testResults">
         <td>{{result.className}}</td>
         <td>{{result.methodName}}</td>
         <td>{{result.duration}} ms</td>

@@ -1,0 +1,8 @@
+{
+  "testDir": "/app/test",
+  "classDir": "/test",
+  "testCases":{
+    "SimpleTest": "test.SimpleTest",
+    "TestSelenium": "test.TestSelenium"
+  }
+}

@@ -1,0 +1,7 @@
+# HTTP Server
+server:
+  port: 5002  # HTTP (Tomcat) port
+
+spring:
+  application:
+    name: DeltaTestBackend

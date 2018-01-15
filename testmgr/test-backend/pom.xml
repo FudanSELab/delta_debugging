@@ -12,7 +12,7 @@
         <groupId>org.services</groupId>
         <artifactId>ts-test-service</artifactId>
         <version>0.1.0</version>
-        <!--<relativePath>../../</relativePath>-->
+        <relativePath>../../</relativePath>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>

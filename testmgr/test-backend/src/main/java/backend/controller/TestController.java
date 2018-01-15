@@ -1,14 +1,35 @@
 package backend.controller;
 
 import backend.domain.*;
+import backend.domain.socket.SocketRequest;
+import backend.domain.socket.SocketResponse;
+import backend.domain.socket.SocketSessionRegistry;
 import backend.service.ConfigService;
+import com.fasterxml.jackson.databind.util.JSONPObject;
+import net.sf.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.MessageHeaders;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.messaging.simp.SimpMessageType;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.testng.ITestNGListener;
 import org.testng.TestNG;
+import org.testng.*;
+import test.SimpleTest;
 
-import java.io.File;
-import java.util.ArrayList;
+
+import java.io.*;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 @RestController
 public class TestController {
@@ -23,94 +44,255 @@ public class TestController {
     }
 
     @CrossOrigin(origins = "*")
-    @RequestMapping(value="/reloadConfig", method = RequestMethod.GET)
+    @RequestMapping(value="/testBackend/reloadConfig", method = RequestMethod.GET)
     public String reload() {
         configService.reloadJson();
         return configService.getFileString();
     }
 
-    /**
-     * right test
-     * @param request
-     * @return
-     * @throws Exception
-     */
-    @CrossOrigin(origins = "*")
-    @RequestMapping(value="/test", method = RequestMethod.POST)
-    public  TestResponse test(@RequestBody TestRequest request) throws Exception {
-        String testString = request.getTestString();
-        TestResponse response = new TestResponse();
+    /**session操作类*/
+    @Autowired
+    SocketSessionRegistry webAgentSessionRegistry;
+    /**消息发送工具*/
+    @Autowired
+    private SimpMessagingTemplate template;
 
-        if( ! configService.containTestCase(testString) ){
+    @MessageMapping("/msg/testsingle")
+    public void testsingle(SocketRequest message) throws Exception {
+        if ( ! webAgentSessionRegistry.getSessionIds(message.getId()).isEmpty()) {
+            String sessionId = webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
+            SocketResponse sr = new SocketResponse();
+            if (!configService.containTestCase(message.getTestName())) {
+                sr.setStatus(false);
+                sr.setMessage("Test not exist");
+                template.convertAndSendToUser(sessionId, "/topic/testresponse", sr, createHeaders(sessionId));
+            } else {
+                TestResponse result = runTest(message.getTestName());
+                sr.setStatus(true);
+                sr.setMessage("Test executed");
+                sr.setTestResult(result);
+                template.convertAndSendToUser(sessionId, "/topic/testresponse", sr, createHeaders(sessionId));
+            }
+        }
+    }
+
+    private MessageHeaders createHeaders(String sessionId) {
+        SimpMessageHeaderAccessor headerAccessor = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
+        headerAccessor.setSessionId(sessionId);
+        headerAccessor.setLeaveMutable(true);
+        return headerAccessor.getMessageHeaders();
+    }
+
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/testBackend/deltaTest", method = RequestMethod.POST)
+    public  DeltaTestResponse deltaTest(@RequestBody DeltaTestRequest request) throws Exception {
+        List<String> testStrings = request.getTestNames();
+        if(testStrings == null){
+            DeltaTestResponse response = new DeltaTestResponse();
             response.setStatus(false);
-            response.setMessage("The file is not in the test list.");
+            response.setMessage("The testString is null.");
             return response;
         }
+        DeltaTestResponse response = new DeltaTestResponse();
+        List<FutureTask<TestResponse>> futureTasks = new ArrayList<FutureTask<TestResponse>>();
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        for(String s: testStrings){
+            if( ! configService.containTestCase(s) ){
+                response.setStatus(false);
+                response.setMessage(s + "is not in the test list.");
+                return response;
+            } else {
+                FutureTask<TestResponse> futureTask = new FutureTask<TestResponse>(new SingleTest(s));
+                System.out.println("##############################################");
+                System.out.println("############# add a new test task ############");
+                System.out.println("##############################################");
+                futureTasks.add(futureTask);
+                executorService.submit(futureTask);
+            }
+        }
+        boolean status = true;
+        for (FutureTask<TestResponse> futureTask : futureTasks) {
+            response.addDeltaResult(futureTask.get());
+            if( ! futureTask.get().isStatus()){
+                status = false;
+            }
+        }
+        response.setStatus(false);
+        response.setMessage("Test all the chosen testcases");
+        // 清理线程池
+        executorService.shutdown();
+        return response;
+    }
 
+    //callable test
+    class SingleTest implements Callable<TestResponse>{
+
+        private String testName;
+
+        public SingleTest(String s){
+            this.testName = s;
+        }
+
+        @Override
+        public TestResponse call() throws Exception {
+            return runTest(this.testName);
+        }
+    }
+
+
+//    @CrossOrigin(origins = "*")
+//    @RequestMapping(value="/testBackend/deltaTest", method = RequestMethod.POST)
+//    public  DeltaTestResponse deltaTest(@RequestBody DeltaTestRequest request) throws Exception {
+//        List<String> testStrings = request.getTestNames();
+//        if(testStrings == null){
+//            DeltaTestResponse response = new DeltaTestResponse();
+//            response.setStatus(false);
+//            response.setMessage("The file is not in the test list.");
+//            return response;
+//        }
+//        DeltaTestResponse response = new DeltaTestResponse();
+//        for(String s: testStrings){
+//            if( ! configService.containTestCase(s) ){
+//                response.setStatus(false);
+//                response.setMessage(s + "is not in the test list.");
+//                return response;
+//            } else {
+//                TestResponse r = runTest(s);
+//                response.addDeltaResult(r);
+//            }
+//        }
+//        response.setStatus(true);
+//        response.setMessage("Test all the chosen testcases");
+//        return response;
+//    }
+
+    private TestResponse runTest(String testString) throws Exception{
+        TestResponse response = new TestResponse();
         TestNG testng = new TestNG();
-        MyClassLoader mcl = new MyClassLoader(configService.getClassDir());
-        testng.setTestClasses(new Class[]{ mcl.loadClass(configService.getTestCase(testString)) });
-        //attach the reporter to generate the result
+//        MyClassLoader mcl = new MyClassLoader(configService.getClassDir());
+//        testng.setTestClasses(new Class[]{ mcl.loadClass(configService.getTestCase(testString)) });
+        testng.setTestClasses(new Class[]{Class.forName(configService.getTestCase(testString))});
+
         TestFlowReporter tfr = new TestFlowReporter();
         testng.addListener((ITestNGListener)tfr);
-        //set the test output directory
-        testng.setOutputDirectory("./testmgr/test-backend/test-output");
+        testng.setOutputDirectory("./test-output");
         testng.run();
 
-        response.setStatus(true);
         response.setResultList(tfr.getResultList());
         Integer[] count = tfr.getResultCount();
         response.setResultCount(count);
         if(count[1] ==0 && count[2] ==0 && count[3] ==0){
+            response.setStatus(true);
             response.setMessage("All Passed");
         } else {
+            response.setStatus(false);
             response.setMessage("Failed");
         }
-        return  response;
+        return response;
     }
 
     //get the directory structure of test cases
     @CrossOrigin(origins = "*")
-    @RequestMapping(value="/getFileTree", method = RequestMethod.GET)
-    public ArrayList<FileDirectory> getFileTree(){
+    @RequestMapping(value="/testBackend/getFileTree", method = RequestMethod.GET)
+    public ArrayList<FileDirectory> getFileTree() throws IOException, URISyntaxException, ClassNotFoundException {
+//        ArrayList<FileDirectory> result = new ArrayList<FileDirectory>();
+//        FileDirectory fd = new FileDirectory();
+//        fd.setTitle("test");
+//        fd.setType("folder");
+//        System.out.println("filePath-------" + configService.getTestDir());
+//        traverseFolder(configService.getTestDir(), fd);
+//        result.add(fd);
         ArrayList<FileDirectory> result = new ArrayList<FileDirectory>();
         FileDirectory fd = new FileDirectory();
         fd.setTitle("test");
         fd.setType("folder");
-        traverseFolder(configService.getTestDir(), fd);
+        List<String>  testCases = configService.getTestFileNames();
+        for(String s: testCases){
+            FileNode fn = new FileNode();
+            fn.setTitle(s);
+            fn.setType("item");
+            fd.addProduct(fn);
+        }
         result.add(fd);
         return result;
     }
 
-    public void traverseFolder(String path, FileDirectory fd) {
-        File file = new File(path);
-        if (file.exists()) {
-            File[] files = file.listFiles();
-            if (files.length == 0) {
-                System.out.println("The file directory is empty!");
-                return;
-            } else {
-                for (File file2 : files) {
-                    if (file2.isDirectory()) {
-                        FileDirectory f2 = new FileDirectory();
-                        f2.setType("folder");
-                        f2.setTitle(file2.getName());
-                        fd.addProduct(f2);
-                        traverseFolder(file2.getAbsolutePath(), f2);
-//                        System.out.println("File:" + file2.getAbsolutePath());
-                    } else {
-                        FileNode fn = new FileNode();
-                        fn.setType("item");
-                        fn.setTitle(file2.getName());
-                        fd.addProduct(fn);
-//                        System.out.println("File Directory:" + file2.getAbsolutePath());
-                    }
-                }
-            }
-        } else {
-            System.out.println("The file is not exist!");
-        }
-    }
+    //    @Autowired
+//    private SimpMessagingTemplate messagingTemplate;
+//
+//
+//    @MessageMapping("/user/{userId}/send")
+//    @SendToUser(value = "/send", broadcast = false)
+//    public String send(@DestinationVariable String userId, SocketMessage message) throws Exception {
+//        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//        message.date = df.format(new Date());
+//        System.out.println("23333");
+//        messagingTemplate.convertAndSendToUser(userId,"/send", message);
+//        return "send";
+//    }
+//
+//
+//    @Scheduled(fixedRate = 1000)
+//    @SendTo(value = "/getTime")
+//    public Object getTime() throws Exception {
+//        // 发现消息
+//        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//        messagingTemplate.convertAndSend("/getTime", df.format(new Date()));
+//        return "callback";
+//    }
+
+    //    /**
+//     * right test
+//     * @param request
+//     * @return
+//     * @throws Exception
+//     */
+//    @CrossOrigin(origins = "*")
+//    @RequestMapping(value="/testBackend/test", method = RequestMethod.POST)
+//    public  TestResponse test(@RequestBody TestRequest request) throws Exception {
+//        String testString = request.getTestString();
+//
+//        if( ! configService.containTestCase(testString) ){
+//            TestResponse response = new TestResponse();
+//            response.setStatus(false);
+//            response.setMessage("The file is not in the test list.");
+//            return response;
+//        }
+//
+//       return runTest(testString);
+//    }
+
+//    public void traverseFolder(String path, FileDirectory fd) throws IOException, URISyntaxException, ClassNotFoundException {
+//        File file = new File(path);
+//        System.out.println("filePath-------" + file.getAbsolutePath());
+//
+//        if (file.exists()) {
+//            File[] files = file.listFiles();
+//            if (files.length == 0) {
+//                System.out.println("The file directory is empty!");
+//                return;
+//            } else {
+//                for (File file2 : files) {
+//                    if (file2.isDirectory()) {
+//                        FileDirectory f2 = new FileDirectory();
+//                        f2.setType("folder");
+//                        f2.setTitle(file2.getName());
+//                        fd.addProduct(f2);
+//                        traverseFolder(file2.getAbsolutePath(), f2);
+////                        System.out.println("File:" + file2.getAbsolutePath());
+//                    } else {
+//                        FileNode fn = new FileNode();
+//                        fn.setType("item");
+//                        fn.setTitle(file2.getName());
+//                        fd.addProduct(fn);
+////                        System.out.println("File Directory:" + file2.getAbsolutePath());
+//                    }
+//                }
+//            }
+//        } else {
+//            System.out.println("The file is not exist!");
+//        }
+//    }
 
     //choose the testng listener
 //    @CrossOrigin(origins = "*")
