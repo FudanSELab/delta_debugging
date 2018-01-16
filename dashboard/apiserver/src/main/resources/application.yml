@@ -1,0 +1,6 @@
+server:
+  port: 18898
+
+spring:
+  application:
+    name: api-server
