@@ -50,9 +50,9 @@ public class ApiServiceImpl implements ApiService {
                         responseBuilder.append(line);
                 }
                 //Parse the response to the SetServicesReplicasResponseFromAPI Bean
-                System.out.println(responseBuilder.toString());
+//                System.out.println(responseBuilder.toString());
                 SetServicesReplicasResponseFromAPI result = JSON.parseObject(responseBuilder.toString(), SetServicesReplicasResponseFromAPI.class);
-                System.out.println(result.getKind());
+                System.out.println(String.format("The kind of the result for service %s is %s",setting.getServiceName(),result.getKind()));
                 br.close();
             } catch (IOException e) {
                 response.setStatus(false);
@@ -164,7 +164,7 @@ public class ApiServiceImpl implements ApiService {
 
             String json = readWholeFile(filePath);
             //Parse the response to the SetServicesReplicasResponseFromAPI Bean
-            System.out.println(json);
+//            System.out.println(json);
             deploymentsList = JSON.parseObject(json,QueryDeploymentsListResponse.class);
             System.out.println(deploymentsList.getItems().get(0).getMetadata().getName());
         } catch (IOException e) {
