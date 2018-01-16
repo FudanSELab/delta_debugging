@@ -1,23 +1,24 @@
 package apiserver.service;
 
-import apiserver.bean.QueryDeploymentsListResponse;
-import apiserver.bean.ServiceReplicasSetting;
-import apiserver.bean.SetServicesReplicasResponseFromAPI;
-import apiserver.bean.SingleDeploymentInfo;
+import apiserver.bean.*;
+import apiserver.request.GetServiceReplicasRequest;
 import apiserver.request.SetServiceReplicasRequest;
+import apiserver.response.GetServiceReplicasResponse;
+import apiserver.response.GetServicesListResponse;
 import apiserver.response.SetServiceReplicasResponse;
 import apiserver.util.Const;
 import com.alibaba.fastjson.JSON;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class ApiServiceImpl implements ApiService {
-
     private final String NAMESPACE = "default";
 
+    //Set the required number of service replicas
     @Override
     public SetServiceReplicasResponse setServiceReplica(SetServiceReplicasRequest setServiceReplicasRequest) {
         SetServiceReplicasResponse response = new SetServiceReplicasResponse();
@@ -58,34 +59,6 @@ public class ApiServiceImpl implements ApiService {
                 response.setMessage(String.format("Exception: %s", e.getStackTrace()));
                 e.printStackTrace();
             }
-
-//            HttpHeaders headers = new HttpHeaders();
-//            headers.set("Authorization",String.format("Bearer %s", Const.TOKEN));
-//            headers.set("Content-Type","application/json-patch+json");
-//            String data ="{ \"op\": \"replace\", \"path\": \"/spec/replicas\", \"value\":" +  setting.getNumOfReplicas() + " }";
-//            HttpEntity<String> entity = new HttpEntity<String>(data, headers);
-//
-//            HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
-//            restTemplate.setRequestFactory(requestFactory);
-//
-//            ResponseEntity<String> result = restTemplate.exchange(apiUrl, HttpMethod.PATCH, entity, String.class);
-
-//            SetServicesReplicasResponseFromAPI result = restTemplate.patchForObject(apiUrl,entity,SetServicesReplicasResponseFromAPI.class);
-//            System.out.println(String.format("The request result is %s", result));
-//            RestTemplate restTemplate = new RestTemplate();
-//            ResponseEntity<String> response = restTemplate.patchForObject(apiUrl,entity, String.class);
-
-            //Set the token to get authorization
-//            HttpHeaders headers = new HttpHeaders();
-//            headers.set("Authorization", String.format("Bearer %s", Const.TOKEN));
-//
-//            Map<String,Object> payload = new HashMap<String,Object>();
-//            payload.put("op","replace");
-//            payload.put("path","/spec/replicas");
-//            payload.put("value",setting.getNumOfReplicas());
-//            JSONObject jsonObj = JSONObject.fromObject(payload);
-
-//            HttpEntity<JSONObject> entity = new HttpEntity<JSONObject>(jsonObj,headers);
         }
         //Check if all the required replicas are ready
         while(!isAllReady(setServiceReplicasRequest)){
@@ -101,11 +74,81 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
-    //Check if the required deployment replicas are ready
+    //Get all of the services name
+    @Override
+    public GetServicesListResponse getServicesList() {
+        GetServicesListResponse response = new GetServicesListResponse();
+        //Get the current deployments information
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList();
+        //Iterate the list and return the result
+        List<String> serviceNames = new ArrayList<String>();
+        for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
+            serviceNames.add(singleDeploymentInfo.getMetadata().getName());
+        }
+        System.out.println(String.format("The size of current service is %d",serviceNames.size()));
+        if(deploymentsList.getItems().size() != 0){
+            response.setServices(serviceNames);
+            response.setMessage("Get the service name list successfully!");
+            response.setStatus(true);
+        }
+        else{
+            response.setStatus(false);
+            response.setMessage("Fail to get the service name list!");
+        }
+        return response;
+    }
+
+    //Get the replicas num of the specific services
+    @Override
+    public GetServiceReplicasResponse getServicesReplicas(GetServiceReplicasRequest getServiceReplicasRequest) {
+        GetServiceReplicasResponse response = new GetServiceReplicasResponse();
+        //Get the current deployments information
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList();
+        //Iterate the list and return the result
+        List<ServiceWithReplicas> services = new ArrayList<ServiceWithReplicas>();
+        for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
+            for(String serviceName : getServiceReplicasRequest.getServices()){
+                if(singleDeploymentInfo.getMetadata().getName().equals(serviceName)){
+                    ServiceWithReplicas serviceWithReplicas = new ServiceWithReplicas();
+                    serviceWithReplicas.setServiceName(serviceName);
+                    serviceWithReplicas.setNumOfReplicas(singleDeploymentInfo.getStatus().getReadyReplicas());
+                    services.add(serviceWithReplicas);
+                    break;
+                }
+            }
+        }
+        System.out.println(String.format("The size of current service is %d",services.size()));
+        if(services.size() != 0){
+            response.setServices(services);
+            response.setMessage("Get the replicas of the corresponding services successfully!");
+            response.setStatus(true);
+        }
+        else{
+            response.setStatus(false);
+            response.setMessage("Fail to get the replicas of the corresponding services!");
+        }
+        return response;
+    }
+
+    //Check if all the required deployment replicas are ready
     private boolean isAllReady(SetServiceReplicasRequest setServiceReplicasRequest){
         boolean isAllReady = true;
-        String filePath = "/app/get_deployment_list_result.json";
+
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList();
+
+        for(ServiceReplicasSetting setting : setServiceReplicasRequest.getServiceReplicasSettings()){
+            if(!isSingleReady(deploymentsList.getItems(),setting)){
+                isAllReady = false;
+                break;
+            }
+        }
+        return isAllReady;
+    }
+
+    //Get the deployment list
+    private QueryDeploymentsListResponse getDeploymentList(){
         //Get the current deployments information and echo to the file
+        String filePath = "/app/get_deployment_list_result.json";
         QueryDeploymentsListResponse deploymentsList = new QueryDeploymentsListResponse();
         String apiUrl = String.format("%s/apis/apps/v1beta1/namespaces/%s/deployments",Const.APISERVER ,NAMESPACE);
         System.out.println(String.format("The constructed api url for getting the deploymentlist is %s", apiUrl));
@@ -129,16 +172,10 @@ public class ApiServiceImpl implements ApiService {
         }catch(InterruptedException e){
             e.printStackTrace();
         }
-
-        for(ServiceReplicasSetting setting : setServiceReplicasRequest.getServiceReplicasSettings()){
-            if(!isSingleReady(deploymentsList.getItems(),setting)){
-                isAllReady = false;
-                break;
-            }
-        }
-        return isAllReady;
+        return deploymentsList;
     }
 
+    //Check if the single required deployment replicas are ready
     private boolean isSingleReady(List<SingleDeploymentInfo> deploymentInfoList, ServiceReplicasSetting setting){
         boolean isReady = false;
         for(SingleDeploymentInfo singleDeploymentInfo : deploymentInfoList){
