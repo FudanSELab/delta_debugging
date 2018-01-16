@@ -132,7 +132,7 @@
 
 <div class="admin">
 
-  <div class="admin-biaoge" style="padding-left: 60px;margin-top: 50px;width:70%;">
+  <div class="admin-biaoge" style="padding-left: 60px;margin-top: 50px;width:75%;">
 
     <table id="serviceTable" style="display: table; width:100%" class="am-avg-sm-2 am-avg-md-3 am-avg-lg-4 am-thumbnails">
       <h2>Services</h2>
@@ -168,7 +168,12 @@
       <tbody>
       <tr  ng-repeat=" result in deltaResults">
         <td>{{result.services}}</td>
-        <td>{{result.tests}}</td>
+        <td>
+          {{result.tests}}
+          <span ng-if="result.diff" style="color: red">
+              different from the first test!
+          </span>
+        </td>
         <!--<td >-->
           <!--<img ng-if="result.status == 'SUCCESS'" ng-src="img/pass.png">-->
           <!--<img ng-if="result.status == 'FAILURE'" ng-src="img/failed.png">-->
@@ -183,7 +188,7 @@
   </div>
 
 
-  <div id="case-names" class="am-u-sm-6" style="padding-left: 30px;margin-top: 50px;width:25%; float: right">
+  <div id="case-names" class="am-u-sm-6" style="padding-left: 30px;margin-top: 50px;width:20%; float: right">
     <div ng-repeat="name in testNames">
       <label class="am-checkbox am-secondary">
         <input type="checkbox" value="{{name.title}}" data-am-ucheck name="case"> {{name.title}}
@@ -191,18 +196,6 @@
     </div>
   </div>
 
-
-
-    <!--<label class="am-checkbox am-secondary">-->
-      <!--<input type="checkbox" value="1" data-am-ucheck name="case"> 1-->
-    <!--</label>-->
-    <!--<label class="am-checkbox am-secondary">-->
-      <!--<input type="checkbox" value="2" data-am-ucheck name="case"> 2-->
-    <!--</label>-->
-    <!--<label class="am-checkbox am-secondary">-->
-      <!--<input type="checkbox" value="3" data-am-ucheck name="case"> 3-->
-    <!--</label>-->
-    <!--<button ng-click="test()">test</button>-->
 
   </div>
 

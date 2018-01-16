@@ -1,4 +1,4 @@
-package backend.domain;
+package backend.domain.delta;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,7 +7,7 @@ public class DeltaTestResponse {
 
     private boolean status;
     private String message;
-    List<TestResponse> deltaResults = new ArrayList<TestResponse>();
+    List<DeltaTestResult> deltaResults = new ArrayList<DeltaTestResult>();
 
     public boolean isStatus() {
         return status;
@@ -25,18 +25,18 @@ public class DeltaTestResponse {
         this.message = message;
     }
 
-    public List<TestResponse> getDeltaResults() {
+
+    public List<DeltaTestResult> getDeltaResults() {
         return deltaResults;
     }
 
-    public void setDeltaResults(List<TestResponse> deltaResults) {
-        this.deltaResults = deltaResults;
+    public void setDeltaResults(List<DeltaTestResult> result) {
+        this.deltaResults = result;
     }
 
-    public void addDeltaResult(TestResponse t){
-        this.deltaResults.add(t);
+    public void addDeltaResult(DeltaTestResult d){
+        deltaResults.add(d);
     }
-
 
 
 }

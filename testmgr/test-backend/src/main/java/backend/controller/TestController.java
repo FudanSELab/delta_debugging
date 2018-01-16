@@ -1,12 +1,14 @@
 package backend.controller;
 
 import backend.domain.*;
+import backend.domain.delta.DeltaTestReporter;
+import backend.domain.delta.DeltaTestRequest;
+import backend.domain.delta.DeltaTestResponse;
+import backend.domain.delta.DeltaTestResult;
 import backend.domain.socket.SocketRequest;
 import backend.domain.socket.SocketResponse;
 import backend.domain.socket.SocketSessionRegistry;
 import backend.service.ConfigService;
-import com.fasterxml.jackson.databind.util.JSONPObject;
-import net.sf.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -16,20 +18,15 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.testng.ITestNGListener;
 import org.testng.TestNG;
-import org.testng.*;
-import test.SimpleTest;
 
 
 import java.io.*;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 
 @RestController
 public class TestController {
@@ -85,7 +82,7 @@ public class TestController {
 
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/testBackend/deltaTest", method = RequestMethod.POST)
-    public  DeltaTestResponse deltaTest(@RequestBody DeltaTestRequest request) throws Exception {
+    public DeltaTestResponse deltaTest(@RequestBody DeltaTestRequest request) throws Exception {
         List<String> testStrings = request.getTestNames();
         if(testStrings == null){
             DeltaTestResponse response = new DeltaTestResponse();
@@ -94,7 +91,7 @@ public class TestController {
             return response;
         }
         DeltaTestResponse response = new DeltaTestResponse();
-        List<FutureTask<TestResponse>> futureTasks = new ArrayList<FutureTask<TestResponse>>();
+        List<FutureTask<DeltaTestResult>> futureTasks = new ArrayList<FutureTask<DeltaTestResult>>();
         ExecutorService executorService = Executors.newFixedThreadPool(10);
         for(String s: testStrings){
             if( ! configService.containTestCase(s) ){
@@ -102,7 +99,7 @@ public class TestController {
                 response.setMessage(s + "is not in the test list.");
                 return response;
             } else {
-                FutureTask<TestResponse> futureTask = new FutureTask<TestResponse>(new SingleTest(s));
+                FutureTask<DeltaTestResult> futureTask = new FutureTask<DeltaTestResult>(new SingleDeltaTest(s));
                 System.out.println("##############################################");
                 System.out.println("############# add a new test task ############");
                 System.out.println("##############################################");
@@ -111,13 +108,13 @@ public class TestController {
             }
         }
         boolean status = true;
-        for (FutureTask<TestResponse> futureTask : futureTasks) {
+        for (FutureTask<DeltaTestResult> futureTask : futureTasks) {
             response.addDeltaResult(futureTask.get());
-            if( ! futureTask.get().isStatus()){
+            if( ! "SUCCESS".equals(futureTask.get().getStatus())){
                 status = false;
             }
         }
-        response.setStatus(false);
+        response.setStatus(status);
         response.setMessage("Test all the chosen testcases");
         // 清理线程池
         executorService.shutdown();
@@ -125,46 +122,31 @@ public class TestController {
     }
 
     //callable test
-    class SingleTest implements Callable<TestResponse>{
+    class SingleDeltaTest implements Callable<DeltaTestResult>{
 
         private String testName;
 
-        public SingleTest(String s){
+        public SingleDeltaTest(String s){
             this.testName = s;
         }
 
         @Override
-        public TestResponse call() throws Exception {
-            return runTest(this.testName);
+        public DeltaTestResult call() throws Exception {
+            return runDeltaTest(this.testName);
         }
     }
 
 
-//    @CrossOrigin(origins = "*")
-//    @RequestMapping(value="/testBackend/deltaTest", method = RequestMethod.POST)
-//    public  DeltaTestResponse deltaTest(@RequestBody DeltaTestRequest request) throws Exception {
-//        List<String> testStrings = request.getTestNames();
-//        if(testStrings == null){
-//            DeltaTestResponse response = new DeltaTestResponse();
-//            response.setStatus(false);
-//            response.setMessage("The file is not in the test list.");
-//            return response;
-//        }
-//        DeltaTestResponse response = new DeltaTestResponse();
-//        for(String s: testStrings){
-//            if( ! configService.containTestCase(s) ){
-//                response.setStatus(false);
-//                response.setMessage(s + "is not in the test list.");
-//                return response;
-//            } else {
-//                TestResponse r = runTest(s);
-//                response.addDeltaResult(r);
-//            }
-//        }
-//        response.setStatus(true);
-//        response.setMessage("Test all the chosen testcases");
-//        return response;
-//    }
+    private DeltaTestResult runDeltaTest(String testString) throws Exception{
+        TestNG testng = new TestNG();
+        testng.setTestClasses(new Class[]{Class.forName(configService.getTestCase(testString))});
+        DeltaTestReporter tfr = new DeltaTestReporter();
+        testng.addListener((ITestNGListener)tfr);
+        testng.setOutputDirectory("./test-output");
+        testng.run();
+        return tfr.getDeltaResult();
+    }
+
 
     private TestResponse runTest(String testString) throws Exception{
         TestResponse response = new TestResponse();

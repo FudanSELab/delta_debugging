@@ -8,6 +8,7 @@ public class DeltaResponse {
     String message;
     List<EnvParameter> env = new ArrayList<EnvParameter>();
     DeltaTestResponse result;
+    boolean diffFromFirst;//different from the first test result, highlight it
 
     public DeltaTestResponse getResult() {
         return result;
@@ -41,8 +42,13 @@ public class DeltaResponse {
         this.message = message;
     }
 
+    public boolean isDiffFromFirst() {
+        return diffFromFirst;
+    }
 
-
+    public void setDiffFromFirst(boolean diffFromFirst) {
+        this.diffFromFirst = diffFromFirst;
+    }
 
 
 }
