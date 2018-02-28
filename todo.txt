@@ -1,0 +1,23 @@
+
+
+
+2018.2.28 -- 2018.3.2
+李文海：
+Node的delta的api
+实现方案:购票服务集群不变，运行的节点从集群转到单slave节点或者单节点并保持服务正常运行，利用k8s已有api实现
+丁丹：
+微服务系统的delta
+实现方案:从trace跟踪出当前故障关联的那几个微服务，单独部署运行，即修改compose文件自动跑部署命令或者用已有docker service api增删服务
+冀超：Istio的调用链顺序控制api
+通过动态修改配置并apply配置到集群环境k8s+istio或者定制istio实现逻辑来控制
+
+
+麒麟：
+https://github.com/naver/pinpoint
+试着将pinpoint应用到我们的微服务集群中，生成报表
+河川：
+https://conduit.io/
+研究一下这个轻量级service mesh的框架，最好应用到我们的微服务系统中，生成相关报表
+
+
+
