@@ -4,6 +4,7 @@ import apiserver.request.GetServiceReplicasRequest;
 import apiserver.request.SetServiceReplicasRequest;
 import apiserver.response.GetServiceReplicasResponse;
 import apiserver.response.GetServicesListResponse;
+import apiserver.response.SetRunOnSingleNodeResponse;
 import apiserver.response.SetServiceReplicasResponse;
 import apiserver.service.ApiService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,5 +35,12 @@ public class ApiController {
     @RequestMapping(value="/api/getServicesReplicas", method= RequestMethod.POST)
     public GetServiceReplicasResponse getServicesReplicas(@RequestBody GetServiceReplicasRequest getServiceReplicasRequest){
         return apiService.getServicesReplicas(getServiceReplicasRequest);
+    }
+
+    //Node delta: Set to run on single node
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/runOnSingleNode", method= RequestMethod.GET)
+    public SetRunOnSingleNodeResponse setRunOnSingleNode(){
+        return apiService.setRunOnSingleNode();
     }
 }

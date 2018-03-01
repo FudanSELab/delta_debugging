@@ -5,6 +5,7 @@ import apiserver.request.GetServiceReplicasRequest;
 import apiserver.request.SetServiceReplicasRequest;
 import apiserver.response.GetServiceReplicasResponse;
 import apiserver.response.GetServicesListResponse;
+import apiserver.response.SetRunOnSingleNodeResponse;
 import apiserver.response.SetServiceReplicasResponse;
 import apiserver.util.Const;
 import com.alibaba.fastjson.JSON;
@@ -130,6 +131,16 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
+    //Set the system to run on single node
+    @Override
+    public SetRunOnSingleNodeResponse setRunOnSingleNode() {
+        V1NodeList nodeList = getNodeList();
+        for(V1Node node : nodeList.getItems()){
+            System.out.println(String.format("The node name is %s and the role is %s",node.getMetadata().getName(),node.getSpec().getTaints() == null?"Minion":"Master"));
+        }
+        return null;
+    }
+
     //Check if all the required deployment replicas are ready
     private boolean isAllReady(SetServiceReplicasRequest setServiceReplicasRequest){
         boolean isAllReady = true;
@@ -173,6 +184,35 @@ public class ApiServiceImpl implements ApiService {
             e.printStackTrace();
         }
         return deploymentsList;
+    }
+
+    //Get the node list
+    private V1NodeList getNodeList(){
+        //Get the current deployments information and echo to the file
+        String filePath = "/app/get_node_list_result.json";
+        V1NodeList nodeList = new V1NodeList();
+        String apiUrl = String.format("%s/api/v1/nodes",Const.APISERVER );
+        System.out.println(String.format("The constructed api url for getting the node list is %s", apiUrl));
+        String[] cmds ={
+                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,Const.TOKEN,filePath)
+        };
+        ProcessBuilder pb = new ProcessBuilder(cmds);
+        pb.redirectErrorStream(true);
+        Process p;
+        try {
+            p = pb.start();
+            p.waitFor();
+
+            String json = readWholeFile(filePath);
+            //Parse the response to the SetServicesReplicasResponseFromAPI Bean
+//            System.out.println(json);
+            nodeList = JSON.parseObject(json,V1NodeList.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }catch(InterruptedException e){
+            e.printStackTrace();
+        }
+        return nodeList;
     }
 
     //Check if the single required deployment replicas are ready
