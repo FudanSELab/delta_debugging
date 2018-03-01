@@ -222,7 +222,7 @@ public class ApiServiceImpl implements ApiService {
         try {
             File file = new File(filePath);
             if (file.delete()) {
-                System.out.println(file.getName() + "is deleted");
+                System.out.println(file.getName() + " is deleted");
             } else {
                 System.out.println("Delete failed.");
             }
