@@ -196,10 +196,10 @@ public class ApiServiceImpl implements ApiService {
         //Get the current deployments information and echo to the file
         String filePath = "/app/get_node_list_result.json";
         V1NodeList nodeList = new V1NodeList();
-        String apiUrl = String.format("%s/api/v1/nodes",Const.APISERVER );
+        String apiUrl = String.format("%s/api/v1/nodes",myConfig.getApiServer());
         System.out.println(String.format("The constructed api url for getting the node list is %s", apiUrl));
         String[] cmds ={
-                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,Const.TOKEN,filePath)
+                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
         };
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
