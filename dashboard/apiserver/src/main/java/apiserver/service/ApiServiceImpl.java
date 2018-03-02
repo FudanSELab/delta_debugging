@@ -6,8 +6,9 @@ import apiserver.request.SetServiceReplicasRequest;
 import apiserver.response.GetServiceReplicasResponse;
 import apiserver.response.GetServicesListResponse;
 import apiserver.response.SetServiceReplicasResponse;
-import apiserver.util.Const;
+import apiserver.util.MyConfig;
 import com.alibaba.fastjson.JSON;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -16,7 +17,11 @@ import java.util.List;
 
 @Service
 public class ApiServiceImpl implements ApiService {
+
     private final String NAMESPACE = "default";
+    @Autowired
+    private MyConfig myConfig;
+
 
     //Set the required number of service replicas
     @Override
@@ -24,12 +29,12 @@ public class ApiServiceImpl implements ApiService {
         SetServiceReplicasResponse response = new SetServiceReplicasResponse();
         //Set the desired number of service replicas
         for(ServiceReplicasSetting setting : setServiceReplicasRequest.getServiceReplicasSettings()){
-            String apiUrl = String.format("%s/apis/extensions/v1beta1/namespaces/%s/deployments/%s/scale",Const.APISERVER ,NAMESPACE,setting.getServiceName());
+            String apiUrl = String.format("%s/apis/extensions/v1beta1/namespaces/%s/deployments/%s/scale",myConfig.getApiServer() ,NAMESPACE,setting.getServiceName());
             System.out.println(String.format("The constructed api url is %s", apiUrl));
             String data ="'[{ \"op\": \"replace\", \"path\": \"/spec/replicas\", \"value\":" +  setting.getNumOfReplicas() + " }]'";
 
             String[] cmds ={
-                    "/bin/sh","-c",String.format("curl -X PATCH -d%s -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure",data,apiUrl,Const.TOKEN)
+                    "/bin/sh","-c",String.format("curl -X PATCH -d%s -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure",data,apiUrl,myConfig.getToken())
             };
             ProcessBuilder pb = new ProcessBuilder(cmds);
             pb.redirectErrorStream(true);
@@ -150,10 +155,10 @@ public class ApiServiceImpl implements ApiService {
         //Get the current deployments information and echo to the file
         String filePath = "/app/get_deployment_list_result.json";
         QueryDeploymentsListResponse deploymentsList = new QueryDeploymentsListResponse();
-        String apiUrl = String.format("%s/apis/apps/v1beta1/namespaces/%s/deployments",Const.APISERVER ,NAMESPACE);
+        String apiUrl = String.format("%s/apis/apps/v1beta1/namespaces/%s/deployments",myConfig.getApiServer() ,NAMESPACE);
         System.out.println(String.format("The constructed api url for getting the deploymentlist is %s", apiUrl));
         String[] cmds ={
-                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,Const.TOKEN,filePath)
+                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
         };
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);

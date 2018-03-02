@@ -17,8 +17,7 @@
 	<modules>
 
 		<module>testmgr/test-backend</module>
-		<module>cscontrol/delta-test-backend</module>
-		<!--<module>test-backend</module>-->
+		<module>cscontrol/delta-backend</module>
         <module>dashboard/apiserver</module>
 
     </modules>

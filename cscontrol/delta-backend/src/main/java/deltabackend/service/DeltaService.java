@@ -4,5 +4,5 @@ import deltabackend.domain.DeltaRequest;
 
 public interface DeltaService {
 
-    void deltaTest(DeltaRequest message);
+    void delta(DeltaRequest message);
 }

@@ -28,18 +28,18 @@ services:
       networks:
         - my-network
 
-  delta-test-ui-dashboard:
-      build: cscontrol/delta-test-ui-dashboard
-      image: test/delta-test--ui-dashboard
+  delta-ui-dashboard:
+      build: cscontrol/delta-ui-dashboard
+      image: test/delta-ui-dashboard
       restart: always
       ports:
         - 8083:8083
       networks:
         - my-network
 
-  delta-test-backend:
-      build: cscontrol/delta-test-backend
-      image: test/delta-test-backend
+  delta-backend:
+      build: cscontrol/delta-backend
+      image: test/delta-backend
       restart: always
       ports:
         - 5002:5002
