@@ -1,0 +1,12 @@
+
+
+build:
+mvn -Dmaven.test.skip=true clean package
+docker-compose -f docker-compose.yml build
+
+
+run:
+docker-compose -f docker-compose.yml up -d
+docker-compose down
+docker-compose logs -f
+
