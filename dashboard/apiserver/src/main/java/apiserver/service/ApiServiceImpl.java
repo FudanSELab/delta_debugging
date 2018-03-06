@@ -2,16 +2,15 @@ package apiserver.service;
 
 import apiserver.bean.*;
 import apiserver.request.GetServiceReplicasRequest;
+import apiserver.request.ReserveServiceRequest;
 import apiserver.request.SetServiceReplicasRequest;
-import apiserver.response.GetServiceReplicasResponse;
-import apiserver.response.GetServicesListResponse;
-import apiserver.response.SetRunOnSingleNodeResponse;
-import apiserver.response.SetServiceReplicasResponse;
+import apiserver.response.*;
 import apiserver.util.MyConfig;
 import com.alibaba.fastjson.JSON;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.print.attribute.standard.MediaSize;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -139,11 +138,204 @@ public class ApiServiceImpl implements ApiService {
     //Set the system to run on single node
     @Override
     public SetRunOnSingleNodeResponse setRunOnSingleNode() {
+        SetRunOnSingleNodeResponse response = new SetRunOnSingleNodeResponse();
+        //Set the default information
+        response.setStatus(false);
+        response.setMessage("There is no message now!");
+
         V1NodeList nodeList = getNodeList();
+        List<V1Node> workingNodeList = new ArrayList<V1Node>();
+
+        //Construct the working node list
         for(V1Node node : nodeList.getItems()){
             System.out.println(String.format("The node name is %s and the role is %s",node.getMetadata().getName(),node.getSpec().getTaints() == null?"Minion":"Master"));
+            if(node.getSpec().getTaints() == null)
+                workingNodeList.add(node);
         }
-        return null;
+
+        //Delete the other working nodes and reserve only one and return until all the services are available again
+        if(workingNodeList.size() <= 1){
+            System.out.println("There is at most one working node. Nothing to do.");
+        }else{
+            //Delete node
+            for(int i = 1; i < workingNodeList.size(); i++){
+                V1Node node = workingNodeList.get(i);
+                System.out.println(String.format("The node %s is to be deleted",node.getMetadata().getName()));
+                deleteNode(node.getMetadata().getName());
+            }
+            //Sleep to let the kubernetes has time to refresh the status
+            try{
+                Thread.sleep(10000);
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+            //Check whether all of the services are available again in certain internals
+            while(!isAllReady()){
+                try{
+                    //Check every 10 seconds
+                    Thread.sleep(10000);
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
+            }
+            response.setStatus(true);
+            response.setMessage("The system are now run on single node");
+        }
+        return response;
+    }
+
+    //Reserve the services included in the list and delete the others
+    @Override
+    public ReserveServiceByListResponse reserveServiceByList(ReserveServiceRequest reserveServiceRequest) {
+        ReserveServiceByListResponse response = new ReserveServiceByListResponse();
+        response.setStatus(true);
+        response.setMessage("Succeed to delete all of the services not contained in the list");
+        //Get the current deployments information
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList();
+
+        for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
+            //Delete the services not contained in the list
+            String deploymentName = singleDeploymentInfo.getMetadata().getName();
+            if(!existInTheList(deploymentName,reserveServiceRequest.getServices())){
+                System.out.println(String.format("The service %s isn't contained in the reserved list. To be deleted",deploymentName ));
+                //Delete the service first
+                deleteService(deploymentName);
+                //Delete the corresponding pod by set the number of replica to 0
+                boolean result = setServiceReplica(deploymentName, 0);
+                if(!result){
+                    response.setStatus(false);
+                    response.setMessage(String.format("Fail to delete the service %s", deploymentName));
+                    break;
+                }
+            }else{
+                System.out.println(String.format("The service %s is contained in the reserved list. Reserve",deploymentName ));
+            }
+        }
+        return response;
+    }
+
+    //Set service to the target replicas number
+    private boolean setServiceReplica(String serviceName, int targetNum){
+        boolean status = false;
+        SetServicesReplicasResponseFromAPI result;
+        String filePath = "/app/set_service_replica.json";
+        String apiUrl = String.format("%s/apis/extensions/v1beta1/namespaces/%s/deployments/%s/scale",myConfig.getApiServer() ,NAMESPACE,serviceName);
+        System.out.println(String.format("The constructed api url is %s", apiUrl));
+        String data ="'[{ \"op\": \"replace\", \"path\": \"/spec/replicas\", \"value\":" +  targetNum + " }]'";
+
+        String[] cmds ={
+                "/bin/sh","-c",String.format("curl -X PATCH -d%s -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",data,apiUrl,myConfig.getToken(),filePath)
+        };
+        ProcessBuilder pb = new ProcessBuilder(cmds);
+        pb.redirectErrorStream(true);
+        Process p;
+        try {
+            p = pb.start();
+            p.waitFor();
+
+            String json = readWholeFile(filePath);
+            //Parse the response to the SetServicesReplicasResponseFromAPI Bean
+//            System.out.println(json);
+            result = JSON.parseObject(json,SetServicesReplicasResponseFromAPI.class);
+            status = true;
+            System.out.println(String.format("The pod corresponding to service %s has been deleted successfully!",serviceName));
+        } catch (Exception e) {
+            status = false;
+            System.out.println(String.format("Fail to delete the pod corresponding to service %s",serviceName));
+            e.printStackTrace();
+        }
+        return status;
+    }
+
+    //Judge if the deployment name is in the reserved service name list
+    private boolean existInTheList(String deploymentName, List<String> serviceNames){
+        boolean isExist = false;
+        for(String serviceName : serviceNames){
+            if(deploymentName.equals(serviceName)){
+                isExist = true;
+                break;
+            }
+        }
+        return isExist;
+    }
+
+    //Delete the node
+    private void deleteNode(String nodeName){
+        DeleteNodeResult result;
+        String filePath = "/app/delete_node_result.json";
+        String apiUrl = String.format("%s/api/v1/nodes/%s",myConfig.getApiServer(),nodeName );
+        System.out.println(String.format("The constructed api url for deleting node is %s", apiUrl));
+        String[] cmds ={
+                "/bin/sh","-c",String.format("curl -X DELETE %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+        };
+        ProcessBuilder pb = new ProcessBuilder(cmds);
+        pb.redirectErrorStream(true);
+        Process p;
+        try {
+            p = pb.start();
+            p.waitFor();
+
+            String json = readWholeFile(filePath);
+            //Parse the response to the SetServicesReplicasResponseFromAPI Bean
+//            System.out.println(json);
+            result = JSON.parseObject(json,DeleteNodeResult.class);
+            if(result.getStatus().equals("Success") || result.getStatus().equals("success")){
+                System.out.println(String.format("The node %s has been deleted successfully!",nodeName));
+            }
+            else{
+                System.out.println(String.format("Fail to delete the node %s. The corresponding status is %s",nodeName,result.getStatus()));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }catch(InterruptedException e){
+            e.printStackTrace();
+        }
+    }
+
+    //Delete the service
+    private void deleteService(String serviceName){
+        DeleteServiceResult result;
+        String filePath = "/app/delete_service_result.json";
+        String apiUrl = String.format("%s/api/v1/namespaces/%s/services/%s",myConfig.getApiServer(), NAMESPACE,serviceName );
+        System.out.println(String.format("The constructed api url for deleting service is %s", apiUrl));
+        String[] cmds ={
+                "/bin/sh","-c",String.format("curl -X DELETE %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+        };
+        ProcessBuilder pb = new ProcessBuilder(cmds);
+        pb.redirectErrorStream(true);
+        Process p;
+        try {
+            p = pb.start();
+            p.waitFor();
+
+            String json = readWholeFile(filePath);
+            //Parse the response to the SetServicesReplicasResponseFromAPI Bean
+//            System.out.println(json);
+            result = JSON.parseObject(json,DeleteServiceResult.class);
+            if(result.getStatus().equals("Success") || result.getStatus().equals("success")){
+                System.out.println(String.format("The service %s has been deleted successfully!",serviceName));
+            }
+            else{
+                System.out.println(String.format("Fail to delete the service %s. The corresponding status is %s",serviceName,result.getStatus()));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }catch(InterruptedException e){
+            e.printStackTrace();
+        }
+    }
+
+    //Check if all the services are available again after deleting the node
+    private boolean isAllReady(){
+        boolean isAllReady = true;
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList();
+        for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
+            if(singleDeploymentInfo.getStatus().getReplicas() != singleDeploymentInfo.getStatus().getReadyReplicas()){
+                isAllReady = false;
+                break;
+            }
+        }
+        return isAllReady;
     }
 
     //Check if all the required deployment replicas are ready
@@ -182,7 +374,6 @@ public class ApiServiceImpl implements ApiService {
             //Parse the response to the SetServicesReplicasResponseFromAPI Bean
 //            System.out.println(json);
             deploymentsList = JSON.parseObject(json,QueryDeploymentsListResponse.class);
-            System.out.println(deploymentsList.getItems().get(0).getMetadata().getName());
         } catch (IOException e) {
             e.printStackTrace();
         }catch(InterruptedException e){
@@ -236,7 +427,7 @@ public class ApiServiceImpl implements ApiService {
         return isReady;
     }
 
-    //Read the whole file
+    //Read the whole file(Delete after read completion)
     private String readWholeFile(String path){
         String encoding = "UTF-8";
         File file = new File(path);
