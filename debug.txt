@@ -1,0 +1,33 @@
+
+
+
+
+run:
+http://10.141.212.22:8083/
+
+
+delta instance:
+http://10.141.212.23:18898/api/setReplicas
+{
+	"serviceReplicasSettings": [
+        {"serviceName":"ts-sso-service","numOfReplicas": 3},
+        {"serviceName":"ts-station-service","numOfReplicas": 3}
+    ]
+}
+
+
+delta service:
+http://10.141.212.23:18898/api/reserveServiceByList
+{
+	"services": [
+        "ts-admin-order-service",
+        "ts-admin-route-service"
+    ]
+}
+
+
+delta node:
+http://10.141.212.23:18898/api/runOnSingleNode
+kubectl get pod -o wide
+
+
