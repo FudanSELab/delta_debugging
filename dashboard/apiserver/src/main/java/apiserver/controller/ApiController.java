@@ -1,11 +1,9 @@
 package apiserver.controller;
 
 import apiserver.request.GetServiceReplicasRequest;
+import apiserver.request.ReserveServiceRequest;
 import apiserver.request.SetServiceReplicasRequest;
-import apiserver.response.GetServiceReplicasResponse;
-import apiserver.response.GetServicesListResponse;
-import apiserver.response.SetRunOnSingleNodeResponse;
-import apiserver.response.SetServiceReplicasResponse;
+import apiserver.response.*;
 import apiserver.service.ApiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -42,5 +40,11 @@ public class ApiController {
     @RequestMapping(value="/api/runOnSingleNode", method= RequestMethod.GET)
     public SetRunOnSingleNodeResponse setRunOnSingleNode(){
         return apiService.setRunOnSingleNode();
+    }
+
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/reserveServiceByList", method= RequestMethod.POST)
+    public ReserveServiceByListResponse reserveServiceByList(@RequestBody ReserveServiceRequest reserveServiceRequest){
+        return apiService.reserveServiceByList(reserveServiceRequest);
     }
 }

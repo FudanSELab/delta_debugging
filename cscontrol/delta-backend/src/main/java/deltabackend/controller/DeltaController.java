@@ -31,9 +31,9 @@ public class DeltaController {
     }
 
 
-    @MessageMapping("/msg/deltatest")
-    public void deltaTest(DeltaRequest message) throws Exception {
-        deltaService.deltaTest(message);
+    @MessageMapping("/msg/delta")
+    public void delta(DeltaRequest message) throws Exception {
+        deltaService.delta(message);
     }
 
 

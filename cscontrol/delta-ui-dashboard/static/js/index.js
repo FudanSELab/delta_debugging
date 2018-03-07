@@ -233,7 +233,7 @@ app.controller('indexCtrl', function ($scope, $http,$window,loadDataService,load
         };
         console.log("data:\n");
         console.log(data);
-        stompClient.send("/app/msg/deltatest", {}, JSON.stringify(data));
+        stompClient.send("/app/msg/delta", {}, JSON.stringify(data));
     }
 
 

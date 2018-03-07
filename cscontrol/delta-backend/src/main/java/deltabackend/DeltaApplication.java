@@ -13,10 +13,10 @@ import org.springframework.web.client.RestTemplate;
 @EnableAspectJAutoProxy(proxyTargetClass = true)
 @EnableAsync
 @IntegrationComponentScan
-public class DeltaTestApplication {
+public class DeltaApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(DeltaTestApplication.class, args);
+        SpringApplication.run(DeltaApplication.class, args);
     }
 
     @Bean

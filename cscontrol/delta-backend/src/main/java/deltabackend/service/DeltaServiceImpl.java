@@ -31,7 +31,7 @@ public class DeltaServiceImpl implements DeltaService{
     private RestTemplate restTemplate;
 
     @Override
-    public void deltaTest(DeltaRequest message) {
+    public void delta(DeltaRequest message) {
         if ( ! webAgentSessionRegistry.getSessionIds(message.getId()).isEmpty()){
             System.out.println("=============Get one delta request=============");
             String sessionId=webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
