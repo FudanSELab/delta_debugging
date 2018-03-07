@@ -21,3 +21,14 @@ https://conduit.io/
 
 
 
+
+
+
+
+plan:
+微服务系统的delta（抽取针对故障案例的相关服务）
+基于node的delta的设计与实现
+基于instance数量的delta的设计与实现
+基于配置delta的设计与实现
+基于调用顺序的delta的设计与实现
+基于输入参数和调用链的delta的设计与实现
