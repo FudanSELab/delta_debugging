@@ -1,6 +1,7 @@
 package apiserver.service;
 
 import apiserver.bean.*;
+import apiserver.request.DeltaNodeRequest;
 import apiserver.request.GetServiceReplicasRequest;
 import apiserver.request.ReserveServiceRequest;
 import apiserver.request.SetServiceReplicasRequest;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.print.attribute.standard.MediaSize;
+import javax.xml.soap.Node;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -86,19 +88,22 @@ public class ApiServiceImpl implements ApiService {
         //Get the current deployments information
         QueryDeploymentsListResponse deploymentsList = getDeploymentList();
         //Iterate the list and return the result
-        List<String> serviceNames = new ArrayList<String>();
+        List<ServiceWithReplicas> services = new ArrayList<ServiceWithReplicas>();
         for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
-            serviceNames.add(singleDeploymentInfo.getMetadata().getName());
+            ServiceWithReplicas serviceWithReplicas = new ServiceWithReplicas();
+            serviceWithReplicas.setServiceName(singleDeploymentInfo.getMetadata().getName());
+            serviceWithReplicas.setNumOfReplicas(singleDeploymentInfo.getStatus().getReadyReplicas());
+            services.add(serviceWithReplicas);
         }
-        System.out.println(String.format("The size of current service is %d",serviceNames.size()));
+        System.out.println(String.format("The size of current service is %d",services.size()));
         if(deploymentsList.getItems().size() != 0){
-            response.setServices(serviceNames);
-            response.setMessage("Get the service name list successfully!");
+            response.setServices(services);
+            response.setMessage("Get the service list successfully!");
             response.setStatus(true);
         }
         else{
             response.setStatus(false);
-            response.setMessage("Fail to get the service name list!");
+            response.setMessage("Fail to get the service list!");
         }
         return response;
     }
@@ -135,6 +140,36 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
+    //Reserve the services included in the list and delete the others
+    @Override
+    public ReserveServiceByListResponse reserveServiceByList(ReserveServiceRequest reserveServiceRequest) {
+        ReserveServiceByListResponse response = new ReserveServiceByListResponse();
+        response.setStatus(true);
+        response.setMessage("Succeed to delete all of the services not contained in the list");
+        //Get the current deployments information
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList();
+
+        for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
+            //Delete the services not contained in the list
+            String deploymentName = singleDeploymentInfo.getMetadata().getName();
+            if(isDeleted(deploymentName,reserveServiceRequest.getServices())){
+                System.out.println(String.format("The service %s isn't contained in the reserved list. To be deleted",deploymentName ));
+                //Delete the service first
+                deleteService(deploymentName);
+                //Delete the corresponding pod by set the number of replica to 0
+                boolean result = setServiceReplica(deploymentName, 0);
+                if(!result){
+                    response.setStatus(false);
+                    response.setMessage(String.format("Fail to delete the service %s", deploymentName));
+                    break;
+                }
+            }else{
+                System.out.println(String.format("The service %s is contained in the reserved list. Reserve",deploymentName ));
+            }
+        }
+        return response;
+    }
+
     //Set the system to run on single node
     @Override
     public SetRunOnSingleNodeResponse setRunOnSingleNode() {
@@ -164,8 +199,9 @@ public class ApiServiceImpl implements ApiService {
                 deleteNode(node.getMetadata().getName());
             }
             //Sleep to let the kubernetes has time to refresh the status
+            //TODO: time value to be determined. It seems that 10s is too short。 30s is enough
             try{
-                Thread.sleep(10000);
+                Thread.sleep(30000);
             }catch(Exception e){
                 e.printStackTrace();
             }
@@ -184,34 +220,163 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
-    //Reserve the services included in the list and delete the others
+    //Get the node list
     @Override
-    public ReserveServiceByListResponse reserveServiceByList(ReserveServiceRequest reserveServiceRequest) {
-        ReserveServiceByListResponse response = new ReserveServiceByListResponse();
-        response.setStatus(true);
-        response.setMessage("Succeed to delete all of the services not contained in the list");
-        //Get the current deployments information
-        QueryDeploymentsListResponse deploymentsList = getDeploymentList();
-
-        for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
-            //Delete the services not contained in the list
-            String deploymentName = singleDeploymentInfo.getMetadata().getName();
-            if(!existInTheList(deploymentName,reserveServiceRequest.getServices())){
-                System.out.println(String.format("The service %s isn't contained in the reserved list. To be deleted",deploymentName ));
-                //Delete the service first
-                deleteService(deploymentName);
-                //Delete the corresponding pod by set the number of replica to 0
-                boolean result = setServiceReplica(deploymentName, 0);
-                if(!result){
-                    response.setStatus(false);
-                    response.setMessage(String.format("Fail to delete the service %s", deploymentName));
+    public GetNodesListResponse getNodesList() {
+        GetNodesListResponse response = new GetNodesListResponse();
+        V1NodeList nodeList = getNodeList();
+        System.out.println(String.format("There are now %d nodes in the cluster now", nodeList.getItems().size()));
+        if(nodeList.getItems().size() < 1){
+            response.setStatus(false);
+            response.setMessage("There is no nodes in the cluster!");
+            response.setNodes(null);
+        }
+        //Construct the nodeinfo list
+        List<NodeInfo> nodeInfos = new ArrayList<NodeInfo>();
+        for(V1Node node : nodeList.getItems()){
+            NodeInfo nodeInfo = new NodeInfo();
+            System.out.println(String.format("The node name is %s and the role is %s",node.getMetadata().getName(),node.getSpec().getTaints() == null?"Minion":"Master"));
+            //Set the role
+            if(node.getSpec().getTaints() != null)
+                nodeInfo.setRole("Master");
+            else
+                nodeInfo.setRole("Minion");
+            //Set the name
+            nodeInfo.setName(node.getMetadata().getName());
+            V1NodeStatus status = node.getStatus();
+            //Set the ip
+            List<V1NodeAddress> addresses = status.getAddresses();
+            for(V1NodeAddress address : addresses){
+                if(address.getType().equals("InternalIP")){
+                    nodeInfo.setIp(address.getAddress());
                     break;
                 }
-            }else{
-                System.out.println(String.format("The service %s is contained in the reserved list. Reserve",deploymentName ));
+            }
+            //Set the status
+            List<V1NodeCondition> conditions = status.getConditions();
+            for(V1NodeCondition condition : conditions){
+                if(condition.getType().equals("Ready")){
+                    if(condition.getStatus().equals("True")){
+                        nodeInfo.setStatus("Ready");
+                    }
+                    else{
+                        nodeInfo.setStatus("NotReady");
+                    }
+                    break;
+                }
+            }
+            //Set the node info
+            V1NodeSystemInfo systemInfo = status.getNodeInfo();
+            if(systemInfo != null){
+                nodeInfo.setContainerRuntimeVersion(systemInfo.getContainerRuntimeVersion());
+                nodeInfo.setKubeletVersion(systemInfo.getKubeletVersion());
+                nodeInfo.setKubeProxyVersion(systemInfo.getKubeProxyVersion());
+                nodeInfo.setOperatingSystem(systemInfo.getOperatingSystem());
+                nodeInfo.setOsImage(systemInfo.getOsImage());
+            }
+            nodeInfos.add(nodeInfo);
+        }
+        response.setStatus(true);
+        response.setMessage("Succeed to get the node list info!");
+        response.setNodes(nodeInfos);
+        return response;
+    }
+
+    //Delete the nodes contained in the list
+    @Override
+    public DeltaNodeByListResponse deleteNodeByList(DeltaNodeRequest deltaNodeRequest) {
+        DeltaNodeByListResponse response = new DeltaNodeByListResponse();
+        List<String> nodeNames = deltaNodeRequest.getNodeNames();
+        boolean isSuccess =true;
+        for(String nodeName : nodeNames){
+            if(!deleteNode(nodeName))
+                isSuccess = false;
+        }
+        if(isSuccess){
+            response.setStatus(true);
+            response.setMessage("Succeed to delete all of the nodes in the list!");
+        }else{
+            response.setStatus(false);
+            response.setMessage("Fail to delete some of the nodes in the list!");
+        }
+        //Sleep to let the kubernetes has time to refresh the status
+        //TODO: time value to be determined. It seems that 10s is too short。 30s is enough
+        try{
+            Thread.sleep(30000);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        //Check whether all of the services are available again in certain internals
+        while(!isAllReady()){
+            try{
+                //Check every 10 seconds
+                Thread.sleep(10000);
+            }catch(Exception e){
+                e.printStackTrace();
             }
         }
         return response;
+    }
+
+    //Reserve the nodes contained in the list
+    @Override
+    public DeltaNodeByListResponse reserveNodeByList(DeltaNodeRequest deltaNodeRequest) {
+        DeltaNodeByListResponse response = new DeltaNodeByListResponse();
+        List<String> nodeNames = deltaNodeRequest.getNodeNames();
+        V1NodeList nodeList = getNodeList();
+        boolean isSuccess =true;
+        for(V1Node node : nodeList.getItems()){
+            if(node.getSpec().getTaints() != null){
+                System.out.println("The master can't be deleted!");
+                continue;
+            }
+            String nodeName = node.getMetadata().getName();
+            if(!isExistInNodeList(nodeName,nodeNames)){
+                if(!deleteNode(nodeName))
+                    isSuccess = false;
+            }
+        }
+        if(isSuccess){
+            response.setStatus(true);
+            response.setMessage("Succeed to delete all of the nodes not contained in the list!");
+        }else{
+            response.setStatus(false);
+            response.setMessage("Fail to delete some of the nodes not contained in the list!");
+        }
+        //Sleep to let the kubernetes has time to refresh the status
+        //TODO: time value to be determined. It seems that 10s is too short。 30s is enough
+        try{
+            Thread.sleep(30000);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        //Check whether all of the services are available again in certain internals
+        while(!isAllReady()){
+            try{
+                //Check every 10 seconds
+                Thread.sleep(10000);
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+        return response;
+    }
+
+    //To determine if the service need to be deleted: filter the redis and mongo
+    private boolean isDeleted(String deploymentName,List<String> serviceNames){
+        return (deploymentName.contains("service") || deploymentName.contains("ui-dashboard")) && !existInTheList(deploymentName,serviceNames);
+    }
+
+    //Judge if the node name is in the reserved node name list
+    private boolean isExistInNodeList(String targetNodeName, List<String> nodeNames){
+        boolean isExist = false;
+        for(String nodeName : nodeNames){
+            if(targetNodeName.equals(nodeName)){
+                isExist = true;
+                break;
+            }
+        }
+        return isExist;
     }
 
     //Set service to the target replicas number
@@ -260,7 +425,8 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Delete the node
-    private void deleteNode(String nodeName){
+    private boolean deleteNode(String nodeName){
+        boolean isSuccess = true;
         DeleteNodeResult result;
         String filePath = "/app/delete_node_result.json";
         String apiUrl = String.format("%s/api/v1/nodes/%s",myConfig.getApiServer(),nodeName );
@@ -283,6 +449,7 @@ public class ApiServiceImpl implements ApiService {
                 System.out.println(String.format("The node %s has been deleted successfully!",nodeName));
             }
             else{
+                isSuccess = false;
                 System.out.println(String.format("Fail to delete the node %s. The corresponding status is %s",nodeName,result.getStatus()));
             }
         } catch (IOException e) {
@@ -290,6 +457,7 @@ public class ApiServiceImpl implements ApiService {
         }catch(InterruptedException e){
             e.printStackTrace();
         }
+        return isSuccess;
     }
 
     //Delete the service

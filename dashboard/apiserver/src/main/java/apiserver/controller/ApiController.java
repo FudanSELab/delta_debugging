@@ -1,5 +1,6 @@
 package apiserver.controller;
 
+import apiserver.request.DeltaNodeRequest;
 import apiserver.request.GetServiceReplicasRequest;
 import apiserver.request.ReserveServiceRequest;
 import apiserver.request.SetServiceReplicasRequest;
@@ -21,7 +22,7 @@ public class ApiController {
         return apiService.setServiceReplica(setServiceReplicasRequest);
     }
 
-    //Get the list of all current services
+    //Get the list of all current services: include name and replicas
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/getServicesList", method= RequestMethod.GET)
     public GetServicesListResponse getServicesList(){
@@ -35,6 +36,13 @@ public class ApiController {
         return apiService.getServicesReplicas(getServiceReplicasRequest);
     }
 
+    //Service delta: Reserve only the services contained in the list
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/reserveServiceByList", method= RequestMethod.POST)
+    public ReserveServiceByListResponse reserveServiceByList(@RequestBody ReserveServiceRequest reserveServiceRequest){
+        return apiService.reserveServiceByList(reserveServiceRequest);
+    }
+
     //Node delta: Set to run on single node
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/runOnSingleNode", method= RequestMethod.GET)
@@ -42,9 +50,24 @@ public class ApiController {
         return apiService.setRunOnSingleNode();
     }
 
+    //Get the list of all current nodes info
     @CrossOrigin(origins = "*")
-    @RequestMapping(value="/api/reserveServiceByList", method= RequestMethod.POST)
-    public ReserveServiceByListResponse reserveServiceByList(@RequestBody ReserveServiceRequest reserveServiceRequest){
-        return apiService.reserveServiceByList(reserveServiceRequest);
+    @RequestMapping(value="/api/getNodesList", method= RequestMethod.GET)
+    public GetNodesListResponse getNodesList(){
+        return apiService.getNodesList();
+    }
+
+    //Delete the node in the list
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/deleteNodeByList", method= RequestMethod.POST)
+    public DeltaNodeByListResponse deleteNodeByList(@RequestBody DeltaNodeRequest deltaNodeRequest){
+        return apiService.deleteNodeByList(deltaNodeRequest);
+    }
+
+    //Reserve the node in the list
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/reserveNodeByList", method= RequestMethod.POST)
+    public DeltaNodeByListResponse reserveNodeByList(@RequestBody DeltaNodeRequest deltaNodeRequest){
+        return apiService.reserveNodeByList(deltaNodeRequest);
     }
 }

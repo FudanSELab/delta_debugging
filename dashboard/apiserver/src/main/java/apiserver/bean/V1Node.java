@@ -5,6 +5,7 @@ public class V1Node {
     private String kind = null;
     private V1NodeMeta metadata = null;
     private V1NodeSpec spec = null;
+    private V1NodeStatus status = null;
 
     public V1Node(){
 
@@ -42,4 +43,11 @@ public class V1Node {
         this.spec = spec;
     }
 
+    public V1NodeStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(V1NodeStatus status) {
+        this.status = status;
+    }
 }

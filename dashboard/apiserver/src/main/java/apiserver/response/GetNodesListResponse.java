@@ -1,15 +1,17 @@
 package apiserver.response;
 
+import apiserver.bean.NodeInfo;
 import apiserver.bean.ServiceWithReplicas;
+import apiserver.bean.V1Node;
 
 import java.util.List;
 
-public class GetServicesListResponse {
+public class GetNodesListResponse {
     private boolean status;
     private String message;
-    private List<ServiceWithReplicas> services;
+    private List<NodeInfo> nodes;
 
-    public GetServicesListResponse(){
+    public GetNodesListResponse(){
 
     }
 
@@ -29,11 +31,11 @@ public class GetServicesListResponse {
         this.message = message;
     }
 
-    public List<ServiceWithReplicas> getServices() {
-        return services;
+    public List<NodeInfo> getNodes() {
+        return nodes;
     }
 
-    public void setServices(List<ServiceWithReplicas> services) {
-        this.services = services;
+    public void setNodes(List<NodeInfo> nodes) {
+        this.nodes = nodes;
     }
 }
