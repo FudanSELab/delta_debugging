@@ -5,6 +5,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -17,6 +18,8 @@ import java.util.concurrent.TimeUnit;
 public class TestServiceLogin {
     private WebDriver driver;
     private String baseUrl;
+
+
     public static void ServiceLogin(WebDriver driver,String username,String password){
         driver.findElement(By.id("login_email")).clear();
         driver.findElement(By.id("login_email")).sendKeys(username);
@@ -26,7 +29,7 @@ public class TestServiceLogin {
     }
     @BeforeClass
     public void setUp() throws Exception {
-//        System.setProperty("webdriver.chrome.driver", "/Users/hechuan/Downloads/chromedriver");
+//        System.setProperty("webdriver.chrome.driver", "F:/app/chromedriver.exe");
 //        driver = new ChromeDriver();
 //        baseUrl = "http://localhost:80/";
         driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
@@ -37,9 +40,10 @@ public class TestServiceLogin {
 
     @DataProvider(name="user")
     public Object[][] Users(){
+
         return new Object[][]{
-                {"fdse_microservices@163","DefaultPassword",false},
-                {"fdse_microservices@163.com","DefaultPass",false},
+//                {"fdse_microservices@163","DefaultPassword",false},
+//                {"fdse_microservices@163.com","DefaultPass",false},
                 {"fdse_microservices@163.com","DefaultPassword",true},
                 {"error","error",false},
                 //{"","","请先输入您的邮箱帐号"},

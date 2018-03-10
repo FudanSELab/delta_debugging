@@ -1,10 +1,10 @@
 package test;
 
 import org.openqa.selenium.*;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -19,9 +19,11 @@ public class TestServiceRoute {
     private String baseUrl;
     private List<WebElement> routeList;
 
+
+
     @BeforeClass
     public void setUp() throws Exception {
-//        System.setProperty("webdriver.chrome.driver", "/Users/hechuan/Downloads/chromedriver");
+//        System.setProperty("webdriver.chrome.driver", "F:/app/chromedriver.exe");
 //        driver = new ChromeDriver();
 //        baseUrl = "http://localhost:80/";
         driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),

@@ -4,11 +4,11 @@ import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -21,9 +21,10 @@ public class TestServiceNews {
     private WebDriver driver;
     private String baseUrl;
 
+
     @BeforeClass
     public void setUp() throws Exception {
-//        System.setProperty("webdriver.chrome.driver", "/Users/hechuan/Downloads/chromedriver");
+//        System.setProperty("webdriver.chrome.driver", "F:/app/chromedriver.exe");
 //        driver = new ChromeDriver();
 //        baseUrl = "http://localhost:80/";
         driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
@@ -52,5 +53,10 @@ public class TestServiceNews {
             System.out.println("ERROR! There is no news data!");
             Assert.assertEquals(true, (rows == null || rows.isEmpty()));
         }
+    }
+
+    @AfterClass
+    public void tearDown() throws Exception {
+        driver.quit();
     }
 }

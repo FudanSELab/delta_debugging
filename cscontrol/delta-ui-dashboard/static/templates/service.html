@@ -1,0 +1,34 @@
+<div class="admin">
+
+    <div class="admin-biaoge" style="float:left;padding-left: 60px;margin-top: 30px;width:30%;">
+
+        <div id="case-names"  style="width:100%; float:right">
+            <h4 style="font-weight: bold; margin-bottom: 30px">TestCases</h4>
+            <div ng-repeat="testcase in testCases" style="margin-bottom: 8px">
+                <input type="checkbox" icheck ng-model="testcase.checked" value="{{testcase.title}}" name="testcase">
+                <span style="font-size: 16px;margin-left: 10px">{{testcase.title}}</span>
+            </div>
+            <!--<button  ng-click="extractService()"  class="btn btn-primary">Service Delta</button>-->
+        </div>
+
+    </div>
+
+
+    <div style="padding-right: 60px;margin-top: 50px;width:68%; float: right">
+
+        <div>
+            <!--<span style="font-size: medium;font-weight: bold">{{resultCount}}</span>-->
+            <button  class="btn btn-primary " style="margin-left: 20px;" ng-click="showDelta()">Connect
+            </button>
+            <button  class="btn btn-primary" style="margin-left: 20px;display: none" id="test-button" ng-click="extractService()">Start Delta
+            </button>
+        </div>
+
+        <div style="margin-top:50px;margin-left: 20px">
+            <span ng-model="reservedServices">{{reservedServices}}</span>
+        </div>
+
+    </div>
+
+
+</div>

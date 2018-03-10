@@ -2,24 +2,22 @@ package test;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+
 import java.net.URL;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
 
 public class TestSelenium {
 
     private WebDriver driver;
     private String baseUrl;
+
 
 
     @BeforeClass

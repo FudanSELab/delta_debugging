@@ -1,0 +1,43 @@
+<div class="admin">
+
+    <div class="admin-biaoge" style="float:left;padding-left: 60px;margin-top: 30px;width:50%;">
+
+        <table class="table table-hover table-bordered" style="margin-top: 50px;width:100%">
+            <thead >
+                <tr style="background-color: #aeb2b7;color:#fff;">
+                    <th style="text-align: center"></th>
+                    <th style="text-align: center"><span style="font-size:18px;font-weight: bold">Node Role</span></th>
+                    <th style="text-align: center"><span style="font-size:18px;font-weight: bold">Node Name</span></th>
+                    <th style="text-align: center"><span style="font-size:18px;font-weight: bold">Node IP</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr  ng-repeat=" node in nodeList">
+                    <td><input type="checkbox" icheck ng-model="node.checked" name="node" value="{{node.name}}"></td>
+                    <td>{{node.role}}</td>
+                    <td>{{node.name}}</td>
+                    <td>{{node.ip}}</td>
+                </tr>
+            </tbody>
+        </table>
+
+    </div>
+
+
+    <div style="padding-right: 30px;margin-top: 50px;width:40%; float: right">
+
+        <div>
+            <button  class="btn btn-primary " style="margin-left: 20px;" ng-click="showDelta()">Connect
+            </button>
+            <button  class="btn btn-primary" style="margin-left: 20px;display: none" id="test-button" ng-click="deleteNodes()">Delete Nodes
+            </button>
+        </div>
+
+        <div style="margin-top:50px;margin-left: 20px">
+            <span ng-model="deleteResult">{{deleteResult}}</span>
+        </div>
+
+    </div>
+
+
+</div>

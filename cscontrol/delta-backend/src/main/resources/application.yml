@@ -5,3 +5,6 @@ server:
 spring:
   application:
     name: DeltaBackend
+
+myConfig:
+  zipkinUrl: http://10.141.211.181:30005

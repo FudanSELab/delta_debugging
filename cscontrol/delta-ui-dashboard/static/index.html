@@ -1,213 +1,51 @@
-<!doctype html>
-<html class="no-js" ng-app="myApp">
-<head>
-<meta charset="utf-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<title>Test Management</title>
-<meta name="description" content="这是一个test管理页面">
-<meta name="keywords" content="index">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="renderer" content="webkit">
-<meta http-equiv="Cache-Control" content="no-siteapp" />
-<link rel="icon" type="image/png" href="assets/i/favicon.png">
-<link rel="apple-touch-icon-precomposed" href="assets/i/app-icon72x72@2x.png">
-<meta name="apple-mobile-web-app-title" content="Amaze UI" />
-<link rel="stylesheet" href="assets/css/amazeui.min.css"/>
-<link rel="stylesheet" href="assets/css/admin.css"/>
-<link rel="stylesheet" href="css/lib/amazeui.tree.min.css"/>
-  <link rel="stylesheet" href="css/index.css"/>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
+        <title>Delta Test Management</title>
 
-<script src="assets/js/jquery.min.js"></script>
-<script src="assets/js/app.js"></script>
-<script src="assets/js/amazeui.min.js"></script>
-<script src="js/lib/amazeui.tree.min.js"></script>
-<script type="text/javascript" src="js/lib/angular.js"></script>
-<script type="text/javascript" src="js/index.js"></script>
-  <script src="https://cdn.bootcss.com/sockjs-client/1.0.0/sockjs.min.js"></script>
-  <script src="https://cdn.bootcss.com/stomp.js/2.3.3/stomp.min.js"></script>
-  <script src="js/lib/UUID.js"></script>
+        <link href="lib/bootstrap-3.3.5/css/bootstrap.css" rel="stylesheet"/>
+        <link href="css/app.css" rel="stylesheet"/>
 
-</head>
+        <script src="lib/jquery/jquery.min.js"></script>
+        <script src="lib/angular/angular.js"></script>
+        <script src="http://apps.bdimg.com/libs/angular-route/1.3.13/angular-route.js"></script>
+        <script src="lib/bootstrap-3.3.5/js/bootstrap.js"></script>
+        <script src="lib/UUID.js"></script>
+        <script src="https://cdn.bootcss.com/sockjs-client/1.0.0/sockjs.min.js"></script>
+        <script src="https://cdn.bootcss.com/stomp.js/2.3.3/stomp.min.js"></script>
 
-<body data-type="generalComponents" ng-controller="indexCtrl">
-<header class="am-topbar admin-header">
-  <div class="am-topbar-brand">Train Ticket System Delta Debugging Management Dashboard</div>
+        <!--bootstrap icheck-->
+        <link href="lib/icheck/skins/all.css" rel="stylesheet"/>
+        <script src="lib/icheck/icheck.js"></script>
 
-  <div class="am-collapse am-topbar-collapse" id="topbar-collapse">
-    <ul class="am-nav am-nav-pills am-topbar-nav admin-header-list">
+        <script src="js/app.js"></script>
+        <script src="js/controller/instance-controller.js"></script>
+        <script src="js/controller/node-controller.js"></script>
+        <script src="js/controller/service-controller.js"></script>
 
-    <!--<li class="am-dropdown tognzhi" data-am-dropdown>-->
-  <!--<button class="am-btn am-btn-primary am-dropdown-toggle am-btn-xs am-radius am-icon-bell-o" data-am-dropdown-toggle> 消息管理<span class="am-badge am-badge-danger am-round">6</span></button>-->
-  <!--<ul class="am-dropdown-content">-->
+    </head>
 
-    <!--<li class="am-dropdown-header">所有消息都在这里</li>-->
+    <body ng-app="app">
+        <header >
+            <p>Train Ticket System Delta Debugging Management Dashboard</p>
+        </header>
+        <div style="height:30px;background-color: #2a3542"></div>
 
-    <!--<li><a href="#">未激活会员 <span class="am-badge am-badge-danger am-round">556</span></a></li>-->
-    <!--<li><a href="#">未激活代理 <span class="am-badge am-badge-danger am-round">69</span></a></a></li>-->
-    <!--<li><a href="#">未处理汇款</a></li>-->
-    <!--<li><a href="#">未发放提现</a></li>-->
-    <!--<li><a href="#">未发货订单</a></li>-->
-    <!--<li><a href="#">低库存产品</a></li>-->
-    <!--<li><a href="#">信息反馈</a></li>-->
-    <!---->
-    <!---->
-    <!---->
-  <!--</ul>-->
-<!--</li>-->
-
-    <!--<li class="kuanjie">-->
- 	<!---->
- 	<!--<a href="#">会员管理</a>          -->
- 	<!--<a href="#">奖金管理</a> -->
- 	<!--<a href="#">订单管理</a>   -->
- 	<!--<a href="#">产品管理</a> -->
- 	<!--<a href="#">个人中心</a> -->
- 	 <!--<a href="#">系统设置</a>-->
- <!--</li>-->
-
-    <!--<li class="soso">-->
-    <!--<p>-->
-      <!--<select data-am-selected="{btnWidth: 70, btnSize: 'sm', btnStyle: 'default'}">-->
-            <!--<option value="b">全部</option>-->
-            <!--<option value="o">产品</option>-->
-            <!--<option value="o">会员</option>-->
-      <!--</select>-->
-    <!--</p>-->
-
-    <!--<p class="ycfg"><input type="text" class="am-form-field am-input-sm" placeholder="圆角表单域" /></p>-->
-    <!--<p><button class="am-btn am-btn-xs am-btn-default am-xiao"><i class="am-icon-search"></i></button></p>-->
- <!--</li>-->
-
-      <li class="am-hide-sm-only" style="float: right;">
-        <a href="javascript:;" id="admin-fullscreen">
-          <span class="am-icon-arrows-alt"></span>
-          <span class="admin-fullText">Full Screen</span>
-        </a>
-      </li>
-    </ul>
-  </div>
-
-
-</header>
-
-<div class="am-cf admin-main"> 
-
-<div class="nav-navicon admin-main admin-sidebar">
-    
-    
-    <div class="sideMenu am-icon-dashboard" style="color:#aeb2b7; margin: 10px 0 0 0;font-size: 20px"> Deltas</div>
-
-    <ul class="am-tree" id="fileTree" >
-      <li class="am-tree-branch am-hide" data-template="treebranch">
-        <div class="am-tree-branch-header">
-          <button class="am-tree-branch-name">
-            <span class="am-tree-icon am-tree-icon-folder"></span>
-            <span class="am-tree-label"></span>
-          </button>
+        <div id="navigation" ng-controller="NavController">
+            <p style="font-size: 20px;font-weight: bold;margin-bottom: 10px">Delta</p>
+            <ul>
+                <a href="#/instance"><li  ng-class="{active: isActive('/instance')}">Instance</li></a>
+                <a href="#/node"><li ng-class="{active: isActive('/node')}">Node</li></a>
+                <a href="#/service"><li ng-class="{active: isActive('/service')}">Service</li></a>
+                <a href="#"><li >Config</li></a>
+            </ul>
         </div>
-        <ul class="am-tree-branch-children"></ul>
-        <div class="am-tree-loader"><span class="am-icon-spin am-icon-spinner"></span></div>
-      </li>
-      <li class="am-tree-item am-hide" data-template="treeitem">
-        <button class="am-tree-item-name">
-          <span class="am-tree-icon am-tree-icon-item"></span>
-          <span class="am-tree-label"></span>
-        </button>
-      </li>
-    </ul>
-    
-</div>
 
-<div class=" admin-content">
-	
-  <div class="daohang">
-      <!--<ul>-->
-        <!--<li><button type="button" class="am-btn am-btn-default am-radius am-btn-xs"> 首页 </button></li>-->
-          <!--<li><button type="button" class="am-btn am-btn-default am-radius am-btn-xs">帮助中心<a href="javascript: void(0)" class="am-close am-close-spin" data-am-modal-close="">×</a></button></li>-->
-          <!--<li><button type="button" class="am-btn am-btn-default am-radius am-btn-xs">奖金管理<a href="javascript: void(0)" class="am-close am-close-spin" data-am-modal-close="">×</a></button></li>-->
-          <!--<li><button type="button" class="am-btn am-btn-default am-radius am-btn-xs">产品管理<a href="javascript: void(0)" class="am-close am-close-spin" data-am-modal-close="">×</a></button></li>-->
+        <div ng-view style="float: right;height:100%;width:88%;background-color: #f1f2f7; overflow: scroll;"></div>
 
-      <!--</ul>-->
-  </div>
-
-<div class="admin">
-
-  <div class="admin-biaoge" style="padding-left: 60px;margin-top: 50px;width:75%;">
-
-    <table id="serviceTable" style="display: table; width:100%" class="am-avg-sm-2 am-avg-md-3 am-avg-lg-4 am-thumbnails">
-      <h2>Services</h2>
-      <tbody>
-        <tr ng-repeat="row in serviceNamesGroup">
-          <td ng-repeat="cell in row">
-            <label class="am-checkbox am-secondary">
-              <input type="checkbox" value="{{cell}}" data-am-ucheck name="service"> {{cell}}
-            </label>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <!--<button ng-click="test()">test</button>-->
+    </body>
 
 
-    <div class="xinxitj">
-      <!--<span style="font-size: medium;font-weight: bold">{{resultCount}}</span>-->
-      <button class="am-btn am-btn-primary am-btn-xs am-radius am-align-right" ng-click="showDelta()">Connect
-      </button>
-      <button class="am-btn am-btn-primary am-btn-xs am-radius am-align-right" id="test-button" ng-click="startDeltaTest()" style="display: none">Test
-      </button>
-
-    </div>
-    <table class="am-table" style="margin-top: 30px">
-      <thead>
-      <tr>
-        <th>Service Env</th>
-        <th>Test Result</th>
-
-      </tr>
-      </thead>
-      <tbody>
-      <tr  ng-repeat=" result in deltaResults">
-        <td>{{result.services}}</td>
-        <td>
-          {{result.tests}}
-          <span ng-if="result.diff" style="color: red">
-              different from the first test!
-          </span>
-        </td>
-        <!--<td >-->
-          <!--<img ng-if="result.status == 'SUCCESS'" ng-src="img/pass.png">-->
-          <!--<img ng-if="result.status == 'FAILURE'" ng-src="img/failed.png">-->
-          <!--<img ng-if="result.status == 'SKIP'" ng-src="img/skip.png">-->
-        <!--</td>-->
-        <!--<td>{{result.startTime}}</td>-->
-      </tr>
-
-      </tbody>
-    </table>
-
-  </div>
-
-
-  <div id="case-names" class="am-u-sm-6" style="padding-left: 30px;margin-top: 50px;width:20%; float: right">
-    <div ng-repeat="name in testNames">
-      <label class="am-checkbox am-secondary">
-        <input type="checkbox" value="{{name.title}}" data-am-ucheck name="case"> {{name.title}}
-      </label>
-    </div>
-  </div>
-
-
-  </div>
-
-
-
-</div>
-
-</div>
-
-
-</div>
-
-
-</body>
 </html>

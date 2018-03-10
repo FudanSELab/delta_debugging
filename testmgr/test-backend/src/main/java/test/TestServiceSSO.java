@@ -3,15 +3,14 @@ package test;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -19,6 +18,7 @@ public class TestServiceSSO {
 
     private WebDriver driver;
     private String baseUrl;
+
 
     public static void serviceLogin(WebDriver driver,String username,String password){
         driver.findElement(By.id("login_email")).clear();

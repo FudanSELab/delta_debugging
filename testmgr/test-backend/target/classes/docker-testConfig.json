@@ -2,7 +2,10 @@
   "testDir": "/app/test",
   "classDir": "/test",
   "testCases":{
-    "SimpleTest": "test.SimpleTest",
-    "TestSelenium": "test.TestSelenium"
+      "TestServiceLogin": "test.TestServiceLogin",
+      "TestServiceNews": "test.TestServiceNews",
+      "TestServiceRoute": "test.TestServiceRoute",
+      "TestServiceSSO": "test.TestServiceSSO",
+      "testServiceTicketOffice": "test.testServiceTicketOffice"
   }
 }
