@@ -4,9 +4,10 @@ import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -21,12 +22,10 @@ public class TestServiceNews {
     private WebDriver driver;
     private String baseUrl;
 
-
     @BeforeClass
     public void setUp() throws Exception {
-//        System.setProperty("webdriver.chrome.driver", "F:/app/chromedriver.exe");
+//        System.setProperty("webdriver.chrome.driver", "/Users/hechuan/Downloads/chromedriver");
 //        driver = new ChromeDriver();
-//        baseUrl = "http://localhost:80/";
         driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
                 DesiredCapabilities.chrome());
         baseUrl = "http://10.141.211.181:30004";

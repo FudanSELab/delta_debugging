@@ -46,13 +46,23 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
             }
         });
 
+        // $scope.test = function(){
+        //     var checkedTest = $("input[name='testcase']:checked");
+        //     var tests = [];
+        //     checkedTest.each(function(){
+        //         tests.push($(this).val());
+        //     });
+        //     console.log(tests);
+        // };
+
         // 加载testcase列表
         loadTestCases.loadTestList().then(function (result) {
-            $scope.testCases = [];
-            for(var i = 0; i < result[0].products.length; i++){
-                result[0].products[i].checked = false;
-                $scope.testCases.push(result[0].products[i]);
-            }
+            $scope.testCases = result;
+            // $scope.testCases = [];
+            // for(var i = 0; i < result[0].products.length; i++){
+            //     result[0].products[i].checked = false;
+            //     $scope.testCases.push(result[0].products[i]);
+            // }
         });
 
         var stompClient = null;

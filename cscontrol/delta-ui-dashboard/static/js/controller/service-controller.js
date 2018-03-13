@@ -5,14 +5,15 @@ service.controller('ServiceCtrl',['$scope', '$http','$window','loadTestCases',
 
     // 加载testcase列表
     loadTestCases.loadTestList().then(function (result) {
-        $scope.testCases = [];
-        for(var i = 0; i < result[0].products.length; i++){
-            result[0].products[i].checked = false;
-            $scope.testCases.push(result[0].products[i]);
-        }
+        $scope.testCases = result;
+        // $scope.testCases = [];
+        // for(var i = 0; i < result[0].products.length; i++){
+        //     result[0].products[i].checked = false;
+        //     $scope.testCases.push(result[0].products[i]);
+        // }
     });
 
-        $scope.reservedServices ="";
+        $scope.reservedServices = "delta result...";
         // $scope.extractService = function () {
         //     var checkedTest = $("input[name='testcase']:checked");
         //     var tests = [];
@@ -37,7 +38,7 @@ service.controller('ServiceCtrl',['$scope', '$http','$window','loadTestCases',
     var stompClient = null;
     //传递用户key值
     var loginId = new UUID().id;
-    $scope.deltaResults = [];
+    // $scope.deltaResults = [];
 
     function setConnected(connected) {
         if(connected){

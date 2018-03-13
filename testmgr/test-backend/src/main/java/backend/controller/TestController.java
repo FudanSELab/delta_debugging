@@ -96,7 +96,7 @@ public class TestController {
         for(String s: testStrings){
             if( ! configService.containTestCase(s) ){
                 response.setStatus(false);
-                response.setMessage(s + "is not in the test list.");
+                response.setMessage(s + " is not in the test list.");
                 return response;
             } else {
                 FutureTask<DeltaTestResult> futureTask = new FutureTask<DeltaTestResult>(new SingleDeltaTest(s));
@@ -139,7 +139,9 @@ public class TestController {
 
     private DeltaTestResult runDeltaTest(String testString) throws Exception{
         TestNG testng = new TestNG();
-        testng.setTestClasses(new Class[]{Class.forName(configService.getTestCase(testString))});
+        //must add the package name
+        testng.setTestClasses(new Class[]{Class.forName("test." + testString)});
+//        testng.setTestClasses(new Class[]{Class.forName(configService.getTestCase(testString))});
         DeltaTestReporter tfr = new DeltaTestReporter();
         testng.addListener((ITestNGListener)tfr);
         testng.setOutputDirectory("./test-output");
@@ -153,7 +155,10 @@ public class TestController {
         TestNG testng = new TestNG();
 //        MyClassLoader mcl = new MyClassLoader(configService.getClassDir());
 //        testng.setTestClasses(new Class[]{ mcl.loadClass(configService.getTestCase(testString)) });
-        testng.setTestClasses(new Class[]{Class.forName(configService.getTestCase(testString))});
+
+        //must add the package name
+        testng.setTestClasses(new Class[]{Class.forName("test." + testString)});
+//        testng.setTestClasses(new Class[]{Class.forName(configService.getTestCase(testString))});
 
         TestFlowReporter tfr = new TestFlowReporter();
         testng.addListener((ITestNGListener)tfr);
@@ -176,7 +181,7 @@ public class TestController {
     //get the directory structure of test cases
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/testBackend/getFileTree", method = RequestMethod.GET)
-    public ArrayList<FileDirectory> getFileTree() throws IOException, URISyntaxException, ClassNotFoundException {
+    public Map<String, List<String>> getFileTree() throws IOException, URISyntaxException, ClassNotFoundException {
 //        ArrayList<FileDirectory> result = new ArrayList<FileDirectory>();
 //        FileDirectory fd = new FileDirectory();
 //        fd.setTitle("test");
@@ -184,19 +189,23 @@ public class TestController {
 //        System.out.println("filePath-------" + configService.getTestDir());
 //        traverseFolder(configService.getTestDir(), fd);
 //        result.add(fd);
-        ArrayList<FileDirectory> result = new ArrayList<FileDirectory>();
-        FileDirectory fd = new FileDirectory();
-        fd.setTitle("test");
-        fd.setType("folder");
-        List<String>  testCases = configService.getTestFileNames();
-        for(String s: testCases){
-            FileNode fn = new FileNode();
-            fn.setTitle(s);
-            fn.setType("item");
-            fd.addProduct(fn);
-        }
-        result.add(fd);
-        return result;
+
+
+//        ArrayList<FileDirectory> result = new ArrayList<FileDirectory>();
+//        FileDirectory fd = new FileDirectory();
+//        fd.setTitle("test");
+//        fd.setType("folder");
+//        for(String s: testCases){
+//            FileNode fn = new FileNode();
+//            fn.setTitle(s);
+//            fn.setType("item");
+//            fd.addProduct(fn);
+//        }
+//        result.add(fd);
+
+        Map<String, List<String>>  testCases = configService.getTestFileNames();
+
+        return testCases;
     }
 
     //    @Autowired

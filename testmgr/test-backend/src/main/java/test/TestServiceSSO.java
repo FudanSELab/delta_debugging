@@ -3,14 +3,16 @@ package test;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -18,7 +20,6 @@ public class TestServiceSSO {
 
     private WebDriver driver;
     private String baseUrl;
-
 
     public static void serviceLogin(WebDriver driver,String username,String password){
         driver.findElement(By.id("login_email")).clear();
@@ -32,7 +33,6 @@ public class TestServiceSSO {
     public void setUp() throws Exception {
 //        System.setProperty("webdriver.chrome.driver", "/Users/hechuan/Downloads/chromedriver");
 //        driver = new ChromeDriver();
-//        baseUrl = "http://localhost:80/";
         driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
                 DesiredCapabilities.chrome());
         baseUrl = "http://10.141.211.181:30004";
@@ -93,5 +93,10 @@ public class TestServiceSSO {
         List<WebElement> newRows = driver.findElements(By.xpath("//table[@id='login_account_list_table']/tbody/tr"));
 
         Assert.assertEquals(true, (newRows.size() == rows.size() - 1));
+    }
+
+    @AfterClass
+    public void tearDown() throws Exception {
+        driver.quit();
     }
 }

@@ -1,12 +1,12 @@
 package backend.service;
 
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
+import net.sf.json.JsonConfig;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class ConfigService {
@@ -18,6 +18,7 @@ public class ConfigService {
     private String testDir;
     private String classDir;
     private JSONObject testCases;
+    Map<String, List<String>> testMap = new HashMap<String, List<String>>();
 
     public void readFile(){
         BufferedReader reader = null;
@@ -50,6 +51,17 @@ public class ConfigService {
         testDir = jsonObject.getString("testDir");
         classDir = jsonObject.getString("classDir");
         testCases = jsonObject.getJSONObject("testCases");
+        if(null != testCases){
+            testMap.clear();
+            Iterator<String> sIterator = testCases.keys();
+            while(sIterator.hasNext()){
+                // 获得key
+                String key = sIterator.next();
+                // 根据key获得value, value也可以是JSONObject,JSONArray,使用对应的参数接收即可
+                JSONArray value = testCases.getJSONArray(key);
+                testMap.put(key, JSONArray.toList(value, String.class, new JsonConfig()));
+            }
+        }
     }
 
     public void init(){
@@ -75,23 +87,6 @@ public class ConfigService {
         return classDir;
     }
 
-    public boolean containTestCase(String s){
-        if( null == testCases){
-            init();
-        }
-        return testCases.containsKey(s);
-    }
-
-    public String getTestCase(String s){
-        if( null == testCases){
-            init();
-        }
-        if(testCases.containsKey(s)){
-            return testCases.getString(s);
-        }
-        return null;
-    }
-
     public void reloadJson(){
         fileString = null;
         testDir = null;
@@ -100,21 +95,35 @@ public class ConfigService {
         init();
     }
 
-    public List<String> getTestFileNames(){
-        List<String> s = new ArrayList<String>();
+    public boolean containTestCase(String s){
+        if( null == testCases){
+            init();
+        }
+        for(String key: testMap.keySet()){
+            List<String> names = testMap.get(key);
+            for(String name : names) {
+                if (name.equals(s)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public Map<String, List<String>> getTestFileNames(){
+//        Map<String, List<String>> testMap = new HashMap<String, List<String>>();
         if(testCases == null){
            init();
         }
-        Iterator<String> sIterator = testCases.keys();
-        while(sIterator.hasNext()){
-            // 获得key
-            String key = sIterator.next();
-            // 根据key获得value, value也可以是JSONObject,JSONArray,使用对应的参数接收即可
-            String value = testCases.getString(key);
-            s.add(key);
-//            System.out.println("key: "+key+",value: "+value);
-        }
-        return s;
+//        Iterator<String> sIterator = testCases.keys();
+//        while(sIterator.hasNext()){
+//            // 获得key
+//            String key = sIterator.next();
+//            // 根据key获得value, value也可以是JSONObject,JSONArray,使用对应的参数接收即可
+//            JSONArray value = testCases.getJSONArray(key);
+//            testMap.put(key, JSONArray.toList(value, String.class, new JsonConfig()));
+//        }
+        return testMap;
     }
 
 }

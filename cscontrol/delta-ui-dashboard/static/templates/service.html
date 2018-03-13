@@ -2,14 +2,28 @@
 
     <div class="admin-biaoge" style="float:left;padding-left: 60px;margin-top: 30px;width:30%;">
 
-        <div id="case-names"  style="width:100%; float:right">
+        <div id="case-names"  style="width:98%; float:right">
             <h4 style="font-weight: bold; margin-bottom: 30px">TestCases</h4>
-            <div ng-repeat="testcase in testCases" style="margin-bottom: 8px">
-                <input type="checkbox" icheck ng-model="testcase.checked" value="{{testcase.title}}" name="testcase">
-                <span style="font-size: 16px;margin-left: 10px">{{testcase.title}}</span>
+            <div ng-repeat="(key, names) in testCases" style="margin-bottom: 8px">
+                <div style="border: solid #aeb2b7 1px;padding-left: 10px;border-radius: 5px;padding-bottom: 10px">
+                    <h5 style="font-weight: bold">{{key}}</h5>
+                    <p ng-repeat="name in names">
+                        <input type="checkbox" icheck value="{{name}}" name="testcase">
+                        <span style="font-size: 16px;margin-left: 10px">{{name}}</span>
+                    </p>
+                </div>
             </div>
-            <!--<button  ng-click="extractService()"  class="btn btn-primary">Service Delta</button>-->
+            <!--<button ng-click="test()">2333</button>-->
         </div>
+
+        <!--<div id="case-names"  style="width:100%; float:right">-->
+            <!--<h4 style="font-weight: bold; margin-bottom: 30px">TestCases</h4>-->
+            <!--<div ng-repeat="testcase in testCases" style="margin-bottom: 8px">-->
+                <!--<input type="checkbox" icheck ng-model="testcase.checked" value="{{testcase.title}}" name="testcase">-->
+                <!--<span style="font-size: 16px;margin-left: 10px">{{testcase.title}}</span>-->
+            <!--</div>-->
+            <!--&lt;!&ndash;<button  ng-click="extractService()"  class="btn btn-primary">Service Delta</button>&ndash;&gt;-->
+        <!--</div>-->
 
     </div>
 
@@ -20,7 +34,7 @@
             <!--<span style="font-size: medium;font-weight: bold">{{resultCount}}</span>-->
             <button  class="btn btn-primary " style="margin-left: 20px;" ng-click="showDelta()">Connect
             </button>
-            <button  class="btn btn-primary" style="margin-left: 20px;display: none" id="test-button" ng-click="extractService()">Start Delta
+            <button  class="btn btn-primary" style="margin-left: 150px;display: none" id="test-button" ng-click="extractService()">Start Delta
             </button>
         </div>
 

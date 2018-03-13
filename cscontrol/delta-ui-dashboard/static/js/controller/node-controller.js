@@ -56,7 +56,7 @@ node.controller('NodeCtrl', ['$scope', '$http','$window','loadNodeList',
 
     $scope.refreshNodeList();
 
-    $scope.deleteResult = "false";
+    $scope.deleteResult = "delta result...";
 
     // $scope.deleteNodes = function () {
     //     var checkedNodes = $("input[name='node']:checked");
@@ -83,7 +83,7 @@ node.controller('NodeCtrl', ['$scope', '$http','$window','loadNodeList',
     var stompClient = null;
     //传递用户key值
     var loginId = new UUID().id;
-    $scope.deleteResult = [];
+    // $scope.deleteResult = [];
 
     function setConnected(connected) {
         if(connected){
