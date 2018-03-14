@@ -12,6 +12,7 @@ Node的delta的api
 通过动态修改配置并apply配置到集群环境k8s+istio或者定制istio实现逻辑来控制
 
 
+
 麒麟：
 https://github.com/naver/pinpoint
 试着将pinpoint应用到我们的微服务集群中，生成报表
