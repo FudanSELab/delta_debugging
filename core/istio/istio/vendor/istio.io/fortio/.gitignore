@@ -1,0 +1,7 @@
+coverage.txt
+*.bak
+*.json
+test.profile.*
+# binary, in case of go build .
+fortio
+.DS_Store
