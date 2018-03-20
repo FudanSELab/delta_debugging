@@ -764,9 +764,7 @@ public class ApiServiceImpl implements ApiService {
             //Parse the response to the SetServicesReplicasResponseFromAPI Bean
 //            System.out.println(json);
             pod = JSON.parseObject(json,V1Pod.class);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }catch(InterruptedException e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return pod;
