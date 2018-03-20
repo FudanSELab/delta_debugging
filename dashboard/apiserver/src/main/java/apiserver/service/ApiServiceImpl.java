@@ -362,6 +362,35 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
+    //Get the pods info list
+    @Override
+    public GetPodsListResponse getPodsList() {
+        GetPodsListResponse response = new GetPodsListResponse();
+        V1PodList podList = getPodList();
+        System.out.println(String.format("There are now %d pods in the cluster now", podList.getItems().size()));
+        if(podList.getItems().size() < 1){
+            response.setStatus(true);
+            response.setMessage("No resource found!");
+            response.setNodes(null);
+        }
+        //Construct the nodeinfo list
+        List<PodInfo> podInfos = new ArrayList<PodInfo>();
+        for(V1Pod pod : podList.getItems()){
+            PodInfo podInfo = new PodInfo();
+            podInfo.setName(pod.getMetadata().getName());
+            podInfo.setStatus(pod.getStatus().getPhase());
+            podInfo.setNodeName(pod.getSpec().getNodeName());
+            podInfo.setNodeIP(pod.getStatus().getHostIP());
+            podInfo.setPodIP(pod.getStatus().getPodIP());
+            podInfo.setStartTime(pod.getStatus().getStartTime());
+            podInfos.add(podInfo);
+        }
+        response.setStatus(true);
+        response.setMessage("Successfully get the pod info list!");
+        response.setNodes(podInfos);
+        return response;
+    }
+
     //To determine if the service need to be deleted: filter the redis and mongo
     private boolean isDeleted(String deploymentName,List<String> serviceNames){
         return (deploymentName.contains("service") || deploymentName.contains("ui-dashboard")) && !existInTheList(deploymentName,serviceNames);
@@ -577,6 +606,35 @@ public class ApiServiceImpl implements ApiService {
             e.printStackTrace();
         }
         return nodeList;
+    }
+
+    //Get the node list
+    private V1PodList getPodList(){
+        //Get the current deployments information and echo to the file
+        String filePath = "/app/get_pod_list_result.json";
+        V1PodList podList = new V1PodList();
+        String apiUrl = String.format("%s/api/v1/namespaces/%s/pods",myConfig.getApiServer(),NAMESPACE);
+        System.out.println(String.format("The constructed api url for getting the pod list is %s", apiUrl));
+        String[] cmds ={
+                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+        };
+        ProcessBuilder pb = new ProcessBuilder(cmds);
+        pb.redirectErrorStream(true);
+        Process p;
+        try {
+            p = pb.start();
+            p.waitFor();
+
+            String json = readWholeFile(filePath);
+            //Parse the response to the SetServicesReplicasResponseFromAPI Bean
+//            System.out.println(json);
+            podList = JSON.parseObject(json,V1PodList.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }catch(InterruptedException e){
+            e.printStackTrace();
+        }
+        return podList;
     }
 
     //Check if the single required deployment replicas are ready

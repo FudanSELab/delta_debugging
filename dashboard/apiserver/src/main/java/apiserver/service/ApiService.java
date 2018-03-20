@@ -15,4 +15,5 @@ public interface ApiService {
     GetNodesListResponse getNodesList();
     DeltaNodeByListResponse deleteNodeByList(DeltaNodeRequest deltaNodeRequest);
     DeltaNodeByListResponse reserveNodeByList(DeltaNodeRequest deltaNodeRequest);
+    GetPodsListResponse getPodsList();
 }

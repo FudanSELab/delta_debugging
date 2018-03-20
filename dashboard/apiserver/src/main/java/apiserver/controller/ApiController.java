@@ -70,4 +70,11 @@ public class ApiController {
     public DeltaNodeByListResponse reserveNodeByList(@RequestBody DeltaNodeRequest deltaNodeRequest){
         return apiService.reserveNodeByList(deltaNodeRequest);
     }
+
+    //Get the list of all current pods info
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/getPodsList", method= RequestMethod.GET)
+    public GetPodsListResponse getPodsList(){
+        return apiService.getPodsList();
+    }
 }
