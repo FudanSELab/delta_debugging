@@ -1,23 +1,7 @@
 var instance = angular.module('app.instance-controller', []);
 
-instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases','loadServiceList', 'serviceDeltaService',
-        function($scope, $http,$window,loadTestCases,loadServiceList, serviceDeltaService) {
-
-        // select testcases, remain the involved serves and stop other services
-        // $scope.extractService = function(){
-        //     var checkedTest = $("input[name='case']:checked");
-        //     var tests = [];
-        //     checkedTest.each(function(){
-        //         tests.push($(this).val());
-        //     });
-        //     if(tests.length > 0){
-        //         serviceDeltaService.deltaService(tests).then(function(result){
-        //             console.log("============= service delta result ===============");
-        //             console.log(result);
-        //             console.log("==================================================");
-        //         })
-        //     }
-        // };
+instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases','loadServiceList', '$interval', 'instanceLogService','getPodLogService','refreshPodsService',
+        function($scope, $http,$window,loadTestCases,loadServiceList,  $interval, instanceLogService, getPodLogService, refreshPodsService) {
 
         //刷新页面
         $scope.reloadRoute = function () {
@@ -32,7 +16,7 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
                 for(var i = 0; i < $scope.services.length; i++){
                     for(var j = 0; j < 5 && i < $scope.services.length; ){
                         if($scope.services[i].serviceName.indexOf("service") !== -1){
-                            $scope.services[i].checked = false;
+                            // $scope.services[i].checked = false;
                             $scope.serviceGroup.push($scope.services[i]);
                             i++;
                             j++;
@@ -46,24 +30,31 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
             }
         });
 
-        // $scope.test = function(){
-        //     var checkedTest = $("input[name='testcase']:checked");
-        //     var tests = [];
-        //     checkedTest.each(function(){
-        //         tests.push($(this).val());
-        //     });
-        //     console.log(tests);
-        // };
-
         // 加载testcase列表
         loadTestCases.loadTestList().then(function (result) {
             $scope.testCases = result;
-            // $scope.testCases = [];
-            // for(var i = 0; i < result[0].products.length; i++){
-            //     result[0].products[i].checked = false;
-            //     $scope.testCases.push(result[0].products[i]);
-            // }
         });
+
+        //load pods
+        refreshPodsService.load().then(function(result){
+            if(result.status){
+                $scope.podList = result.pods;
+            } else {
+                alert(result.message);
+            }
+        });
+
+        $scope.refreshPod = function(){
+            refreshPodsService.load().then(function(result){
+                // alert("23333");
+                if(result.status){
+                    $scope.podList = result.pods;
+                } else {
+                    alert(result.message);
+                }
+            });
+        };
+
 
         var stompClient = null;
         //传递用户key值
@@ -83,10 +74,7 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
             stompClient = Stomp.over(socket);
             stompClient.connect({login:loginId}, function (frame) {
                 setConnected(true);
-                // console.log('Connected: ' + frame);
                 stompClient.subscribe('/user/topic/deltaresponse', function (data) {
-                    // console.log("data.body--------\n");
-                    // console.log(data.body);
                     var data = JSON.parse(data.body);
                     if(data.status){
                         var env = data.env;
@@ -105,8 +93,6 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
                         for(var j = 0; j < result.length; j++){
                             entry.tests += result[j].className + ": " + result[j].status + ";   " ;
                         }
-                        // console.log("entry:\n");
-                        // console.log(entry);
                         $scope.deltaResults.push(entry);
                         $scope.$apply();
                     } else {
@@ -114,8 +100,49 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
                     }
 
                 });
+
+                stompClient.subscribe('/user/topic/deltaend', function (data) {
+                    $('#test-button').removeClass('disabled');
+                    console.log( "deltaend" + data.body);
+                });
+
             });
         }
+
+
+        $scope.sendDeltaData = function() {
+            $scope.deltaResults = [];
+            var checkedTest = $("input[name='testcase']:checked");
+            var tests = [];
+            checkedTest.each(function(){
+                tests.push($(this).val());
+            });
+            var checkedServices = $("input[name='service']:checked");
+            var env = [];
+            checkedServices.each(function(){
+                env.push($(this).val());
+            });
+            console.log("tests:" + tests);
+            console.log("env:" + env);
+
+            if(tests.length > 0 && env.length > 0){
+                $('#test-button').addClass('disabled');
+                var data = {
+                    'id': loginId,
+                    'env': env,
+                    'tests': tests
+                };
+                stompClient.send("/app/msg/delta", {}, JSON.stringify(data));
+            } else {
+                alert("To delete node, please select at least one service and one testcase.");
+            }
+
+        };
+
+        $scope.showDelta = function(){
+            $scope.deltaResults = [];
+            connect();
+        };
 
         function disconnect() {
             if ( stompClient != null ) {
@@ -125,125 +152,147 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
             console.log("Disconnected");
         }
 
-        $scope.sendDeltaData = function() {
-            $scope.deltaResults = [];
-
-            var checkedTest = $("input[name='testcase']:checked");
-            var tests = [];
-            checkedTest.each(function(){
-                tests.push($(this).val());
-            });
-
-            var checkedServices = $("input[name='service']:checked");
-            var env = [];
-            checkedServices.each(function(){
-                env.push($(this).val());
-            });
-
-            var data = {
-                'id': loginId,
-                'env': env,
-                'tests': tests
-            };
-            console.log("data:\n");
-            console.log(data);
-            stompClient.send("/app/msg/delta", {}, JSON.stringify(data));
-        }
-
-        $scope.showDelta = function(){
-            $scope.deltaResults = [];
-            connect();
-        };
-
         $window.onbeforeunload = function(){
             disconnect();
         };
 
-            // $scope.test = function(){
-            //     var checkedServices = $("input[name='service']:checked");
-            //     var env = [];
-            //     checkedServices.each(function(){
-            //         env.push($(this).val());
-            //     });
-            //     console.log(env);
-            // };
+        $scope.instancelogs = "";
+        $scope.getPodLogs = function(){
+            var checkedPods = $("input[name='pod']:checked");
+            var pods = [];
+            checkedPods.each(function () {
+                pods.push($(this).val());
+            });
+            if(pods.length > 0){
+                $('#suspectPodButton').addClass('disabled');
+                getPodLogService.load(pods[0]).then(function(result){
+                    if(result.status){
+                        $scope.instancelogs += result.podLog.podName +  ":</br>" + result.podLog.logs + "</br>";
+                        var height = $('#instance-logs').prop('scrollHeight');
+                        $('#instance-logs').scrollTop(height);
+                        $('#suspectPodButton').removeClass('disabled');
+                    } else {
+                        alert(result.message);
+                    }
+                });
+            } else {
+                alert("Please check at least one pod to show its logs!");
+            }
+        };
+        // var i = 0;
+        // var timer = $interval(function () {
+        //     instanceLogService.loadLogs().then(function(result){
+        //         $scope.instancelogs += (++i) + ": " + result + "</br>";
+        //         var height = $('#instance-logs').prop('scrollHeight');
+        //         $('#instance-logs').scrollTop(height);
+        //     });
+        // }, 100, 30);
+        //
+        // timer.then(endNotify);
+        //
+        // function endNotify(){
+        //     $scope.instancelogs += "Logs end!";
+        //     var height = $('#instance-logs').prop('scrollHeight');
+        //     $('#instance-logs').scrollTop(height);
+        // }
+
 
             // $scope.serviceGroup = [
             //     {
             //         "serviceName": "redis",
-            //         "numOfReplicas": 1,
-            //         "checked":false
+            //         "numOfReplicas": 1
+            //
             //     },
             //
             //     {
             //         "serviceName": "ts-route-service",
-            //         "numOfReplicas": 1,
-            //         "checked":false
+            //         "numOfReplicas": 1
             //     },
             //     {
             //         "serviceName": "ts-seat-service",
-            //         "numOfReplicas": 1,
-            //         "checked":false
+            //         "numOfReplicas": 1
             //     },
             //     {
             //         "serviceName": "ts-security-mongo",
-            //         "numOfReplicas": 1,
-            //         "checked":false
+            //         "numOfReplicas": 1
             //     },
             //     {
             //         "serviceName": "ts-security-service",
-            //         "numOfReplicas": 1,
-            //         "checked":false
+            //         "numOfReplicas": 1
             //     },
             //     {
             //         "serviceName": "ts-sso-service",
-            //         "numOfReplicas": 1,
-            //         "checked":false
+            //         "numOfReplicas": 1
             //     },
             //     {
             //         "serviceName": "ts-station-mongo",
-            //         "numOfReplicas": 1,
-            //         "checked":false
+            //         "numOfReplicas": 1
             //     },
             //     {
             //         "serviceName": "ts-station-service",
-            //         "numOfReplicas": 1,
-            //         "checked":false
+            //         "numOfReplicas": 1
             //     },
             //     {
             //         "serviceName": "ts-ticket-office-mongo",
-            //         "numOfReplicas": 1,
-            //         "checked":false
+            //         "numOfReplicas": 1
             //     },
             //     {
             //         "serviceName": "ts-ticket-office-service",
-            //         "numOfReplicas": 1,
-            //         "checked":false
+            //         "numOfReplicas": 1
             //     },
             //     {
             //         "serviceName": "ts-ticketinfo-service",
-            //         "numOfReplicas": 1,
-            //         "checked":false
+            //         "numOfReplicas": 1
             //     },
             //
             //     {
             //         "serviceName": "zipkin",
-            //         "numOfReplicas": 1,
-            //         "checked":false
+            //         "numOfReplicas": 1
             //     }
             // ];
             //
-            // $scope.testNames=[
-            //     {
-            //         title:"23333"
-            //     },
-            //     {
-            //         title:"2333"
-            //     },
-            //     {
-            //         title:"233"
-            //     }
-            // ];
+            // $scope.testCases={
+            //     "Ticket Reserve":[
+            //         "TestFlowOne",
+            //         "TestServiceLogin",
+            //         "TestServiceSSO",
+            //         "TestServiceVerificationCode",
+            //         "TestServiceTravel",
+            //         "TestServiceTravel2",
+            //         "TestServiceSecurity",
+            //         "TestServiceBasicInfo",
+            //         "TestServiceTicketInfo",
+            //         "TestServiceContacts",
+            //         "TestServicePrice",
+            //         "TestServiceTrain",
+            //         "TestServiceStation",
+            //         "TestServiceOrders",
+            //         "TestServiceConsign",
+            //         "TestServiceConfig",
+            //         "TestServiceFood",
+            //         "TestServiceRoute"
+            //     ],
+            //     "Ticket Rebook":[
+            //         "TestFlowTwoPay",
+            //         "TestFlowTwoRebook",
+            //         "TestServiceRebook",
+            //         "TestServiceInsidePay",
+            //         "TestServicePayment",
+            //         "TestServiceNotification",
+            //         "TestServiceCancel"
+            //     ],
+            //     "Single Service":[
+            //         "TestFlowFour",
+            //         "TestServiceRegister",
+            //         "TestServiceExecute",
+            //         "TestServiceVoucher",
+            //         "TestServiceNews",
+            //         "TestServiceTicketOffice"
+            //     ]
+            //
+            // };
+
+
 }]);
 
 instance.factory('loadTestCases', function ($http, $q) {
@@ -274,7 +323,6 @@ instance.factory('loadTestCases', function ($http, $q) {
     return service;
 });
 
-
 instance.factory('loadServiceList', function ($http, $q) {
     var service = {};
     //获取并返回数据
@@ -300,38 +348,64 @@ instance.factory('loadServiceList', function ($http, $q) {
     return service;
 });
 
-instance.factory('serviceDeltaService', function ($http, $q) {
 
+instance.factory('instanceLogService', function ($http, $q) {
     var service = {};
-
-    service.deltaService = function (testCaseList) {
+    service.loadLogs = function () {
         var deferred = $q.defer();
         var promise = deferred.promise;
-
-        var checkedTest = $("input[name='case']:checked");
-        var tests = [];
-        checkedTest.each(function(){
-            tests.push($(this).val());
-        });
-
-        $http({
-            method: "post",
-            url: "/delta/extractServices",
-            contentType: "application/json",
-            dataType: "json",
-            data: {
-                tests:testCaseList
-            },
-            withCredentials: true
-        }).success(function (data) {
-            if (data) {
-                deferred.resolve(data);
-            }
-            else{
-                alert("Request the order list fail!" + data.message);
-            }
-        });
+        // $http({
+        //     method: "post",
+        //     url: "/xxx/xxx",
+        //     contentType: "application/json",
+        //     dataType: "json",
+        //     withCredentials: true
+        // }).success(function (data) {
+        //     if (data) {
+        //         deferred.resolve(data);
+        //     } else{
+        //         alert("Get logs fail!" + data.message);
+        //     }
+        // });
+        deferred.resolve("2333");
         return promise;
     };
     return service;
 });
+
+
+
+// instance.factory('serviceDeltaService', function ($http, $q) {
+//
+//     var service = {};
+//     service.deltaService = function (testCaseList) {
+//         var deferred = $q.defer();
+//         var promise = deferred.promise;
+//
+//         var checkedTest = $("input[name='case']:checked");
+//         var tests = [];
+//         checkedTest.each(function(){
+//             tests.push($(this).val());
+//         });
+//
+//         $http({
+//             method: "post",
+//             url: "/delta/extractServices",
+//             contentType: "application/json",
+//             dataType: "json",
+//             data: {
+//                 tests:testCaseList
+//             },
+//             withCredentials: true
+//         }).success(function (data) {
+//             if (data) {
+//                 deferred.resolve(data);
+//             }
+//             else{
+//                 alert("Request the order list fail!" + data.message);
+//             }
+//         });
+//         return promise;
+//     };
+//     return service;
+// });
