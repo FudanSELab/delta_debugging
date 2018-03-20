@@ -401,11 +401,22 @@ public class ApiServiceImpl implements ApiService {
         }
         //Construct the pods log info
         List<PodLog> podLogs = new ArrayList<PodLog>();
+        List<V1Container> containers;
         for(V1Pod pod : podList.getItems()){
             PodLog podLog = new PodLog();
-            String name = pod.getMetadata().getName();
-            podLog.setPodName(name);
-            String logs = getPodLog(name);
+            String podName = pod.getMetadata().getName();
+            String containerName = "";
+            containers = pod.getSpec().getContainers();
+            if(containers.size() > 0){
+                for(V1Container container : containers){
+                    if(!container.getName().equals("istio-proxy")){
+                        containerName = container.getName();
+                        break;
+                    }
+                }
+            }
+            podLog.setPodName(podName);
+            String logs = getPodLog(podName,containerName);
             podLog.setLogs(logs);
             podLogs.add(podLog);
         }
@@ -422,24 +433,51 @@ public class ApiServiceImpl implements ApiService {
         response.setStatus(false);
         response.setMessage("Fail to get the corresponding pod's log!");
         response.setPodLog(null);
+
+        //Get the pod name and the container name
         PodLog podLog = new PodLog();
-        String log = getPodLog(getSinglePodLogRequest.getPodName());
-        if(!log.equals("")){
-            podLog.setPodName(getSinglePodLogRequest.getPodName());
-            podLog.setLogs(log);
-            response.setStatus(true);
-            response.setMessage("Successfully get the corresponding pod's log!");
-            response.setPodLog(podLog);
+        String podName = getSinglePodLogRequest.getPodName();
+        String containerName = "";
+        V1Pod pod = getPodInfo(podName);
+        if(pod != null){
+            List<V1Container> containers = pod.getSpec().getContainers();
+            if(containers.size() > 0){
+                for(V1Container container : containers){
+                    if(!container.getName().equals("istio-proxy")){
+                        containerName = container.getName();
+                        break;
+                    }
+                }
+            }else{
+                response.setStatus(false);
+                response.setMessage("There are no containers in the specified pod!");
+                response.setPodLog(null);
+                return response;
+            }
+
+            //Get the log with the pod name and container name
+            String log = getPodLog(podName,containerName);
+            if(!log.equals("")){
+                podLog.setPodName(getSinglePodLogRequest.getPodName());
+                podLog.setLogs(log);
+                response.setStatus(true);
+                response.setMessage("Successfully get the corresponding pod's log!");
+                response.setPodLog(podLog);
+            }
+        }else{
+            response.setStatus(false);
+            response.setMessage("There is no such pod in the cluster!");
+            response.setPodLog(null);
         }
         return response;
     }
 
     //Get the logs of a named pod
-    private String getPodLog(String name){
+    private String getPodLog(String podName,String containerName){
         String log = "";
 
         String filePath = "/app/get_pod_log.json";
-        String apiUrl = String.format("%s/api/v1/namespaces/%s/pods/%s/log",myConfig.getApiServer(),NAMESPACE,name);
+        String apiUrl = String.format("%s/api/v1/namespaces/%s/pods/%s/log?container=%s",myConfig.getApiServer(),NAMESPACE,podName,containerName);
         System.out.println(String.format("The constructed api url for getting the pod log is %s", apiUrl));
         String[] cmds ={
                 "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
@@ -676,9 +714,9 @@ public class ApiServiceImpl implements ApiService {
         return nodeList;
     }
 
-    //Get the node list
+    //Get the pods list
     private V1PodList getPodList(){
-        //Get the current deployments information and echo to the file
+        //Get the current pods information and echo to the file
         String filePath = "/app/get_pod_list_result.json";
         V1PodList podList = new V1PodList();
         String apiUrl = String.format("%s/api/v1/namespaces/%s/pods",myConfig.getApiServer(),NAMESPACE);
@@ -703,6 +741,35 @@ public class ApiServiceImpl implements ApiService {
             e.printStackTrace();
         }
         return podList;
+    }
+
+    //Get the pod info
+    private V1Pod getPodInfo(String name){
+        //Get the current pods information and echo to the file
+        String filePath = "/app/get_pod_info_result.json";
+        V1Pod pod = null;
+        String apiUrl = String.format("%s/api/v1/namespaces/%s/pods/%s",myConfig.getApiServer(),NAMESPACE,name);
+        System.out.println(String.format("The constructed api url for getting the pod info is %s", apiUrl));
+        String[] cmds ={
+                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+        };
+        ProcessBuilder pb = new ProcessBuilder(cmds);
+        pb.redirectErrorStream(true);
+        Process p;
+        try {
+            p = pb.start();
+            p.waitFor();
+
+            String json = readWholeFile(filePath);
+            //Parse the response to the SetServicesReplicasResponseFromAPI Bean
+//            System.out.println(json);
+            pod = JSON.parseObject(json,V1Pod.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }catch(InterruptedException e){
+            e.printStackTrace();
+        }
+        return pod;
     }
 
     //Check if the single required deployment replicas are ready
