@@ -1,9 +1,6 @@
 package apiserver.service;
 
-import apiserver.request.DeltaNodeRequest;
-import apiserver.request.GetServiceReplicasRequest;
-import apiserver.request.ReserveServiceRequest;
-import apiserver.request.SetServiceReplicasRequest;
+import apiserver.request.*;
 import apiserver.response.*;
 
 public interface ApiService {
@@ -16,4 +13,6 @@ public interface ApiService {
     DeltaNodeByListResponse deleteNodeByList(DeltaNodeRequest deltaNodeRequest);
     DeltaNodeByListResponse reserveNodeByList(DeltaNodeRequest deltaNodeRequest);
     GetPodsListResponse getPodsList();
+    GetPodsLogResponse getPodsLog();
+    GetSinglePodLogResponse getSinglePodLog(GetSinglePodLogRequest getSinglePodLogRequest);
 }

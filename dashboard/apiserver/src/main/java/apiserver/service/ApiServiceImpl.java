@@ -1,10 +1,7 @@
 package apiserver.service;
 
 import apiserver.bean.*;
-import apiserver.request.DeltaNodeRequest;
-import apiserver.request.GetServiceReplicasRequest;
-import apiserver.request.ReserveServiceRequest;
-import apiserver.request.SetServiceReplicasRequest;
+import apiserver.request.*;
 import apiserver.response.*;
 import apiserver.util.MyConfig;
 import com.alibaba.fastjson.JSON;
@@ -371,9 +368,9 @@ public class ApiServiceImpl implements ApiService {
         if(podList.getItems().size() < 1){
             response.setStatus(true);
             response.setMessage("No resource found!");
-            response.setNodes(null);
+            response.setPods(null);
         }
-        //Construct the nodeinfo list
+        //Construct the podinfo list
         List<PodInfo> podInfos = new ArrayList<PodInfo>();
         for(V1Pod pod : podList.getItems()){
             PodInfo podInfo = new PodInfo();
@@ -387,8 +384,79 @@ public class ApiServiceImpl implements ApiService {
         }
         response.setStatus(true);
         response.setMessage("Successfully get the pod info list!");
-        response.setNodes(podInfos);
+        response.setPods(podInfos);
         return response;
+    }
+
+    //Get the logs of all pods
+    @Override
+    public GetPodsLogResponse getPodsLog() {
+        GetPodsLogResponse response = new GetPodsLogResponse();
+        V1PodList podList = getPodList();
+        System.out.println(String.format("There are now %d pods in the cluster now", podList.getItems().size()));
+        if(podList.getItems().size() < 1){
+            response.setStatus(true);
+            response.setMessage("No resource found!");
+            response.setPodLogs(null);
+        }
+        //Construct the pods log info
+        List<PodLog> podLogs = new ArrayList<PodLog>();
+        for(V1Pod pod : podList.getItems()){
+            PodLog podLog = new PodLog();
+            String name = pod.getMetadata().getName();
+            podLog.setPodName(name);
+            String logs = getPodLog(name);
+            podLog.setLogs(logs);
+            podLogs.add(podLog);
+        }
+        response.setStatus(true);
+        response.setMessage("Successfully to get the pods log info!");
+        response.setPodLogs(podLogs);
+        return response;
+    }
+
+    //Get the log of the single pod
+    @Override
+    public GetSinglePodLogResponse getSinglePodLog(GetSinglePodLogRequest getSinglePodLogRequest) {
+        GetSinglePodLogResponse response = new GetSinglePodLogResponse();
+        response.setStatus(false);
+        response.setMessage("Fail to get the corresponding pod's log!");
+        response.setPodLog(null);
+        PodLog podLog = new PodLog();
+        String log = getPodLog(getSinglePodLogRequest.getPodName());
+        if(!log.equals("")){
+            podLog.setPodName(getSinglePodLogRequest.getPodName());
+            podLog.setLogs(log);
+            response.setStatus(true);
+            response.setMessage("Successfully get the corresponding pod's log!");
+            response.setPodLog(podLog);
+        }
+        return response;
+    }
+
+    //Get the logs of a named pod
+    private String getPodLog(String name){
+        String log = "";
+
+        String filePath = "/app/get_pod_log.json";
+        String apiUrl = String.format("%s/api/v1/namespaces/%s/pods/%s/log",myConfig.getApiServer(),NAMESPACE,name);
+        System.out.println(String.format("The constructed api url for getting the pod log is %s", apiUrl));
+        String[] cmds ={
+                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+        };
+        ProcessBuilder pb = new ProcessBuilder(cmds);
+        pb.redirectErrorStream(true);
+        Process p;
+        try {
+            p = pb.start();
+            p.waitFor();
+            log = readWholeFile(filePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }catch(InterruptedException e){
+            e.printStackTrace();
+        }
+        return log;
     }
 
     //To determine if the service need to be deleted: filter the redis and mongo

@@ -1,9 +1,6 @@
 package apiserver.controller;
 
-import apiserver.request.DeltaNodeRequest;
-import apiserver.request.GetServiceReplicasRequest;
-import apiserver.request.ReserveServiceRequest;
-import apiserver.request.SetServiceReplicasRequest;
+import apiserver.request.*;
 import apiserver.response.*;
 import apiserver.service.ApiService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,5 +73,19 @@ public class ApiController {
     @RequestMapping(value="/api/getPodsList", method= RequestMethod.GET)
     public GetPodsListResponse getPodsList(){
         return apiService.getPodsList();
+    }
+
+    //Get all of the log of current pods
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/getPodsLog", method= RequestMethod.GET)
+    public GetPodsLogResponse getPodsLog(){
+        return apiService.getPodsLog();
+    }
+
+    //Get the log of the specific pod
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/getSinglePodLog", method= RequestMethod.POST)
+    public GetSinglePodLogResponse getSinglePodLog(@RequestBody GetSinglePodLogRequest getSinglePodLogRequest){
+        return apiService.getSinglePodLog(getSinglePodLogRequest);
     }
 }
