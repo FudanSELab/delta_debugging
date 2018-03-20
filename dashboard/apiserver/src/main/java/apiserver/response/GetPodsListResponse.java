@@ -8,7 +8,7 @@ import java.util.List;
 public class GetPodsListResponse {
     private boolean status;
     private String message;
-    private List<PodInfo> nodes;
+    private List<PodInfo> pods;
 
     public GetPodsListResponse(){
 
@@ -30,11 +30,11 @@ public class GetPodsListResponse {
         this.message = message;
     }
 
-    public List<PodInfo> getNodes() {
-        return nodes;
+    public List<PodInfo> getPods() {
+        return pods;
     }
 
-    public void setNodes(List<PodInfo> nodes) {
-        this.nodes = nodes;
+    public void setPods(List<PodInfo> pods) {
+        this.pods = pods;
     }
 }
