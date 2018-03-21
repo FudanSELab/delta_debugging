@@ -2,10 +2,43 @@
   "testDir": "/app/test",
   "classDir": "/test",
   "testCases":{
-      "TestServiceLogin": "test.TestServiceLogin",
-      "TestServiceNews": "test.TestServiceNews",
-      "TestServiceRoute": "test.TestServiceRoute",
-      "TestServiceSSO": "test.TestServiceSSO",
-      "testServiceTicketOffice": "test.testServiceTicketOffice"
+    "Ticket Reserve":[
+      "TestFlowOne",
+      "TestServiceLogin",
+      "TestServiceSSO",
+      "TestServiceVerificationCode",
+      "TestServiceTravel",
+      "TestServiceTravel2",
+      "TestServiceSecurity",
+      "TestServiceBasicInfo",
+      "TestServiceTicketInfo",
+      "TestServiceContacts",
+      "TestServicePrice",
+      "TestServiceTrain",
+      "TestServiceStation",
+      "TestServiceOrders",
+      "TestServiceConsign",
+      "TestServiceConfig",
+      "TestServiceFood",
+      "TestServiceRoute"
+    ],
+    "Ticket Rebook":[
+      "TestFlowTwoPay",
+      "TestFlowTwoRebook",
+      "TestServiceRebook",
+      "TestServiceInsidePay",
+      "TestServicePayment",
+      "TestServiceNotification",
+      "TestServiceCancel"
+    ],
+    "Single Service":[
+      "TestFlowFour",
+      "TestServiceRegister",
+      "TestServiceExecute",
+      "TestServiceVoucher",
+      "TestServiceNews",
+      "TestServiceTicketOffice"
+    ]
+
   }
 }

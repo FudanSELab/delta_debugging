@@ -16,30 +16,59 @@
             <!--<button ng-click="test()">2333</button>-->
         </div>
 
-        <!--<div id="case-names"  style="width:100%; float:right">-->
-            <!--<h4 style="font-weight: bold; margin-bottom: 30px">TestCases</h4>-->
-            <!--<div ng-repeat="testcase in testCases" style="margin-bottom: 8px">-->
-                <!--<input type="checkbox" icheck ng-model="testcase.checked" value="{{testcase.title}}" name="testcase">-->
-                <!--<span style="font-size: 16px;margin-left: 10px">{{testcase.title}}</span>-->
-            <!--</div>-->
-            <!--&lt;!&ndash;<button  ng-click="extractService()"  class="btn btn-primary">Service Delta</button>&ndash;&gt;-->
-        <!--</div>-->
-
     </div>
 
 
-    <div style="padding-right: 60px;margin-top: 50px;width:68%; float: right">
+    <div style="padding-right: 30px;margin-top: 50px;width:68%; float: right">
 
         <div>
             <!--<span style="font-size: medium;font-weight: bold">{{resultCount}}</span>-->
             <button  class="btn btn-primary " style="margin-left: 20px;" ng-click="showDelta()">Connect
             </button>
-            <button  class="btn btn-primary" style="margin-left: 150px;display: none" id="test-button" ng-click="extractService()">Start Delta
+            <button  class="btn btn-primary" style="margin-left: 150px;display: none;float:left" id="test-button" ng-click="extractService()">Start Delta
             </button>
         </div>
 
         <div style="margin-top:50px;margin-left: 20px">
             <span ng-model="reservedServices">{{reservedServices}}</span>
+        </div>
+
+        <div style="margin-top: 30px;margin-bottom: 10px">
+            <button  class="btn btn-primary " id="refreshPodButton" style="float:right;margin-right: 50px" ng-click="refreshPod()">Refresh Pod List
+            </button>
+            <button  class="btn btn-danger" id="suspectPodButton" style="float:right; margin-right: 20px;" ng-click="getPodLogs()">Suspect Pod Logs
+            </button>
+            <div style="clear: both"></div>
+        </div>
+        <table class="table table-hover table-bordered" style="margin-top: 10px;width:820px;">
+            <thead style="table-layout: fixed;display: table;width: 100%; ">
+                <tr style="background-color: #aeb2b7;color:#fff;">
+                    <th style="width: 50px"></th>
+                    <th style="text-align: center;width: 300px"><span style="font-size:16px;font-weight: bold">Pod Name</span></th>
+                    <th style="text-align: center;width: 100px"><span style="font-size:16px;font-weight: bold">Status</span></th>
+                    <th style="text-align: center;"><span style="font-size:16px;font-weight: bold">Node Name</span></th>
+                    <th style="text-align: center"><span style="font-size:16px;font-weight: bold">startTime</span></th>
+                </tr>
+            </thead>
+            <tbody style="height:350px;overflow-y: scroll;display: block;width: 820px">
+                <tr  ng-repeat=" pod in podList" style="display:table;width:820px;table-layout:fixed;min-width: 820px;">
+                    <td style="width:50px;"><input type="radio" icheck  name="pod" value="{{pod.name}}"></td>
+                    <td style="width: 300px">{{pod.name}}</td>
+                    <td style="width: 100px">{{pod.status}}</td>
+                    <td>{{pod.nodeName}}</td>
+                    <td>{{pod.startTime}}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="panel panel-primary" style="margin-left:10px;margin-top: 30px;height:550px">
+            <div class="panel-heading">
+                Logs
+            </div>
+            <div class="panel-body" id="service-logs" style="height:90%; overflow-x: scroll;overflow-y: scroll;" >
+                <article ng-bind-html="servicelogs | trustHtml">
+                </article>
+            </div>
         </div>
 
     </div>

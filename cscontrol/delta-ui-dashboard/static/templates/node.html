@@ -1,6 +1,6 @@
 <div class="admin">
 
-    <div class="admin-biaoge" style="float:left;padding-left: 60px;margin-top: 30px;width:50%;">
+    <div class="admin-biaoge" style="float:left;padding-left: 20px;margin-top: 30px;width:48%;">
 
         <table class="table table-hover table-bordered" style="margin-top: 50px;width:100%">
             <thead >
@@ -13,7 +13,8 @@
             </thead>
             <tbody>
                 <tr  ng-repeat=" node in nodeList">
-                    <td><input type="checkbox" icheck ng-model="node.checked" name="node" value="{{node.name}}"></td>
+                    <td ng-if="node.role == 'Master'"></td>
+                    <td ng-if="node.role != 'Master'"><input type="checkbox" icheck  name="node" value="{{node.name}}"></td>
                     <td>{{node.role}}</td>
                     <td>{{node.name}}</td>
                     <td>{{node.ip}}</td>
@@ -21,20 +22,60 @@
             </tbody>
         </table>
 
+        <div style="margin-top: 50px;margin-bottom: 10px">
+            <button  class="btn btn-primary " id="refreshPodButton" style="float:right;" ng-click="refreshPod()">Refresh Pod List
+            </button>
+            <button  class="btn btn-danger" id="suspectPodButton" style="float:right; margin-right: 20px;" ng-click="getPodLogs()">Suspect Pod Logs
+            </button>
+            <div style="clear: both"></div>
+        </div>
+
+        <table class="table table-hover table-bordered" style="margin-top: 10px;width:620px;">
+            <thead style="table-layout: fixed;display: table;width: 100%; ">
+            <tr style="background-color: #aeb2b7;color:#fff;">
+                <th></th>
+                <th style="text-align: center;width: 300px"><span style="font-size:16px;font-weight: bold">Pod Name</span></th>
+                <th style="text-align: center;width: 100px"><span style="font-size:16px;font-weight: bold">Status</span></th>
+                <th style="text-align: center;width: 150px"><span style="font-size:16px;font-weight: bold">Node Name</span></th>
+            </tr>
+            </thead>
+            <tbody style="height:350px;overflow-y: scroll;display: block;width: 600px">
+            <tr  ng-repeat=" pod in podList" style="display:table;width:620px;table-layout:fixed;min-width: 620px;">
+                <td><input type="radio" icheck  name="pod" value="{{pod.name}}"></td>
+                <td style="width: 300px">{{pod.name}}</td>
+                <td style="width: 100px">{{pod.status}}</td>
+                <td style="width: 150px">{{pod.nodeName}}</td>
+            </tr>
+            </tbody>
+        </table>
+
+
     </div>
 
 
-    <div style="padding-right: 30px;margin-top: 50px;width:40%; float: right">
+    <div style="padding-right: 20px;margin-top: 50px;width:50%; float: right">
 
         <div>
             <button  class="btn btn-primary " style="margin-left: 20px;" ng-click="showDelta()">Connect
             </button>
-            <button  class="btn btn-primary" style="margin-left: 150px;display: none" id="test-button" ng-click="deleteNodes()">Delete Nodes
+            <button  class="btn btn-primary" style="margin-left: 150px;display: none;float:left" id="test-button" ng-click="deleteNodes()">Delete Nodes
             </button>
         </div>
 
         <div style="margin-top:50px;margin-left: 20px">
             <span ng-model="deleteResult">{{deleteResult}}</span>
+        </div>
+
+
+
+        <div class="panel panel-primary" style="margin-left:10px;margin-top: 50px;height:550px">
+            <div class="panel-heading">
+                Logs
+            </div>
+            <div class="panel-body" id="node-logs" style="height:90%; overflow-x: scroll;overflow-y: scroll;" >
+                <article ng-bind-html="nodelogs | trustHtml">
+                </article>
+            </div>
         </div>
 
     </div>
