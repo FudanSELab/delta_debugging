@@ -31,3 +31,14 @@ http://10.141.212.23:18898/api/runOnSingleNode
 kubectl get pod -o wide
 
 
+app:
+http://10.141.211.178:32517
+zipkin:
+http://10.141.211.173:30005/
+
+
+logs:
+$ kubectl logs <Pod名称> <Pod中的容器名称>
+$ kubectl logs --previous <Pod名称> <Pod中的容器名称>
+$ kubectl exec <Pod名称> -c <Pod中的容器名称> -- <任意命令> <命令参数列表...>
+$ kubectl exec cassandra -- cat /var/log/cassandra/system.log

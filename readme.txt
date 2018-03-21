@@ -2,6 +2,7 @@
 
 k8s api:
 https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.9/
+https://kubernetes.io/docs/reference/kubectl/overview/
 
 
 
