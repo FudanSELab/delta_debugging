@@ -19,8 +19,8 @@ import (
 	"regexp"
 	"sort"
 
-	networking "istio.io/api/networking/v1alpha3"
 	routing "istio.io/api/routing/v1alpha1"
+	routingv2 "istio.io/api/routing/v1alpha2"
 	"istio.io/istio/pilot/pkg/model"
 )
 
@@ -59,14 +59,14 @@ func buildHTTPRouteMatch(matches *routing.MatchCondition) *HTTPRoute {
 	}
 }
 
-func buildHTTPRouteMatchV3(match *networking.HTTPMatchRequest) *HTTPRoute {
+func buildHTTPRouteMatchV2(match *routingv2.HTTPMatchRequest) *HTTPRoute {
 	if match == nil {
 		return &HTTPRoute{Prefix: "/"}
 	}
 
 	route := &HTTPRoute{}
 	for name, stringMatch := range match.Headers {
-		route.Headers = append(route.Headers, buildHeaderV3(name, stringMatch))
+		route.Headers = append(route.Headers, buildHeaderV2(name, stringMatch))
 	}
 
 	// guarantee ordering of headers
@@ -79,11 +79,11 @@ func buildHTTPRouteMatchV3(match *networking.HTTPMatchRequest) *HTTPRoute {
 
 	if match.Uri != nil {
 		switch m := match.Uri.MatchType.(type) {
-		case *networking.StringMatch_Exact:
+		case *routingv2.StringMatch_Exact:
 			route.Path = m.Exact
-		case *networking.StringMatch_Prefix:
+		case *routingv2.StringMatch_Prefix:
 			route.Prefix = m.Prefix
-		case *networking.StringMatch_Regex:
+		case *routingv2.StringMatch_Regex:
 			route.Regex = m.Regex
 		}
 	} else {
@@ -91,15 +91,15 @@ func buildHTTPRouteMatchV3(match *networking.HTTPMatchRequest) *HTTPRoute {
 	}
 
 	if match.Method != nil {
-		route.Headers = append(route.Headers, buildHeaderV3(HeaderMethod, match.Method))
+		route.Headers = append(route.Headers, buildHeaderV2(headerMethod, match.Method))
 	}
 
 	if match.Authority != nil {
-		route.Headers = append(route.Headers, buildHeaderV3(HeaderAuthority, match.Authority))
+		route.Headers = append(route.Headers, buildHeaderV2(headerAuthority, match.Authority))
 	}
 
 	if match.Scheme != nil {
-		route.Headers = append(route.Headers, buildHeaderV3(HeaderScheme, match.Scheme))
+		route.Headers = append(route.Headers, buildHeaderV2(headerScheme, match.Scheme))
 	}
 
 	// TODO: match.DestinationPorts
@@ -126,18 +126,18 @@ func buildHeader(name string, match *routing.StringMatch) Header {
 	return header
 }
 
-func buildHeaderV3(name string, match *networking.StringMatch) Header {
+func buildHeaderV2(name string, match *routingv2.StringMatch) Header {
 	header := Header{Name: name}
 
 	switch m := match.MatchType.(type) {
-	case *networking.StringMatch_Exact:
+	case *routingv2.StringMatch_Exact:
 		header.Value = m.Exact
-	case *networking.StringMatch_Prefix:
+	case *routingv2.StringMatch_Prefix:
 		// Envoy regex grammar is ECMA-262 (http://en.cppreference.com/w/cpp/regex/ecmascript)
 		// Golang has a slightly different regex grammar
 		header.Value = fmt.Sprintf("^%s.*", regexp.QuoteMeta(m.Prefix))
 		header.Regex = true
-	case *networking.StringMatch_Regex:
+	case *routingv2.StringMatch_Regex:
 		header.Value = m.Regex
 		header.Regex = true
 	}

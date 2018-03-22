@@ -68,8 +68,8 @@ spec:
  subject:
    user: source.uid | ""
  action:
-   namespace: destination.namespace | "default"
-   service: destination.service | ""
+   namespace: target.namespace | "default"
+   service: target.service | ""
    method: request.method | ""
    path: request.path | ""
 

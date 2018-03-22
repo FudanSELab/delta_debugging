@@ -17,11 +17,11 @@ package integration
 import (
 	"fmt"
 
+	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"istio.io/istio/pilot/pkg/serviceregistry/kube"
-	"istio.io/istio/pkg/log"
 	"istio.io/istio/tests/integration/framework"
 )
 
@@ -49,13 +49,13 @@ const (
 func NewNodeAgentTestEnv(name, kubeConfig, hub, tag string) *NodeAgentTestEnv {
 	clientset, err := CreateClientset(kubeConfig)
 	if err != nil {
-		log.Errorf("failed to initialize K8s client: %v", err)
+		glog.Errorf("failed to initialize K8s client: %v", err)
 		return nil
 	}
 
 	namespace, err := createTestNamespace(clientset, testNamespacePrefix)
 	if err != nil {
-		log.Errorf("failed to create test namespace: %v", err)
+		glog.Errorf("failed to create test namespace: %v", err)
 		return nil
 	}
 
@@ -133,11 +133,11 @@ func (env *NodeAgentTestEnv) Bringup() error {
 // Cleanup clean everything created by this test environment, not component level
 // Cleanup() is being called in framework.TearDown()
 func (env *NodeAgentTestEnv) Cleanup() error {
-	log.Infof("cleaning up environment...")
+	glog.Infof("cleaning up environment...")
 	err := deleteTestNamespace(env.ClientSet, env.NameSpace)
 	if err != nil {
 		retErr := fmt.Errorf("failed to delete namespace: %v error: %v", env.NameSpace, err)
-		log.Errorf("%v", retErr)
+		glog.Error(retErr)
 		return retErr
 	}
 	return nil

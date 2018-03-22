@@ -21,7 +21,7 @@ import (
 
 	lru "github.com/hashicorp/golang-lru"
 
-	pb "istio.io/api/policy/v1beta1"
+	pb "istio.io/api/mixer/v1/config/descriptor"
 	"istio.io/istio/mixer/pkg/attribute"
 	"istio.io/istio/mixer/pkg/expr"
 	"istio.io/istio/mixer/pkg/il"

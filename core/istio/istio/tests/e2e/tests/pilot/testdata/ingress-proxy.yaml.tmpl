@@ -38,23 +38,17 @@ spec:
         args:
         - proxy
         - ingress
+        - -v
+        - "{{.Verbosity}}"
         - --discoveryAddress
-{{if eq .ControlPlaneAuthPolicy.String "NONE" }}
-        - istio-pilot:8080
-{{else}}
-        - istio-pilot:15005
-{{end}}
+        - istio-pilot:15003
 {{if .Zipkin}}
         - --zipkinAddress
         - zipkin:9411
 {{end}}
-        - --connectTimeout
-        - '10s' #connectTimeout
-        - --discoveryRefreshDelay
-        - '2s' #discoveryRefreshDelay
         - --controlPlaneAuthPolicy
         - "{{.ControlPlaneAuthPolicy.String}}"
-        imagePullPolicy: {{.ImagePullPolicy}}
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 443
         - containerPort: 80

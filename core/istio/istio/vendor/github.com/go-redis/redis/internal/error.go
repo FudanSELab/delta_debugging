@@ -4,9 +4,13 @@ import (
 	"io"
 	"net"
 	"strings"
-
-	"github.com/go-redis/redis/internal/proto"
 )
+
+const Nil = RedisError("redis: nil")
+
+type RedisError string
+
+func (e RedisError) Error() string { return string(e) }
 
 func IsRetryableError(err error, retryNetError bool) bool {
 	if IsNetworkError(err) {
@@ -26,7 +30,7 @@ func IsRetryableError(err error, retryNetError bool) bool {
 }
 
 func IsRedisError(err error) bool {
-	_, ok := err.(proto.RedisError)
+	_, ok := err.(RedisError)
 	return ok
 }
 

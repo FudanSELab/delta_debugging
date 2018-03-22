@@ -14,9 +14,10 @@
 
 package template
 
-// BootstrapTemplate defines the template used to generate code that glues Mixer with generated template interfaces.
+// InterfaceTemplate defines the template used to generate the adapter
+// interfaces for Mixer for a given aspect.
 // nolint:lll
-var BootstrapTemplate = `// Copyright 2017 Istio Authors
+var InterfaceTemplate = `// Copyright 2017 Istio Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45,9 +46,10 @@ import (
     "istio.io/istio/mixer/pkg/expr"
     "istio.io/istio/mixer/pkg/il/compiled"
     "istio.io/istio/pkg/log"
+    istio_mixer_v1_config_descriptor "istio.io/api/mixer/v1/config/descriptor"
     "istio.io/istio/mixer/pkg/template"
-    istio_adapter_model_v1beta1 "istio.io/api/mixer/adapter/model/v1beta1"
-    istio_policy_v1beta1 "istio.io/api/policy/v1beta1"
+    adptTmpl "istio.io/api/mixer/v1/template"
+    istio_mixer_v1_config "istio.io/api/mixer/v1/config"
     "errors"
     {{range .TemplateModels}}
         "{{.PackageImportPath}}"
@@ -59,7 +61,7 @@ import (
 // below codegen.
 var (
     _ net.IP
-    _ istio_policy_v1beta1.AttributeManifest
+    _ istio_mixer_v1_config.AttributeManifest
     _ = strings.Reader{}
 )
  
@@ -100,9 +102,9 @@ func (w *wrapperAttr) Done() {
     w.done()
 }
  
-// String provides a dump of an attribute Bag that avoids affecting the
+// DebugString provides a dump of an attribute Bag that avoids affecting the
 // calculation of referenced attributes.
-func (w *wrapperAttr) String() string {
+func (w *wrapperAttr) DebugString() string {
     return w.debugString()
 }
  
@@ -113,7 +115,7 @@ var (
             Name: {{.GoPackageName}}.TemplateName,
             Impl: "{{.PackageName}}",
             CtrCfg:  &{{.GoPackageName}}.InstanceParam{},
-            Variety:   istio_adapter_model_v1beta1.{{.VarietyName}},
+            Variety:   adptTmpl.{{.VarietyName}},
             BldrInterfaceName:  {{.GoPackageName}}.TemplateName + "." + "HandlerBuilder",
             HndlrInterfaceName: {{.GoPackageName}}.TemplateName + "." + "Handler",
             BuilderSupportsTemplate: func(hndlrBuilder adapter.HandlerBuilder) bool {
@@ -264,9 +266,9 @@ var (
             {{end}}
             {{if eq $varietyName "TEMPLATE_VARIETY_ATTRIBUTE_GENERATOR"}}
             {{$goPkgName := .GoPackageName}}
-            AttributeManifests: []*istio_policy_v1beta1.AttributeManifest{
+            AttributeManifests: []*istio_mixer_v1_config.AttributeManifest{
                 {
-                    Attributes: map[string]*istio_policy_v1beta1.AttributeManifest_AttributeInfo{
+                    Attributes: map[string]*istio_mixer_v1_config.AttributeManifest_AttributeInfo{
                         {{range .OutputTemplateMessage.Fields}}
                         "{{$goPkgName}}.output.{{.ProtoName}}": {
                             ValueType: {{getValueType .GoType}},
@@ -449,7 +451,7 @@ var (
                         },
                         func() []string {return attrs.Names()},
                         func() {attrs.Done()},
-                        func() string {return attrs.String()},
+                        func() string {return attrs.DebugString()},
                     )
                     }
                     resultBag := attribute.GetMutableBag(nil)
@@ -560,7 +562,7 @@ var (
                 },
                 func() []string {return attrs.Names()},
                 func() {attrs.Done()},
-                func() string {return attrs.String()},
+                func() string {return attrs.DebugString()},
             )
 
             // Mapper will map back $out values in the outBag into ambient attribute names, and return
@@ -616,7 +618,7 @@ var (
 			finder expr.AttributeDescriptorFinder,
 			expb *compiled.ExpressionBuilder) (map[string]compiled.Expression, error) {
             var err error
-			var expType istio_policy_v1beta1.ValueType
+			var expType istio_mixer_v1_config_descriptor.ValueType
 
             // Convert the generic instanceParam to its specialized type.
             param := instanceParam.(*{{$t.GoPackageName}}.{{getResourcMessageInterfaceParamTypeName $m.Name}})
@@ -709,7 +711,7 @@ var (
             _ = err
             var errp template.ErrorPath
             _ = errp
-			var expType istio_policy_v1beta1.ValueType
+			var expType istio_mixer_v1_config_descriptor.ValueType
             _ = expType
 
             {{range $m.Fields}}
@@ -824,16 +826,16 @@ var (
 								}
 								r.{{$f.GoName}}[k] = {{getLocalVar $f.GoType.MapValue}}
 							{{else}}
-	                            if {{getLocalVar $f.GoType.MapValue}}, err = v.{{getEvalMethod $f.GoType.MapValue}}(attrs); err != nil {
+	                            if vIface, err = v.Evaluate(attrs); err != nil {
 	                                return nil, template.NewErrorPath("{{$f.GoName}}["+ k + "]", err)
 	                            }
 	                            {{if containsValueTypeOrResMsg $f.GoType.MapValue}}
-	                                r.{{$f.GoName}}[k] = {{getLocalVar $f.GoType.MapValue}}
+	                                r.{{$f.GoName}}[k] = vIface
 	                            {{else}}
 	                                {{if isAliasTypeSkipIp $f.GoType.MapValue.Name}}
-	                                    r.{{$f.GoName}}[k] = {{$f.GoType.MapValue.Name}}({{getLocalVar $f.GoType.MapValue}}.({{getAliasType $f.GoType.MapValue.Name}}))
+	                                    r.{{$f.GoName}}[k] = {{$f.GoType.MapValue.Name}}(vIface.({{getAliasType $f.GoType.MapValue.Name}}))
 	                                {{else}}
-	                                    r.{{$f.GoName}}[k] = {{getLocalVar $f.GoType.MapValue}}.({{$f.GoType.MapValue.Name}}) {{reportTypeUsed $f.GoType.MapValue}}
+	                                    r.{{$f.GoName}}[k] = vIface.({{$f.GoType.MapValue.Name}}) {{reportTypeUsed $f.GoType.MapValue}}
 	                                {{end}}
 	                            {{end}}
 							{{end}}
@@ -853,7 +855,7 @@ var (
 							}
 							r.{{$f.GoName}} = {{getLocalVar $f.GoType}}
 						{{else}}
-	                        if vIface, err = b.{{builderFieldName $f}}.{{getEvalMethod $f.GoType}}(attrs); err != nil {
+	                        if vIface, err = b.{{builderFieldName $f}}.Evaluate(attrs); err != nil {
 	                            return nil, template.NewErrorPath("{{$f.GoName}}", err)
 	                        }
 	                        {{if containsValueTypeOrResMsg $f.GoType}}

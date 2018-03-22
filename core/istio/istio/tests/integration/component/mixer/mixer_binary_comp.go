@@ -20,8 +20,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
+
+	"sync"
 
 	"istio.io/istio/tests/integration/framework"
 	"istio.io/istio/tests/util"

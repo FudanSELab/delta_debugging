@@ -15,16 +15,17 @@
 package kube
 
 import (
-	"os"
-	"strconv"
 	"sync"
 	"time"
-
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 	"k8s.io/client-go/util/flowcontrol"
+
+	"os"
+	"strconv"
 
 	"istio.io/istio/pilot/pkg/model"
 	"istio.io/istio/pkg/log"
-	"fmt"
 )
 
 const (
@@ -55,9 +56,6 @@ type Task struct {
 
 // NewTask creates a task from a work item
 func NewTask(handler Handler, obj interface{}, event model.Event) Task {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - queue.go - NewTask")
-
 	return Task{handler: handler, obj: obj, event: event}
 }
 
@@ -70,9 +68,6 @@ type queueImpl struct {
 
 // NewQueue instantiates a queue with a processing function
 func NewQueue(errorDelay time.Duration) Queue {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - queue.go - NewQueue")
-
 	return &queueImpl{
 		delay:   errorDelay,
 		queue:   make([]Task, 0),
@@ -82,9 +77,6 @@ func NewQueue(errorDelay time.Duration) Queue {
 }
 
 func (q *queueImpl) Push(item Task) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - queue.go - Push")
-
 	q.lock.Lock()
 	if !q.closing {
 		q.queue = append(q.queue, item)
@@ -93,9 +85,6 @@ func (q *queueImpl) Push(item Task) {
 }
 
 func (q *queueImpl) Run(stop <-chan struct{}) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - queue.go - Run")
-
 	go func() {
 		<-stop
 		q.lock.Lock()
@@ -153,9 +142,6 @@ type ChainHandler struct {
 
 // Apply is the handler function
 func (ch *ChainHandler) Apply(obj interface{}, event model.Event) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - queue.go - Apply")
-
 	for _, f := range ch.funcs {
 		if err := f(obj, event); err != nil {
 			return err
@@ -166,8 +152,5 @@ func (ch *ChainHandler) Apply(obj interface{}, event model.Event) error {
 
 // Append a handler as the last handler in the chain
 func (ch *ChainHandler) Append(h Handler) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - queue.go - Append")
-
 	ch.funcs = append(ch.funcs, h)
 }

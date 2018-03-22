@@ -42,11 +42,8 @@ type Config struct {
 
 	RSAKeySize int
 
-	// The environment this node agent is running on.
+	// The environment this node agent is running on
 	Env string
-
-	// The cluster management platform this ndoe agent is running on.
-	Platform string
 
 	// CSRInitialRetrialInterval is the retrial interval for certificate requests.
 	CSRInitialRetrialInterval time.Duration
@@ -77,6 +74,6 @@ func NewConfig() *Config {
 		CSRInitialRetrialInterval: defaultCSRInitialRetrialInterval,
 		CSRMaxRetries:             defaultCSRMaxRetries,
 		CSRGracePeriodPercentage:  defaultCSRGracePeriodPercentage,
-		LoggingOptions:            log.DefaultOptions(),
+		LoggingOptions:            log.NewOptions(),
 	}
 }

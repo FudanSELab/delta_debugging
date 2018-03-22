@@ -22,8 +22,7 @@ import (
 	"reflect"
 	"testing"
 
-	rpc "github.com/gogo/googleapis/google/rpc"
-
+	rpc "istio.io/gogo-genproto/googleapis/google/rpc"
 	"istio.io/istio/mixer/adapter/opa/config"
 	"istio.io/istio/mixer/pkg/adapter/test"
 	"istio.io/istio/mixer/template/authorization"

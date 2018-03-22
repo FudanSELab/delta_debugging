@@ -71,9 +71,9 @@ func TestGetWaitTime(t *testing.T) {
 		},
 	}
 
-	cu := NewCertUtil(50) // Grace period percentage is set to 50
+	cu := CertUtilImpl{}
 	for id, c := range testCases {
-		waitTime, err := cu.GetWaitTime(c.cert, c.now)
+		waitTime, err := cu.GetWaitTime(c.cert, c.now, 50)
 		if c.expectedErr != "" {
 			if err == nil {
 				t.Errorf("%s: no error is returned.", id)

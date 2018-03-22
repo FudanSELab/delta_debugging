@@ -1,10 +1,29 @@
-approvers:
+# Please add your github ID alphabetically.
+reviewers:
+  - andraxylia
   - costinm
-  - douglas-reid
+  - Douglas-reid
+  - frankbu
   - geeknoid
   - hklai
+  - kyessenov
+  - ldemailly
   - linsun
   - mandarjog
   - rshriram
+  - sebastienvas
   - wattli
-  - ZackButcher
+approvers:
+  - andraxylia
+  - costinm
+  - Douglas-reid
+  - frankbu
+  - geeknoid
+  - hklai
+  - kyessenov
+  - ldemailly
+  - linsun
+  - mandarjog
+  - rshriram
+  - sebastienvas
+  - wattli

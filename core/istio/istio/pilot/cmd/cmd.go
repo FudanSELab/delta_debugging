@@ -16,25 +16,23 @@ package cmd
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/signal"
 	"syscall"
-
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/spf13/cobra"
 
 	meshconfig "istio.io/api/mesh/v1alpha1"
 	"istio.io/istio/pilot/pkg/model"
 	"istio.io/istio/pkg/log"
-	"fmt"
 )
 
 // ReadMeshConfig gets mesh configuration from a config file
 func ReadMeshConfig(filename string) (*meshconfig.MeshConfig, error) {
-
-	fmt.Println("[调试标记] Pilot - cmd - cmd.go - ReadMeshConfig")
-
 	yaml, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, multierror.Prefix(err, "cannot read mesh config file")
@@ -44,19 +42,31 @@ func ReadMeshConfig(filename string) (*meshconfig.MeshConfig, error) {
 
 // AddFlags adds all command line flags to the given command.
 func AddFlags(rootCmd *cobra.Command) {
-
-	fmt.Println("[调试标记] Pilot - cmd - cmd.go - AddFlags")
-
 	flag.CommandLine.VisitAll(func(gf *flag.Flag) {
-		rootCmd.PersistentFlags().AddGoFlag(gf)
+		switch gf.Name {
+		case "logtostderr":
+			if err := gf.Value.Set("true"); err != nil {
+				fmt.Printf("missing logtostderr flag: %v", err)
+			}
+		case "alsologtostderr", "log_dir", "stderrthreshold":
+			// always use stderr for logging
+		default:
+			rootCmd.PersistentFlags().AddGoFlag(gf)
+		}
 	})
+}
+
+// SupressGlogWarnings is a hack to make flag.Parsed return true such that glog is happy
+// about the flags having been parsed.  See https://github.com/istio/istio/issues/2127.
+func SupressGlogWarnings() {
+	fs := flag.NewFlagSet("", flag.ContinueOnError)
+	/* #nosec */
+	_ = fs.Parse([]string{})
+	flag.CommandLine = fs
 }
 
 // WaitSignal awaits for SIGINT or SIGTERM and closes the channel
 func WaitSignal(stop chan struct{}) {
-
-	fmt.Println("[调试标记] Pilot - cmd - cmd.go - WaitSignal")
-
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	<-sigs

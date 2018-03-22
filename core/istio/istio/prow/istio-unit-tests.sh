@@ -27,10 +27,9 @@ set -e
 source ${ROOT}/prow/lib.sh
 setup_and_export_git_sha
 
-cd ${ROOT}
+echo 'Build'
+(cd ${ROOT}; make build)
 
 # Unit tests are run against a local apiserver and etcd.
 # Integration/e2e tests in the other scripts are run against GKE or real clusters.
-JUNIT_UNIT_TEST_XML="${ARTIFACTS_DIR}/junit_unit-tests.xml" \
-T="-v" \
-make build localTestEnv test
+(cd ${ROOT}; make localTestEnv test)

@@ -18,24 +18,37 @@ import (
 	"fmt"
 	"log"
 
-	rpc "github.com/gogo/googleapis/google/rpc"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	wlh "istio.io/istio/security/cmd/node_agent_k8s/workload/handler"
+	rpc "istio.io/gogo-genproto/googleapis/google/rpc"
+	mwi "istio.io/istio/security/cmd/node_agent_k8s/mgmtwlhintf"
+	wlh "istio.io/istio/security/cmd/node_agent_k8s/workloadhandler"
 	pb "istio.io/istio/security/proto"
 )
 
-// server implements WorkloadService from workload_service.proto.
-type server struct{}
+const (
+	socName string = "/server.sock"
+)
+
+// WlServer define the struct for workload server
+type WlServer struct{}
+
+// NewWlAPIServer define the new api
+func NewWlAPIServer() *mwi.WlServer {
+	return &mwi.WlServer{
+		SockFile: socName,
+		RegAPI:   RegisterGrpc,
+	}
+}
 
 // RegisterGrpc register grpc
 func RegisterGrpc(s *grpc.Server) {
-	pb.RegisterWorkloadServiceServer(s, &server{})
+	pb.RegisterWorkloadServiceServer(s, &WlServer{})
 }
 
 // Check do the check
-func (s *server) Check(ctx context.Context, request *pb.CheckRequest) (*pb.CheckResponse, error) {
+func (s *WlServer) Check(ctx context.Context, request *pb.CheckRequest) (*pb.CheckResponse, error) {
 
 	log.Printf("[%v]: %v Check called", s, request)
 	// Get the caller's credentials from the context.

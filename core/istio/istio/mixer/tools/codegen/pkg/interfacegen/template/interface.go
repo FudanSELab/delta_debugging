@@ -24,6 +24,7 @@ import (
   "context"
   "strings"
   "istio.io/istio/mixer/pkg/adapter"
+  "istio.io/istio/mixer/pkg/adapter"
   $$additional_imports$$
 )
 

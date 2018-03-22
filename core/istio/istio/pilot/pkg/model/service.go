@@ -29,7 +29,6 @@ import (
 	"strings"
 
 	meshconfig "istio.io/api/mesh/v1alpha1"
-	networking "istio.io/api/networking/v1alpha3"
 )
 
 // Service describes an Istio service (e.g., catalog.mystore.com:8080)
@@ -61,34 +60,9 @@ type Service struct {
 	// ServiceAccounts specifies the service accounts that run the service.
 	ServiceAccounts []string `json:"serviceaccounts,omitempty"`
 
-	// MeshExternal (if true) indicates that the service is external to the mesh.
-	// These services are defined using Istio's ExternalService spec.
-	MeshExternal bool
-
 	// LoadBalancingDisabled indicates that no load balancing should be done for this service.
 	LoadBalancingDisabled bool `json:"-"`
-
-	// Resolution indicates how the service instances need to be resolved before routing
-	// traffic. Most services in the service registry will use static load balancing wherein
-	// the proxy will decide the service instance that will receive the traffic. External services
-	// could either use DNS load balancing (i.e. proxy will query DNS server for the IP of the service)
-	// or use the passthrough model (i.e. proxy will forward the traffic to the network endpoint requested
-	// by the caller)
-	Resolution Resolution
 }
-
-// Resolution indicates how the service instances need to be resolved before routing
-// traffic.
-type Resolution int
-
-const (
-	// ClientSideLB implies that the proxy will decide the endpoint from its local lb pool
-	ClientSideLB Resolution = iota
-	// DNSLB implies that the proxy will resolve a DNS address and forward to the resolved address
-	DNSLB
-	// Passthrough implies that the proxy should forward traffic to the destination IP requested by the caller
-	Passthrough
-)
 
 // Port represents a network port where a service is listening for
 // connections. The port should be annotated with the type of protocol
@@ -144,9 +118,6 @@ const (
 
 // ConvertCaseInsensitiveStringToProtocol converts a case-insensitive protocol to Protocol
 func ConvertCaseInsensitiveStringToProtocol(protocolAsString string) Protocol {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - service.go - ConvertCaseInsensitiveStringToProtocol")
-
 	switch strings.ToLower(protocolAsString) {
 	case "tcp":
 		return ProtocolTCP
@@ -171,9 +142,6 @@ func ConvertCaseInsensitiveStringToProtocol(protocolAsString string) Protocol {
 
 // IsHTTP is true for protocols that use HTTP as transport protocol
 func (p Protocol) IsHTTP() bool {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - service.go - IsHTTP")
-
 	switch p {
 	case ProtocolHTTP, ProtocolHTTP2, ProtocolGRPC:
 		return true
@@ -316,9 +284,6 @@ type ServiceAccounts interface {
 
 // SubsetOf is true if the tag has identical values for the keys
 func (l Labels) SubsetOf(that Labels) bool {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - service.go - SubsetOf")
-
 	for k, v := range l {
 		if that[k] != v {
 			return false
@@ -329,9 +294,6 @@ func (l Labels) SubsetOf(that Labels) bool {
 
 // Equals returns true if the labels are identical
 func (l Labels) Equals(that Labels) bool {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - service.go - Equals")
-
 	if l == nil {
 		return that == nil
 	}
@@ -344,9 +306,6 @@ func (l Labels) Equals(that Labels) bool {
 // HasSubsetOf returns true if the input labels are a super set of one labels in a
 // collection or if the tag collection is empty
 func (labels LabelsCollection) HasSubsetOf(that Labels) bool {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - service.go - HasSubsetOf")
-
 	if len(labels) == 0 {
 		return true
 	}
@@ -358,29 +317,8 @@ func (labels LabelsCollection) HasSubsetOf(that Labels) bool {
 	return false
 }
 
-// Match returns true if port matches with port selector criteria.
-func (port Port) Match(portSelector *networking.PortSelector) bool {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - service.go - Match")
-
-	if portSelector == nil {
-		return true
-	}
-	switch portSelector.Port.(type) {
-	case *networking.PortSelector_Name:
-		return portSelector.GetName() == port.Name
-	case *networking.PortSelector_Number:
-		return portSelector.GetNumber() == uint32(port.Port)
-	default:
-		return false
-	}
-}
-
 // GetNames returns port names
 func (ports PortList) GetNames() []string {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - service.go - GetNames")
-
 	names := make([]string, 0, len(ports))
 	for _, port := range ports {
 		names = append(names, port.Name)
@@ -390,9 +328,6 @@ func (ports PortList) GetNames() []string {
 
 // Get retrieves a port declaration by name
 func (ports PortList) Get(name string) (*Port, bool) {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - service.go - Get")
-
 	for _, port := range ports {
 		if port.Name == name {
 			return port, true
@@ -403,9 +338,6 @@ func (ports PortList) Get(name string) (*Port, bool) {
 
 // GetByPort retrieves a port declaration by port value
 func (ports PortList) GetByPort(num int) (*Port, bool) {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - service.go - GetByPort")
-
 	for _, port := range ports {
 		if port.Port == num {
 			return port, true
@@ -416,9 +348,6 @@ func (ports PortList) GetByPort(num int) (*Port, bool) {
 
 // External predicate checks whether the service is external
 func (s *Service) External() bool {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - service.go - External")
-
 	return s.ExternalName != ""
 }
 
@@ -426,18 +355,12 @@ func (s *Service) External() bool {
 // The separator character must be exclusive to the regular expressions allowed in the
 // service declaration.
 func (s *Service) Key(port *Port, labels Labels) string {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - service.go - Key")
-
 	// TODO: check port is non nil and membership of port in service
 	return ServiceKey(s.Hostname, PortList{port}, LabelsCollection{labels})
 }
 
 // ServiceKey generates a service key for a collection of ports and labels
 func ServiceKey(hostname string, servicePorts PortList, labelsList LabelsCollection) string {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - service.go - ServiceKey")
-
 	// example: name.namespace|http|env=prod;env=test,version=my-v1
 	var buffer bytes.Buffer
 	buffer.WriteString(hostname)
@@ -489,9 +412,6 @@ func ServiceKey(hostname string, servicePorts PortList, labelsList LabelsCollect
 
 // ParseServiceKey is the inverse of the Service.String() method
 func ParseServiceKey(s string) (hostname string, ports PortList, labels LabelsCollection) {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - service.go - ParseServiceKey")
-
 	parts := strings.Split(s, "|")
 	hostname = parts[0]
 
@@ -515,9 +435,6 @@ func ParseServiceKey(s string) (hostname string, ports PortList, labels LabelsCo
 }
 
 func (l Labels) String() string {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - service.go - String")
-
 	labels := make([]string, 0, len(l))
 	for k, v := range l {
 		if len(v) > 0 {
@@ -543,9 +460,6 @@ func (l Labels) String() string {
 
 // ParseLabelsString extracts labels from a string
 func ParseLabelsString(s string) Labels {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - service.go - ParseLabelsString")
-
 	pairs := strings.Split(s, ",")
 	tag := make(map[string]string, len(pairs))
 

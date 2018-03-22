@@ -65,6 +65,7 @@ func (cca *clientCertAuthenticator) authenticate(ctx context.Context) (*caller, 
 
 	if authType := peer.AuthInfo.AuthType(); authType != "tls" {
 		return nil, fmt.Errorf("unsupported auth type: %q", authType)
+
 	}
 
 	tlsInfo := peer.AuthInfo.(credentials.TLSInfo)

@@ -20,7 +20,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 	multierror "github.com/hashicorp/go-multierror"
 
@@ -79,9 +80,6 @@ const (
 
 // IsApplicationNodeType verifies that the NodeType is one of the declared constants in the model
 func IsApplicationNodeType(nType NodeType) bool {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - context.go - IsApplicationNodeType")
-
 	switch nType {
 	case Sidecar, Ingress, Router:
 		return true
@@ -100,9 +98,6 @@ func (node Proxy) ServiceNode() string {
 
 // ParseServiceNode is the inverse of service node function
 func ParseServiceNode(s string) (Proxy, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - context.go - ParseServiceNode")
-
 	parts := strings.Split(s, serviceNodeSeparator)
 	out := Proxy{}
 
@@ -164,15 +159,12 @@ const (
 	// ServiceClusterName service cluster name used in xDS calls
 	ServiceClusterName = "istio-proxy"
 
-	// DiscoveryPlainAddress discovery IP address:port with plain text
-	DiscoveryPlainAddress = "istio-pilot:15007"
+	// DiscoveryServerAddress discovery IP address:port
+	DiscoveryServerAddress = "istio-pilot:15003"
 )
 
 // DefaultProxyConfig for individual proxies
 func DefaultProxyConfig() meshconfig.ProxyConfig {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - context.go - DefaultProxyConfig")
-
 	return meshconfig.ProxyConfig{
 		ConfigPath:             ConfigPathDir,
 		BinaryPath:             BinaryPathFilename,
@@ -180,7 +172,7 @@ func DefaultProxyConfig() meshconfig.ProxyConfig {
 		AvailabilityZone:       "", //no service zone by default, i.e. AZ-aware routing is disabled
 		DrainDuration:          ptypes.DurationProto(2 * time.Second),
 		ParentShutdownDuration: ptypes.DurationProto(3 * time.Second),
-		DiscoveryAddress:       DiscoveryPlainAddress,
+		DiscoveryAddress:       DiscoveryServerAddress,
 		DiscoveryRefreshDelay:  ptypes.DurationProto(1 * time.Second),
 		ZipkinAddress:          "",
 		ConnectTimeout:         ptypes.DurationProto(1 * time.Second),
@@ -194,9 +186,6 @@ func DefaultProxyConfig() meshconfig.ProxyConfig {
 
 // DefaultMeshConfig configuration
 func DefaultMeshConfig() meshconfig.MeshConfig {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - context.go - DefaultMeshConfig")
-
 	config := DefaultProxyConfig()
 	return meshconfig.MeshConfig{
 		// TODO(mixeraddress is deprecated. Remove)
@@ -219,9 +208,6 @@ func DefaultMeshConfig() meshconfig.MeshConfig {
 // ApplyMeshConfigDefaults returns a new MeshConfig decoded from the
 // input YAML with defaults applied to omitted configuration values.
 func ApplyMeshConfigDefaults(yaml string) (*meshconfig.MeshConfig, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - context.go - ApplyMeshConfigDefaults")
-
 	out := DefaultMeshConfig()
 	if err := ApplyYAML(yaml, &out); err != nil {
 		return nil, multierror.Prefix(err, "failed to convert to proto.")
@@ -261,9 +247,6 @@ func ApplyMeshConfigDefaults(yaml string) (*meshconfig.MeshConfig, error) {
 
 // ParsePort extracts port number from a valid proxy address
 func ParsePort(addr string) int {
-
-	fmt.Println("[调试标记] Pilot - pkg - model - context.go - ParsePort")
-
 	port, err := strconv.Atoi(addr[strings.Index(addr, ":")+1:])
 	if err != nil {
 		log.Warna(err)

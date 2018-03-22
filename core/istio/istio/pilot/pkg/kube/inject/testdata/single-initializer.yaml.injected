@@ -27,6 +27,8 @@ spec:
       - args:
         - proxy
         - sidecar
+        - -v
+        - "2"
         env:
         - name: POD_NAME
           valueFrom:

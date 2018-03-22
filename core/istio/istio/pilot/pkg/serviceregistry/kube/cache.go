@@ -15,13 +15,11 @@
 package kube
 
 import (
-	"log"
 	"sync"
 
 	"k8s.io/api/core/v1"
 
 	"istio.io/istio/pilot/pkg/model"
-	"fmt"
 )
 
 // PodCache is an eventually consistent pod cache
@@ -30,15 +28,11 @@ type PodCache struct {
 	cacheHandler
 
 	// keys maintains stable pod IP to name key mapping
-	// this allows us to retrieve the latest status by pod IP.
-	// This should only contain RUNNING or PENDING pods with an allocated IP.
+	// this allows us to retrieve the latest status by pod IP
 	keys map[string]string
 }
 
 func newPodCache(ch cacheHandler) *PodCache {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - cache.go - newPodCache")
-
 	out := &PodCache{
 		cacheHandler: ch,
 		keys:         make(map[string]string),
@@ -50,34 +44,12 @@ func newPodCache(ch cacheHandler) *PodCache {
 
 		pod := *obj.(*v1.Pod)
 		ip := pod.Status.PodIP
-
-		log.Printf("Handle pod %s in namespace %s -> %v", pod.Name, pod.Namespace, pod.Status.PodIP)
-
 		if len(ip) > 0 {
-			key := KeyFunc(pod.Name, pod.Namespace)
 			switch ev {
-			case model.EventAdd:
-				switch pod.Status.Phase {
-				case v1.PodPending, v1.PodRunning:
-					// add to cache if the pod is running or pending
-					out.keys[ip] = key
-				}
-			case model.EventUpdate:
-				switch pod.Status.Phase {
-				case v1.PodPending, v1.PodRunning:
-					// add to cache if the pod is running or pending
-					out.keys[ip] = key
-				default:
-					// delete if the pod switched to other states and is in the cache
-					if out.keys[ip] == key {
-						delete(out.keys, ip)
-					}
-				}
+			case model.EventAdd, model.EventUpdate:
+				out.keys[ip] = KeyFunc(pod.Name, pod.Namespace)
 			case model.EventDelete:
-				// delete only if this pod was in the cache
-				if out.keys[ip] == key {
-					delete(out.keys, ip)
-				}
+				delete(out.keys, ip)
 			}
 		}
 		return nil
@@ -85,21 +57,8 @@ func newPodCache(ch cacheHandler) *PodCache {
 	return out
 }
 
-func (pc *PodCache) getPodKey(addr string) (string, bool) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - cache.go - getPodKey")
-
-	pc.rwMu.RLock()
-	defer pc.rwMu.RUnlock()
-	key, exists := pc.keys[addr]
-	return key, exists
-}
-
 // getPodByIp returns the pod or nil if pod not found or an error occurred
 func (pc *PodCache) getPodByIP(addr string) (*v1.Pod, bool) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - cache.go - getPodByIP")
-
 	pc.rwMu.RLock()
 	defer pc.rwMu.RUnlock()
 
@@ -116,9 +75,6 @@ func (pc *PodCache) getPodByIP(addr string) (*v1.Pod, bool) {
 
 // labelsByIP returns pod labels or nil if pod not found or an error occurred
 func (pc *PodCache) labelsByIP(addr string) (model.Labels, bool) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - cache.go - labelsByIP")
-
 	pod, exists := pc.getPodByIP(addr)
 	if !exists {
 		return nil, false

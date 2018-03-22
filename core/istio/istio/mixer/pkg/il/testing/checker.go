@@ -17,7 +17,7 @@ package ilt
 import (
 	"fmt"
 
-	dpb "istio.io/api/policy/v1beta1"
+	dpb "istio.io/api/mixer/v1/config/descriptor"
 	"istio.io/istio/mixer/pkg/expr"
 )
 

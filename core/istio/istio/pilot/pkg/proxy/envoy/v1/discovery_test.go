@@ -131,7 +131,7 @@ func TestDiscoveryLDSWebHooks(t *testing.T) {
 		if r.URL.Path != url {
 			t.Errorf("WebHook expected URL: %s, got %s", url, r.URL.Path)
 		}
-		fmt.Fprintln(w, `{"listeners": [ {"name": "Hello-LDS-WebHook"}]}`)
+		fmt.Fprintln(w, "'listeners': [ {'name': 'Hello-LDS-WebHook'}]")
 	}))
 	defer ts.Close()
 
@@ -149,7 +149,7 @@ func TestDiscoveryCDSWebHooks(t *testing.T) {
 		if r.URL.Path != url {
 			t.Errorf("WebHook expected URL: %s, got %s", url, r.URL.Path)
 		}
-		fmt.Fprintln(w, `{"clusters": [ {"name": "Hello-CDS-WebHook"}]}`)
+		fmt.Fprintln(w, "'clusters': [ {'name': 'Hello-CDS-WebHook'}]")
 	}))
 	defer ts.Close()
 
@@ -167,7 +167,7 @@ func TestDiscoveryRDSWebHooks(t *testing.T) {
 		if r.URL.Path != url {
 			t.Errorf("WebHook expected URL: %s, got %s", url, r.URL.Path)
 		}
-		fmt.Fprintln(w, `{"routes": [ {"name": "Hello-RDS-WebHook"}]}`)
+		fmt.Fprintln(w, "'routes': [ {'name': 'Hello-RDS-WebHook'}]")
 	}))
 	defer ts.Close()
 
@@ -279,8 +279,8 @@ func TestClusterDiscoveryCircuitBreaker(t *testing.T) {
 	}{
 		{configs: []fileConfig{weightedRouteRule, cbPolicy, egressRule, egressRuleCBPolicy},
 			response: "testdata/cds-circuit-breaker.json"},
-		{configs: []fileConfig{cbRouteRuleV3, destinationRuleWorldCB, externalServiceRule, destinationRuleGoogleCB},
-			response: "testdata/cds-circuit-breaker-v1alpha3.json"},
+		{configs: []fileConfig{cbRouteRuleV2, destinationRuleWorldCB, externalServiceRule, destinationRuleGoogleCB},
+			response: "testdata/cds-circuit-breaker-v1alpha2.json"},
 	}
 
 	for _, tc := range tests {
@@ -328,36 +328,6 @@ func TestClusterDiscoveryWithSecurityOn(t *testing.T) {
 	compareResponse(response, "testdata/cds-ssl-context.json", t)
 }
 
-func TestClusterDiscoveryWithSecurityOnByByAuthenticationPolicy(t *testing.T) {
-	// This test enable mesh mTLS using authN policy. Currently, the broadest scope
-	// for policy is namespace. However, this test setup has only one namespace, so
-	// the effect is the same as using mesh config flag (i.e
-	// TestClusterDiscoveryWithSecurityOn)
-	_, registry, ds := commonSetup(t)
-	addConfig(registry, egressRule, t) // original dst cluster should not have auth
-	addConfig(registry, authnPolicyNamespaceMTlsOn, t)
-
-	url := fmt.Sprintf("/v1/clusters/%s/%s", "istio-proxy", mock.HelloProxyV0.ServiceNode())
-	response := makeDiscoveryRequest(ds, "GET", url, t)
-	compareResponse(response, "testdata/cds-ssl-context.json", t)
-}
-
-func TestClusterDiscoveryWithSecurityOffByByAuthenticationPolicy(t *testing.T) {
-	// This test shows mesh config AuthPolicy will be overridden by policy. The
-	// test will enable mTLS via mesh flag, but then disable with authn policy. The
-	// end result should be equivalent to mesh's auth policy is disable in the
-	// first place (i.e TestClusterDiscovery)
-	mesh := makeMeshConfig()
-	mesh.AuthPolicy = meshconfig.MeshConfig_MUTUAL_TLS
-	registry := memory.Make(model.IstioConfigTypes)
-	addConfig(registry, authnPolicyNamespaceMTlsOff, t)
-
-	ds := makeDiscoveryService(t, registry, &mesh)
-	url := fmt.Sprintf("/v1/clusters/%s/%s", "istio-proxy", mock.HelloProxyV0.ServiceNode())
-	response := makeDiscoveryRequest(ds, "GET", url, t)
-	compareResponse(response, "testdata/cds.json", t)
-}
-
 func TestClusterDiscoveryWithAuthOptOut(t *testing.T) {
 	mesh := makeMeshConfig()
 	mesh.AuthPolicy = meshconfig.MeshConfig_MUTUAL_TLS
@@ -374,23 +344,6 @@ func TestClusterDiscoveryWithAuthOptOut(t *testing.T) {
 
 	// Reset mock service security option.
 	mock.WorldService.Ports[0].AuthenticationPolicy = meshconfig.AuthenticationPolicy_INHERIT
-}
-
-func TestClusterDiscoveryWithOptOutByAuthenticationPolicy(t *testing.T) {
-	// This test using authentication policies (CRD) to enable mTLS for the whole
-	// namespace (we don't support global policy yet, but for this test setup, it's
-	// the same as global since we have only one namespace), and disable mTLS for
-	// 'world' service. In other words, this has the same effect as
-	// TestClusterDiscoveryWithAuthOptOut above.
-	_, registry, ds := commonSetup(t)
-	addConfig(registry, egressRule, t) // original dst cluster should not have auth
-
-	addConfig(registry, authnPolicyNamespaceMTlsOn, t)
-	addConfig(registry, authnPolicyWorldMTlsOff, t)
-
-	url := fmt.Sprintf("/v1/clusters/%s/%s", "istio-proxy", mock.HelloProxyV0.ServiceNode())
-	response := makeDiscoveryRequest(ds, "GET", url, t)
-	compareResponse(response, "testdata/cds-ssl-context-optout.json", t)
 }
 
 func TestClusterDiscoveryIngress(t *testing.T) {
@@ -488,7 +441,7 @@ func TestRouteDiscoveryV1(t *testing.T) {
 func TestRouteDiscoveryTimeout(t *testing.T) {
 	tests := [][]fileConfig{
 		{timeoutRouteRule, egressRule, egressRuleTimeoutRule},
-		{timeoutRouteRuleV3, externalServiceRule, googleTimeoutRuleV3},
+		{timeoutRouteRuleV2, externalServiceRule, googleTimeoutRuleV2},
 	}
 
 	for _, configs := range tests {
@@ -503,11 +456,11 @@ func TestRouteDiscoveryTimeout(t *testing.T) {
 }
 
 func TestRouteDiscoveryWeighted(t *testing.T) {
-	for _, weightedConfig := range []fileConfig{weightedRouteRule, weightedRouteRuleV3} {
+	for _, weightedConfig := range []fileConfig{weightedRouteRule, weightedRouteRuleV2} {
 		_, registry, ds := commonSetup(t)
 		addConfig(registry, weightedConfig, t)
 
-		// TODO: v1alpha3 only
+		// TODO: v1alpha2 only
 		addConfig(registry, destinationRuleWorld, t)
 
 		url := fmt.Sprintf("/v1/routes/80/%s/%s", "istio-proxy", mock.HelloProxyV0.ServiceNode())
@@ -517,11 +470,11 @@ func TestRouteDiscoveryWeighted(t *testing.T) {
 }
 
 func TestRouteDiscoveryFault(t *testing.T) {
-	for _, faultConfig := range []fileConfig{faultRouteRule, faultRouteRuleV3} {
+	for _, faultConfig := range []fileConfig{faultRouteRule, faultRouteRuleV2} {
 		_, registry, ds := commonSetup(t)
 		addConfig(registry, faultConfig, t)
 
-		// TODO: v1alpha3 only
+		// TODO: v1alpha2 only
 		addConfig(registry, destinationRuleWorld, t)
 
 		// fault rule is source based: we check that the rule only affect v0 and not v1
@@ -537,9 +490,9 @@ func TestRouteDiscoveryFault(t *testing.T) {
 
 func TestRouteDiscoveryMultiMatchFault(t *testing.T) {
 	_, registry, ds := commonSetup(t)
-	addConfig(registry, multiMatchFaultRouteRuleV3, t)
+	addConfig(registry, multiMatchFaultRouteRuleV2, t)
 
-	// TODO: v1alpha3 only
+	// TODO: v1alpha2 only
 	addConfig(registry, destinationRuleWorld, t)
 
 	// fault rule is source based: we check that the rule only affects v0 and not v1
@@ -553,11 +506,11 @@ func TestRouteDiscoveryMultiMatchFault(t *testing.T) {
 }
 
 func TestRouteDiscoveryMirror(t *testing.T) {
-	for _, mirrorConfig := range []fileConfig{mirrorRule, mirrorRuleV3} {
+	for _, mirrorConfig := range []fileConfig{mirrorRule, mirrorRuleV2} {
 		_, registry, ds := commonSetup(t)
 		addConfig(registry, mirrorConfig, t)
 
-		// TODO: v1alpha3 only
+		// TODO: v1alpha2 only
 		addConfig(registry, destinationRuleHello, t)
 
 		url := fmt.Sprintf("/v1/routes/80/%s/%s", "istio-proxy", mock.HelloProxyV0.ServiceNode())
@@ -567,7 +520,7 @@ func TestRouteDiscoveryMirror(t *testing.T) {
 }
 
 func TestRouteDiscoveryAppendHeaders(t *testing.T) {
-	for _, addHeaderConfig := range []fileConfig{addHeaderRule, addHeaderRuleV3} {
+	for _, addHeaderConfig := range []fileConfig{addHeaderRule, addHeaderRuleV2} {
 		_, registry, ds := commonSetup(t)
 		addConfig(registry, addHeaderConfig, t)
 
@@ -578,7 +531,7 @@ func TestRouteDiscoveryAppendHeaders(t *testing.T) {
 }
 
 func TestRouteDiscoveryCORSPolicy(t *testing.T) {
-	for _, corsConfig := range []fileConfig{corsPolicyRule, corsPolicyRuleV3} {
+	for _, corsConfig := range []fileConfig{corsPolicyRule, corsPolicyRuleV2} {
 		_, registry, ds := commonSetup(t)
 		addConfig(registry, corsConfig, t)
 
@@ -589,7 +542,7 @@ func TestRouteDiscoveryCORSPolicy(t *testing.T) {
 }
 
 func TestRouteDiscoveryRedirect(t *testing.T) {
-	for _, redirectConfig := range []fileConfig{redirectRouteRule, redirectRouteRuleV3} {
+	for _, redirectConfig := range []fileConfig{redirectRouteRule, redirectRouteRuleV2} {
 		_, registry, ds := commonSetup(t)
 		addConfig(registry, redirectConfig, t)
 
@@ -611,7 +564,7 @@ func TestRouteDiscoveryEgressRedirect(t *testing.T) {
 }
 
 func TestRouteDiscoveryRewrite(t *testing.T) {
-	for _, rewriteConfig := range []fileConfig{rewriteRouteRule, rewriteRouteRuleV3} {
+	for _, rewriteConfig := range []fileConfig{rewriteRouteRule, rewriteRouteRuleV2} {
 		_, registry, ds := commonSetup(t)
 		addConfig(registry, rewriteConfig, t)
 
@@ -623,15 +576,15 @@ func TestRouteDiscoveryRewrite(t *testing.T) {
 
 func TestRouteDiscoveryMultiMatchRewrite(t *testing.T) {
 	_, registry, ds := commonSetup(t)
-	addConfig(registry, multiMatchRewriteRouteRuleV3, t)
+	addConfig(registry, multiMatchRewriteRouteRuleV2, t)
 
 	url := fmt.Sprintf("/v1/routes/80/%s/%s", "istio-proxy", mock.HelloProxyV0.ServiceNode())
 	response := makeDiscoveryRequest(ds, "GET", url, t)
-	compareResponse(response, "testdata/rds-multi-match-rewrite-v1alpha3.json", t)
+	compareResponse(response, "testdata/rds-multi-match-rewrite-v1alpha2.json", t)
 }
 
 func TestRouteDiscoveryWebsocket(t *testing.T) {
-	for _, websocketConfig := range []fileConfig{websocketRouteRule, websocketRouteRuleV3} {
+	for _, websocketConfig := range []fileConfig{websocketRouteRule, websocketRouteRuleV2} {
 		_, registry, ds := commonSetup(t)
 		addConfig(registry, websocketConfig, t)
 
@@ -659,12 +612,12 @@ func TestRouteDiscoveryIngress(t *testing.T) {
 }
 
 func TestRouteDiscoveryIngressWeighted(t *testing.T) {
-	for _, weightConfig := range []fileConfig{weightedRouteRule, weightedRouteRuleV3} {
+	for _, weightConfig := range []fileConfig{weightedRouteRule, weightedRouteRuleV2} {
 		_, registry, ds := commonSetup(t)
 		addIngressRoutes(registry, t)
 		addConfig(registry, weightConfig, t)
 
-		// TODO: v1alpha3 only
+		// TODO: v1alpha2 only
 		addConfig(registry, destinationRuleWorld, t)
 
 		url := fmt.Sprintf("/v1/routes/80/%s/%s", "istio-proxy", mock.Ingress.ServiceNode())
@@ -722,7 +675,6 @@ func TestExternalServicesDiscoveryMode(t *testing.T) {
 	}{
 		{name: "http-none", file: externalServiceRule},
 		{name: "http-dns", file: externalServiceRuleDNS},
-		{name: "http-dns-no-endpoints", file: externalServiceRuleDNSNoEndpoints},
 		{name: "http-static", file: externalServiceRuleStatic},
 		{name: "tcp-none", file: externalServiceRuleTCP},
 		{name: "tcp-dns", file: externalServiceRuleTCPDNS},
@@ -822,7 +774,7 @@ func TestListenerDiscoverySidecar(t *testing.T) {
 		},
 		{
 			name: "weighted",
-			file: weightedRouteRuleV3,
+			file: weightedRouteRuleV2,
 		},
 		{
 			name: "fault",
@@ -830,11 +782,11 @@ func TestListenerDiscoverySidecar(t *testing.T) {
 		},
 		{
 			name: "fault",
-			file: faultRouteRuleV3,
+			file: faultRouteRuleV2,
 		},
 		{
 			name: "multi-match-fault",
-			file: multiMatchFaultRouteRuleV3,
+			file: multiMatchFaultRouteRuleV2,
 		},
 		{
 			name: "egress-rule",
@@ -859,7 +811,7 @@ func TestListenerDiscoverySidecar(t *testing.T) {
 			_, registry, ds := commonSetup(t)
 
 			if testCase.name != "none" {
-				addConfig(registry, destinationRuleWorld, t) // TODO: v1alpha3 only
+				addConfig(registry, destinationRuleWorld, t) // TODO: v1alpha2 only
 				addConfig(registry, testCase.file, t)
 			}
 
@@ -925,19 +877,6 @@ func TestListenerDiscoverySidecarAuthOptOut(t *testing.T) {
 	response := makeDiscoveryRequest(ds, "GET", url, t)
 	compareResponse(response, "testdata/lds-v0-none-auth-optout.json", t)
 	mock.HelloService.Ports[0].AuthenticationPolicy = meshconfig.AuthenticationPolicy_INHERIT
-}
-
-func TestListenerDiscoverySidecarAuthOptOutByByAuthenticationPolicy(t *testing.T) {
-	// This test using authentication policies (CRD) to enable mTLS for the whole
-	// namespace and disable for Hello service. In other words, it has the same effect
-	// as TestListenerDiscoverySidecarAuthOptOut above.
-	_, registry, ds := commonSetup(t)
-	addConfig(registry, authnPolicyNamespaceMTlsOn, t)
-	addConfig(registry, authnPolicyHelloMTlsOff, t)
-
-	url := fmt.Sprintf("/v1/listeners/%s/%s", "istio-proxy", mock.HelloProxyV0.ServiceNode())
-	response := makeDiscoveryRequest(ds, "GET", url, t)
-	compareResponse(response, "testdata/lds-v0-none-auth-optout.json", t)
 }
 
 func TestRouteDiscoverySidecarError(t *testing.T) {

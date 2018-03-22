@@ -43,7 +43,6 @@ type HTTPRunnerResults struct {
 	Sizes       *stats.HistogramData
 	HeaderSizes *stats.HistogramData
 	URL         string
-	SocketCount int
 }
 
 // Run tests http request fetching. Main call being run at the target QPS.
@@ -126,11 +125,10 @@ func RunHTTPTest(o *HTTPRunnerOptions) (*HTTPRunnerResults, error) {
 		fm.Close()                 // nolint:gas,errcheck
 		fmt.Fprintf(out, "Wrote profile data to %s.{cpu|mem}\n", o.Profiler)
 	}
-	// Numthreads may have reduced but it should be ok to accumulate 0s from
-	// unused ones. We also must cleanup all the created clients.
+	// Numthreads may have reduced
+	numThreads = r.Options().NumThreads
 	keys := []int{}
 	for i := 0; i < numThreads; i++ {
-		total.SocketCount += httpstate[i].client.Close()
 		// Q: is there some copying each time stats[i] is used?
 		for k := range httpstate[i].RetCodes {
 			if _, exists := total.RetCodes[k]; !exists {
@@ -143,7 +141,6 @@ func RunHTTPTest(o *HTTPRunnerOptions) (*HTTPRunnerResults, error) {
 	}
 	sort.Ints(keys)
 	totalCount := float64(total.DurationHistogram.Count)
-	fmt.Fprintf(out, "Sockets used: %d (for perfect keepalive, would be %d)\n", total.SocketCount, r.Options().NumThreads)
 	for _, k := range keys {
 		fmt.Fprintf(out, "Code %3d : %d (%.1f %%)\n", k, total.RetCodes[k], 100.*float64(total.RetCodes[k])/totalCount)
 	}

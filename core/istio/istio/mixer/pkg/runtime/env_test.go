@@ -29,7 +29,7 @@ func TestEnv(t *testing.T) {
 		gp.AddWorkers(32)
 
 		// set up the ambient logger so newEnv picks it up
-		o := log.DefaultOptions()
+		o := log.NewOptions()
 		_ = log.Configure(o)
 
 		env := newEnv("Foo", gp)

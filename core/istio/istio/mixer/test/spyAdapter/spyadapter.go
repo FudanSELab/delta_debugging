@@ -104,26 +104,28 @@ type (
 	}
 
 	handlerData struct {
-		CapturedCalls []CapturedCall
+		HandleSampleReportInstances []*reportTmpl.Instance
+		HandleSampleReportCount     int
+
+		HandleSampleCheckInstance *checkTmpl.Instance
+		HandleSampleCheckCount    int
+
+		GenerateSampleApaInstance *apaTmpl.Instance
+		GenerateSampleApaCount    int
 
 		CloseCount int
-	}
-
-	// CapturedCall describes a call into the adapter.
-	CapturedCall struct {
-		Name      string
-		Instances []interface{}
 	}
 
 	builderData struct {
 		// no of time called
 		SetSampleReportTypesCount int
-
 		// input to the method
-		SetTypes map[string]interface{}
+		SetSampleReportTypesTypes map[string]*reportTmpl.Type
 
 		// no of time called
 		SetSampleCheckTypesCount int
+		// input to the method
+		SetSampleCheckTypesTypes map[string]*checkTmpl.Type
 
 		SetAdapterConfigAdptCfg adapter.Config
 		SetAdapterConfigCount   int
@@ -158,11 +160,7 @@ func (b builder) Build(ctx context.Context, env adapter.Env) (adapter.Handler, e
 
 func (b builder) SetSampleCheckTypes(typeParams map[string]*checkTmpl.Type) {
 	b.data.SetSampleCheckTypesCount++
-
-	b.data.SetTypes = make(map[string]interface{}, len(typeParams))
-	for k, v := range typeParams {
-		b.data.SetTypes[k] = v
-	}
+	b.data.SetSampleCheckTypesTypes = typeParams
 
 	if b.behavior.SetSampleCheckTypesPanic {
 		panic("SetSampleCheckTypes")
@@ -171,11 +169,7 @@ func (b builder) SetSampleCheckTypes(typeParams map[string]*checkTmpl.Type) {
 
 func (b builder) SetSampleReportTypes(typeParams map[string]*reportTmpl.Type) {
 	b.data.SetSampleReportTypesCount++
-
-	b.data.SetTypes = make(map[string]interface{}, len(typeParams))
-	for k, v := range typeParams {
-		b.data.SetTypes[k] = v
-	}
+	b.data.SetSampleReportTypesTypes = typeParams
 
 	if b.behavior.SetSampleReportTypesPanic {
 		panic("SetSampleReportTypes")
@@ -201,58 +195,32 @@ func (b builder) Validate() *adapter.ConfigErrors {
 }
 
 func (h handler) HandleSampleCheck(ctx context.Context, instance *checkTmpl.Instance) (adapter.CheckResult, error) {
-	c := CapturedCall{
-		Name:      "HandleSampleCheck",
-		Instances: []interface{}{instance},
-	}
-	if h.data.CapturedCalls == nil {
-		h.data.CapturedCalls = []CapturedCall{}
-	}
-	h.data.CapturedCalls = append(h.data.CapturedCalls, c)
-
+	h.data.HandleSampleCheckCount++
 	if h.behavior.HandleSampleCheckPanic {
 		panic("HandleSampleCheck")
 	}
 
+	h.data.HandleSampleCheckInstance = instance
 	return h.behavior.HandleSampleCheckResult, h.behavior.HandleSampleCheckErr
 }
 
 func (h handler) HandleSampleReport(ctx context.Context, instances []*reportTmpl.Instance) error {
-
-	c := CapturedCall{
-		Name:      "HandleSampleReport",
-		Instances: make([]interface{}, len(instances)),
-	}
-	for i, ins := range instances {
-		c.Instances[i] = ins
-	}
-
-	if h.data.CapturedCalls == nil {
-		h.data.CapturedCalls = []CapturedCall{}
-	}
-	h.data.CapturedCalls = append(h.data.CapturedCalls, c)
-
+	h.data.HandleSampleReportCount++
 	if h.behavior.HandleSampleReportPanic {
 		panic("HandleSampleReport")
 	}
 
+	h.data.HandleSampleReportInstances = instances
 	return h.behavior.HandleSampleReportErr
 }
 
 func (h handler) GenerateSampleApaAttributes(ctx context.Context, instance *apaTmpl.Instance) (*apaTmpl.Output, error) {
-	c := CapturedCall{
-		Name:      "HandleSampleApaAttributes",
-		Instances: []interface{}{instance},
-	}
-	if h.data.CapturedCalls == nil {
-		h.data.CapturedCalls = []CapturedCall{}
-	}
-	h.data.CapturedCalls = append(h.data.CapturedCalls, c)
-
+	h.data.GenerateSampleApaCount++
 	if h.behavior.GenerateSampleApaPanic {
 		panic("GenerateSampleApaAttributes")
 	}
 
+	h.data.GenerateSampleApaInstance = instance
 	return h.behavior.GenerateSampleApaOutput, h.behavior.GenerateSampleApaErr
 }
 

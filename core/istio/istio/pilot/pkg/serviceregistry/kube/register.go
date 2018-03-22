@@ -17,13 +17,13 @@ package kube
 import (
 	"strconv"
 	"strings"
-
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"istio.io/istio/pkg/log"
-	"fmt"
 )
 
 var (
@@ -46,9 +46,6 @@ type NamedPort struct {
 
 // Str2NamedPort parses a proto:port string into a namePort struct.
 func Str2NamedPort(str string) (NamedPort, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - register.go - Str2NamedPort")
-
 	var r NamedPort
 	idx := strings.Index(str, ":")
 	if idx >= 0 {
@@ -73,9 +70,6 @@ func Str2NamedPort(str string) (NamedPort, error) {
 // samePorts returns true if the numerical part of the ports is the same.
 // The arrays aren't necessarily sorted so we (re)use a map.
 func samePorts(ep []v1.EndpointPort, portsMap map[int32]bool) bool {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - register.go - samePorts")
-
 	if len(ep) != len(portsMap) {
 		return false
 	}
@@ -90,9 +84,6 @@ func samePorts(ep []v1.EndpointPort, portsMap map[int32]bool) bool {
 // splitEqual splits key=value string into key,value. if no = is found
 // the whole string is the key and value is empty.
 func splitEqual(str string) (string, string) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - register.go - splitEqual")
-
 	idx := strings.Index(str, "=")
 	var k string
 	var v string
@@ -107,9 +98,6 @@ func splitEqual(str string) (string, string) {
 
 // addLabelsAndAnnotations adds labels and annotations to an object.
 func addLabelsAndAnnotations(obj *meta_v1.ObjectMeta, labels []string, annotations []string) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - register.go - addLabelsAndAnnotations")
-
 	if obj.Labels == nil {
 		obj.Labels = make(map[string]string, len(labels))
 	}
@@ -131,9 +119,6 @@ func addLabelsAndAnnotations(obj *meta_v1.ObjectMeta, labels []string, annotatio
 // optional labels.
 func RegisterEndpoint(client kubernetes.Interface, namespace string, svcName string,
 	ip string, portsList []NamedPort, labels []string, annotations []string) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - register.go - RegisterEndpoint")
-
 	getOpt := meta_v1.GetOptions{IncludeUninitialized: true}
 	_, err := client.CoreV1().Services(namespace).Get(svcName, getOpt)
 	if err != nil {

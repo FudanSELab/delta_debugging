@@ -24,7 +24,7 @@ import (
 
 // NewProbeCmd creates the cobra.Command for the probe command
 func NewProbeCmd() *cobra.Command {
-	logOptions := log.DefaultOptions()
+	logOptions := log.NewOptions()
 	probeOptions := &probe.Options{}
 	cmd := &cobra.Command{
 		Use:   "probe",

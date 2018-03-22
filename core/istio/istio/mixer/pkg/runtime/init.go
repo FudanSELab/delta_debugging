@@ -17,7 +17,7 @@ package runtime
 import (
 	"github.com/gogo/protobuf/proto"
 
-	cpb "istio.io/api/policy/v1beta1"
+	cpb "istio.io/api/mixer/v1/config"
 	"istio.io/istio/mixer/pkg/adapter"
 	"istio.io/istio/mixer/pkg/config/store"
 	"istio.io/istio/mixer/pkg/expr"
@@ -66,17 +66,17 @@ func KindMap(adapterInfo map[string]*adapter.Info,
 	// typed instances
 	for kind, info := range templateInfo {
 		kindMap[kind] = info.CtrCfg
-		log.Debugf("template Kind: %s, %v", kind, info.CtrCfg)
+		log.Infof("template Kind: %s, %v", kind, info.CtrCfg)
 	}
 	// typed handlers
 	for kind, info := range adapterInfo {
 		kindMap[kind] = info.DefaultConfig
-		log.Debugf("adapter Kind: %s, %v", kind, info.DefaultConfig)
+		log.Infof("adapter Kind: %s, %v", kind, info.DefaultConfig)
 	}
 	kindMap[RulesKind] = &cpb.Rule{}
-	log.Debugf("template Kind: %s", RulesKind)
+	log.Infof("template Kind: %s", RulesKind)
 	kindMap[AttributeManifestKind] = &cpb.AttributeManifest{}
-	log.Debugf("template Kind: %s", AttributeManifestKind)
+	log.Infof("template Kind: %s", AttributeManifestKind)
 
 	return kindMap
 }
@@ -110,6 +110,6 @@ func startController(s store.Store, adapterInfo map[string]*adapter.Info,
 
 	c.publishSnapShot()
 	log.Infof("Config controller has started with %d config elements", len(c.configState))
-	go watchChanges(watchChan, watchFlushDuration, c.applyEvents)
+	go watchChanges(watchChan, c.applyEvents)
 	return nil
 }

@@ -18,7 +18,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	betaext "k8s.io/api/extensions/v1beta1"

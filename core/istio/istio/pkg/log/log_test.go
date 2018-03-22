@@ -142,7 +142,7 @@ func TestBasic(t *testing.T) {
 	for i, c := range cases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			lines, err := captureStdout(func() {
-				o := DefaultOptions()
+				o := NewOptions()
 
 				o.JSONEncoding = c.json
 				o.IncludeCallerSourceLocation = c.caller
@@ -190,7 +190,7 @@ func TestEnabled(t *testing.T) {
 
 	for i, c := range cases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			o := DefaultOptions()
+			o := NewOptions()
 			_ = o.SetOutputLevel(c.level)
 			_ = Configure(o)
 
@@ -214,31 +214,31 @@ func TestEnabled(t *testing.T) {
 }
 
 func TestOddballs(t *testing.T) {
-	o := DefaultOptions()
+	o := NewOptions()
 	_ = Configure(o)
 
-	o = DefaultOptions()
+	o = NewOptions()
 	o.outputLevel = "foobar"
 	err := Configure(o)
 	if err == nil {
 		t.Error("Got success, expected failure")
 	}
 
-	o = DefaultOptions()
+	o = NewOptions()
 	o.stackTraceLevel = "foobar"
 	err = Configure(o)
 	if err == nil {
 		t.Error("Got success, expected failure")
 	}
 
-	o = DefaultOptions()
+	o = NewOptions()
 	o.OutputPaths = []string{"/JUNK"}
 	err = Configure(o)
 	if err == nil {
 		t.Errorf("Got success, expecting error")
 	}
 
-	o = DefaultOptions()
+	o = NewOptions()
 	o.ErrorOutputPaths = []string{"/JUNK"}
 	err = Configure(o)
 	if err == nil {
@@ -254,7 +254,7 @@ func TestRotateNoStdout(t *testing.T) {
 
 	file := dir + "/rot.log"
 
-	o := DefaultOptions()
+	o := NewOptions()
 	o.OutputPaths = []string{}
 	o.RotateOutputPath = file
 	if err := Configure(o); err != nil {
@@ -282,7 +282,7 @@ func TestRotateAndStdout(t *testing.T) {
 	file := dir + "/rot.log"
 
 	stdoutLines, _ := captureStdout(func() {
-		o := DefaultOptions()
+		o := NewOptions()
 		o.RotateOutputPath = file
 		if err := Configure(o); err != nil {
 			t.Fatalf("Unable to configure logger: %v", err)
@@ -309,7 +309,7 @@ func TestRotateAndStdout(t *testing.T) {
 
 func TestCapture(t *testing.T) {
 	lines, _ := captureStdout(func() {
-		o := DefaultOptions()
+		o := NewOptions()
 		o.IncludeCallerSourceLocation = true
 		_ = Configure(o)
 

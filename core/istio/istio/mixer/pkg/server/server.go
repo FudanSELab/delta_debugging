@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
@@ -50,6 +51,7 @@ type Server struct {
 	listener  net.Listener
 	monitor   *monitor
 	tracer    io.Closer
+	configDir string
 
 	dispatcher mixerRuntime.Dispatcher
 
@@ -58,8 +60,6 @@ type Server struct {
 	readinessProbe probe.Controller
 	*probe.Probe
 }
-
-type listenFunc func(network string, address string) (net.Listener, error)
 
 // replaceable set of functions for fault injection
 type patchTable struct {
@@ -73,10 +73,8 @@ type patchTable struct {
 		identityAttribute string, defaultConfigNamespace string, executorPool *pool.GoroutinePool,
 		handlerPool *pool.GoroutinePool, enableTracing bool) *mixerRuntime2.Runtime
 	configTracing func(serviceName string, options *tracing.Options) (io.Closer, error)
-	startMonitor  func(port uint16, enableProfiling bool, lf listenFunc) (*monitor, error)
-	listen        listenFunc
-	configLog     func(options *log.Options) error
-	runtimeListen func(runtime *mixerRuntime2.Runtime) error
+	startMonitor  func(port uint16, enableProfiling bool) (*monitor, error)
+	listen        func(network string, address string) (net.Listener, error)
 }
 
 // New instantiates a fully functional Mixer server, ready for traffic.
@@ -93,8 +91,6 @@ func newPatchTable() *patchTable {
 		configTracing:  tracing.Configure,
 		startMonitor:   startMonitor,
 		listen:         net.Listen,
-		configLog:      log.Configure,
-		runtimeListen:  func(rt *mixerRuntime2.Runtime) error { return rt.StartListening() },
 	}
 }
 
@@ -103,7 +99,7 @@ func newServer(a *Args, p *patchTable) (*Server, error) {
 		return nil, err
 	}
 
-	if err := p.configLog(a.LoggingOptions); err != nil {
+	if err := log.Configure(a.LoggingOptions); err != nil {
 		return nil, err
 	}
 
@@ -149,7 +145,7 @@ func newServer(a *Args, p *patchTable) (*Server, error) {
 	grpc_prometheus.EnableHandlingTimeHistogram()
 	grpcOptions = append(grpcOptions, grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(interceptors...)))
 
-	if s.monitor, err = p.startMonitor(a.MonitoringPort, a.EnableProfiling, p.listen); err != nil {
+	if s.monitor, err = p.startMonitor(a.MonitoringPort, a.EnableProfiling); err != nil {
 		_ = s.Close()
 		return nil, fmt.Errorf("unable to setup monitoring: %v", err)
 	}
@@ -190,7 +186,7 @@ func newServer(a *Args, p *patchTable) (*Server, error) {
 		rt = p.newRuntime2(st, templateMap, adapterMap, a.ConfigIdentityAttribute, a.ConfigDefaultNamespace,
 			s.gp, s.adapterGP, a.TracingOptions.TracingEnabled())
 
-		if err = p.runtimeListen(rt); err != nil {
+		if err = rt.StartListening(); err != nil {
 			_ = s.Close()
 			return nil, fmt.Errorf("unable to create runtime2 dispatcherForTesting: %v", err)
 		}
@@ -214,7 +210,6 @@ func newServer(a *Args, p *patchTable) (*Server, error) {
 		s.RegisterProbe(s.livenessProbe, "server")
 		s.livenessProbe.Start()
 	}
-
 	if a.ReadinessProbeOptions.IsValid() {
 		s.readinessProbe = probe.NewFileController(a.ReadinessProbeOptions)
 		if e, ok := s.dispatcher.(probe.SupportsProbe); ok {
@@ -279,6 +274,10 @@ func (s *Server) Close() error {
 
 	if s.adapterGP != nil {
 		_ = s.adapterGP.Close()
+	}
+
+	if s.configDir != "" {
+		_ = os.RemoveAll(s.configDir)
 	}
 
 	if s.livenessProbe != nil {

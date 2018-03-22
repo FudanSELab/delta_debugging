@@ -30,7 +30,7 @@ const (
 )
 
 type zipkin struct {
-	*tutil.Environment
+	*tutil.Infra
 	mutex  sync.Mutex
 	traces []string
 }
@@ -40,7 +40,7 @@ func (t *zipkin) String() string {
 }
 
 func (t *zipkin) Setup() error {
-	if !t.Config.Zipkin {
+	if !t.Zipkin {
 		return nil
 	}
 
@@ -50,7 +50,7 @@ func (t *zipkin) Setup() error {
 
 // ensure that requests are picked up by Zipkin
 func (t *zipkin) Run() error {
-	if !t.Config.Zipkin {
+	if !t.Zipkin {
 		return nil
 	}
 
@@ -67,7 +67,7 @@ func (t *zipkin) makeRequests() error {
 	for i := 0; i < numTraces; i++ {
 		funcs[fmt.Sprintf("Zipkin trace request %d", i)] = func() tutil.Status {
 			id := uuid.NewV4()
-			response := t.Environment.ClientRequest("a", "http://b", 1,
+			response := t.Infra.ClientRequest("a", "http://b", 1,
 				fmt.Sprintf("-key %v -val %v", traceHeader, id))
 			if response.IsHTTPOk() {
 				t.mutex.Lock()
@@ -85,10 +85,10 @@ func (t *zipkin) makeRequests() error {
 func (t *zipkin) verifyTraces() error {
 	f := func() tutil.Status {
 		for _, id := range t.traces {
-			response := t.Environment.ClientRequest(
+			response := t.Infra.ClientRequest(
 				"t",
 				fmt.Sprintf("http://zipkin.%s:9411/api/v1/traces",
-					t.Config.IstioNamespace),
+					t.IstioNamespace),
 				1, "",
 			)
 

@@ -53,8 +53,8 @@ const TemplateName = "authorization"
 //    properties:
 //     iss: request.auth.token["iss"]
 //  action:
-//    namespace: destination.namespace | "default"
-//    service: destination.service | ""
+//    namespace: target.namespace | "default"
+//    service: target.service | ""
 //    path: request.path | "/"
 //    method: request.method | "post"
 //    properties:

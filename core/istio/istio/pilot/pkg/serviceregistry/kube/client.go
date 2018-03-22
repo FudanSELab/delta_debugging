@@ -18,25 +18,26 @@ package kube
 import (
 	"fmt"
 	"os"
-	"os/user"
-
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 	multierror "github.com/hashicorp/go-multierror"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"os/user"
+
 	"istio.io/istio/pkg/log"
+
 	// import GKE cluster authentication plugin
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+
 	// import OIDC cluster authentication plugin, e.g. for Tectonic
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
 
 // ResolveConfig checks whether to use the in-cluster or out-of-cluster config
 func ResolveConfig(kubeconfig string) (string, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - client.go - ResolveConfig")
-
 	// Consistency with kubectl
 	if kubeconfig == "" {
 		kubeconfig = os.Getenv("KUBECONFIG")
@@ -73,9 +74,6 @@ func ResolveConfig(kubeconfig string) (string, error) {
 
 // CreateInterface is a helper function to create Kubernetes interface
 func CreateInterface(kubeconfig string) (*rest.Config, kubernetes.Interface, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - client.go - CreateInterface")
-
 	kube, err := ResolveConfig(kubeconfig)
 	if err != nil {
 		return nil, nil, err

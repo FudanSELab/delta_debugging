@@ -24,6 +24,7 @@ import (
 
 	"github.com/alicebob/miniredis"
 	"github.com/alicebob/miniredis/server"
+	"github.com/golang/glog"
 
 	"istio.io/istio/mixer/adapter/redisquota/config"
 	"istio.io/istio/mixer/pkg/adapter"
@@ -45,7 +46,7 @@ type (
 func TestBuilderValidate(t *testing.T) {
 	mockRedis, err := miniredis.Run()
 	if err != nil {
-		t.Fatalf("Unable to start mock redis server: %v", err)
+		glog.Fatalf("Unable to start mock redis server: %v", err)
 		return
 	}
 	defer mockRedis.Close()
@@ -269,7 +270,7 @@ func TestBuilderValidate(t *testing.T) {
 func TestHandleQuota(t *testing.T) {
 	mockRedis, err := miniredis.Run()
 	if err != nil {
-		t.Fatalf("Unable to start mock redis server: %v", err)
+		glog.Fatalf("Unable to start mock redis server: %v", err)
 		return
 	}
 	defer mockRedis.Close()
@@ -635,7 +636,7 @@ func TestHandleQuotaErrorMsg(t *testing.T) {
 		})
 
 		if err != nil {
-			t.Errorf("%v: unexpected error: %v", id, err.Error())
+			glog.Errorf("%v: unexpected error: %v", id, err.Error())
 			continue
 		}
 

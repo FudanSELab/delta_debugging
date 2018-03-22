@@ -36,8 +36,6 @@ import (
 
 var errNotListening = errors.New("runtime is not listening to the store")
 
-const watchFlushDuration = time.Second
-
 // Runtime is the main entry point to the Mixer runtime environment. It listens to configuration, instantiates handler
 // instances, creates the dispatch machinery and handles incoming requests.
 type Runtime struct {
@@ -112,7 +110,7 @@ func (c *Runtime) StartListening() error {
 
 	kinds := config.KindMap(c.snapshot.Adapters, c.snapshot.Templates)
 
-	data, watchChan, err := store.StartWatch(c.store, kinds)
+	data, watchChan, err := startWatch(c.store, kinds)
 	if err != nil {
 		return err
 	}
@@ -123,7 +121,7 @@ func (c *Runtime) StartListening() error {
 	c.shutdown = make(chan struct{})
 	c.waitQuiesceListening.Add(1)
 	go func() {
-		store.WatchChanges(watchChan, c.shutdown, watchFlushDuration, c.onConfigChange)
+		watchChanges(watchChan, c.shutdown, c.onConfigChange)
 		c.waitQuiesceListening.Done()
 	}()
 

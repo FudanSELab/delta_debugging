@@ -1,6 +1,0 @@
-destinations:
-- name: hello
-  port:
-    name: "http"
-peers:
-- none: null

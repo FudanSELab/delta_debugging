@@ -18,49 +18,44 @@ import (
 	"net"
 	"os"
 
-	rpc "github.com/gogo/googleapis/google/rpc"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
+	rpc "istio.io/gogo-genproto/googleapis/google/rpc"
 	"istio.io/istio/pkg/log"
-	"istio.io/istio/security/cmd/node_agent_k8s/workload/handler"
+	mwi "istio.io/istio/security/cmd/node_agent_k8s/mgmtwlhintf"
 	pb "istio.io/istio/security/proto"
 )
 
-// ServerOptions contains the configuration for NodeAgent server.
-type ServerOptions struct {
-	// WorkloadOpts configures how we creates handler for each workload.
-	WorkloadOpts handler.Options
-}
-
-// Server specifies the node agent server.
-// TODO(incfly): adds sync.Mutex to protects the fields, such as `handlerMap`.
+// Server specify the node agent server.
 type Server struct {
-	handlerMap map[string]handler.WorkloadHandler
-	done       chan bool // makes mgmt-api server to stop
-	opts       ServerOptions
+	wlmgmts    map[string]mwi.WorkloadMgmtInterface
+	pathPrefix string
+	done       chan bool //main 2 mgmt-api server to stop
+	wli        *mwi.WlHandler
 }
 
-// NewServer creates a NodeAgent server.
-func NewServer(options ServerOptions) *Server {
+// NewServer create a new server.
+func NewServer(pathPrefix string, wli *mwi.WlHandler) *Server {
 	return &Server{
 		done:       make(chan bool, 1),
-		opts:       options,
-		handlerMap: make(map[string]handler.WorkloadHandler),
+		pathPrefix: pathPrefix,
+		wli:        wli,
+		wlmgmts:    make(map[string]mwi.WorkloadMgmtInterface),
 	}
 }
 
-// Stop terminates the UDS.
+// Stop terminate the UDS.
 func (s *Server) Stop() {
 	s.done <- true
 }
 
-// WaitDone waits for a response back from Workloadhandler
+// WaitDone to wait for a response back from Workloadhandler
 func (s *Server) WaitDone() {
 	<-s.done
 }
 
-// Serve opens the UDS channel and starts to serve NodeAgentService on that uds channel.
+// Serve opens the UDS channel
 func (s *Server) Serve(path string) {
 	grpcServer := grpc.NewServer()
 	pb.RegisterNodeAgentServiceServer(grpcServer, s)
@@ -88,44 +83,44 @@ func (s *Server) Serve(path string) {
 	_ = grpcServer.Serve(lis)
 }
 
-// WorkloadAdded defines the server side action when a workload is added.
+// WorkloadAdded define the server side action when a workload is added.
 func (s *Server) WorkloadAdded(ctx context.Context, request *pb.WorkloadInfo) (*pb.NodeAgentMgmtResponse, error) {
 	log.Infof("The request is %v", request)
-	if _, ok := s.handlerMap[request.Attrs.Uid]; ok {
+	if _, ok := s.wlmgmts[request.Attrs.Uid]; ok {
 		status := &rpc.Status{Code: int32(rpc.ALREADY_EXISTS), Message: "Already exists"}
 		return &pb.NodeAgentMgmtResponse{Status: status}, nil
 	}
 
-	s.handlerMap[request.Attrs.Uid] = handler.NewHandler(request, s.opts.WorkloadOpts)
-	go s.handlerMap[request.Attrs.Uid].Serve()
+	s.wlmgmts[request.Attrs.Uid] = s.wli.NewWlhCb(request, s.wli.Wl, s.pathPrefix)
+	go s.wlmgmts[request.Attrs.Uid].Serve()
 
 	status := &rpc.Status{Code: int32(rpc.OK), Message: "OK"}
 	return &pb.NodeAgentMgmtResponse{Status: status}, nil
 }
 
-// WorkloadDeleted defines the server side action when a workload is deleted.
+// WorkloadDeleted define the server side action when a workload is deleted.
 func (s *Server) WorkloadDeleted(ctx context.Context, request *pb.WorkloadInfo) (*pb.NodeAgentMgmtResponse, error) {
-	if _, ok := s.handlerMap[request.Attrs.Uid]; !ok {
+	if _, ok := s.wlmgmts[request.Attrs.Uid]; !ok {
 		status := &rpc.Status{Code: int32(rpc.NOT_FOUND), Message: "Not found"}
 		return &pb.NodeAgentMgmtResponse{Status: status}, nil
 	}
 
 	log.Infof("Uid %s: Stop.", request.Attrs.Uid)
-	s.handlerMap[request.Attrs.Uid].Stop()
-	s.handlerMap[request.Attrs.Uid].WaitDone()
+	s.wlmgmts[request.Attrs.Uid].Stop()
+	s.wlmgmts[request.Attrs.Uid].WaitDone()
 
-	delete(s.handlerMap, request.Attrs.Uid)
+	delete(s.wlmgmts, request.Attrs.Uid)
 
 	status := &rpc.Status{Code: int32(rpc.OK), Message: "OK"}
 	return &pb.NodeAgentMgmtResponse{Status: status}, nil
 }
 
-// CloseAllWlds closes the paths.
+// CloseAllWlds close the paths.
 func (s *Server) CloseAllWlds() {
-	for _, wld := range s.handlerMap {
+	for _, wld := range s.wlmgmts {
 		wld.Stop()
 	}
-	for _, wld := range s.handlerMap {
+	for _, wld := range s.wlmgmts {
 		wld.WaitDone()
 	}
 }

@@ -18,13 +18,12 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sync"
 	"time"
 
-	rpc "github.com/gogo/googleapis/google/rpc"
 	"google.golang.org/grpc"
 
 	mixerpb "istio.io/api/mixer/v1"
+	rpc "istio.io/gogo-genproto/googleapis/google/rpc"
 	"istio.io/istio/mixer/pkg/attribute"
 	"istio.io/istio/mixer/pkg/mockapi"
 )
@@ -34,7 +33,6 @@ type Handler struct {
 	stress  bool
 	ch      chan *attribute.MutableBag
 	count   int
-	mutex   *sync.Mutex
 	rStatus rpc.Status
 }
 
@@ -42,7 +40,6 @@ func newHandler(stress bool) *Handler {
 	h := &Handler{
 		stress:  stress,
 		count:   0,
-		mutex:   &sync.Mutex{},
 		rStatus: rpc.Status{},
 	}
 	if !stress {
@@ -53,20 +50,10 @@ func newHandler(stress bool) *Handler {
 
 func (h *Handler) run(bag attribute.Bag) rpc.Status {
 	if !h.stress {
-		h.mutex.Lock()
-		h.count++
-		h.mutex.Unlock()
 		h.ch <- attribute.CopyBag(bag)
 	}
+	h.count++
 	return h.rStatus
-}
-
-// Count get the called counter
-func (h *Handler) Count() int {
-	h.mutex.Lock()
-	c := h.count
-	h.mutex.Unlock()
-	return c
 }
 
 // MixerServer stores data for a mock Mixer server.
@@ -105,10 +92,7 @@ func (ts *MixerServer) Report(bag attribute.Bag) rpc.Status {
 
 // Quota is called by the mock mixer api
 func (ts *MixerServer) Quota(bag attribute.Bag, qma mockapi.QuotaArgs) (mockapi.QuotaResponse, rpc.Status) {
-	if !ts.quota.stress {
-		// In non-stress case, saved for test verification
-		ts.qma = qma
-	}
+	ts.qma = qma
 	status := ts.quota.run(bag)
 	qmr := mockapi.QuotaResponse{}
 	if status.Code == 0 {

@@ -20,15 +20,14 @@ import (
 	"net"
 	"strings"
 	"time"
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 
 	"istio.io/istio/pkg/log"
 )
 
 // ResolveAddr resolves an authority address to an IP address
 func ResolveAddr(addr string) (string, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - proxy - resolve.go - ResolveAddr")
-
 	if addr == "" {
 		return "", nil
 	}

@@ -21,9 +21,8 @@ import (
 	"testing"
 	"time"
 
-	rpc "github.com/gogo/googleapis/google/rpc"
-
 	mixerpb "istio.io/api/mixer/v1"
+	rpc "istio.io/gogo-genproto/googleapis/google/rpc"
 )
 
 // TestSetup store data for a test.
@@ -38,7 +37,6 @@ type TestSetup struct {
 	envoy   *Envoy
 	mixer   *MixerServer
 	backend *HTTPServer
-	epoch   int
 }
 
 // NewTestSetup creates a new test setup
@@ -88,7 +86,7 @@ func (s *TestSetup) SetMixerQuotaLimit(limit int64) {
 
 // GetMixerQuotaCount get the number of Quota calls.
 func (s *TestSetup) GetMixerQuotaCount() int {
-	return s.mixer.quota.Count()
+	return s.mixer.quota.count
 }
 
 // SetStress set the stress flag
@@ -109,7 +107,7 @@ func (s *TestSetup) SetFaultInject(f bool) {
 // SetUp setups Envoy, Mixer, and Backend server for test.
 func (s *TestSetup) SetUp() error {
 	var err error
-	s.envoy, err = NewEnvoy(s.stress, s.faultInject, s.v2, s.ports, s.epoch)
+	s.envoy, err = NewEnvoy(s.stress, s.faultInject, s.v2, s.ports)
 	if err != nil {
 		log.Printf("unable to create Envoy %v", err)
 	} else {
@@ -147,8 +145,7 @@ func (s *TestSetup) TearDown() {
 func (s *TestSetup) ReStartEnvoy() {
 	_ = s.envoy.Stop()
 	var err error
-	s.epoch++
-	s.envoy, err = NewEnvoy(s.stress, s.faultInject, s.v2, s.ports, s.epoch)
+	s.envoy, err = NewEnvoy(s.stress, s.faultInject, s.v2, s.ports)
 	if err != nil {
 		s.t.Errorf("unable to re-start Envoy %v", err)
 	} else {
@@ -158,17 +155,17 @@ func (s *TestSetup) ReStartEnvoy() {
 
 // VerifyCheckCount verifies the number of Check calls.
 func (s *TestSetup) VerifyCheckCount(tag string, expected int) {
-	if s.mixer.check.Count() != expected {
+	if s.mixer.check.count != expected {
 		s.t.Fatalf("%s check count doesn't match: %v\n, expected: %+v",
-			tag, s.mixer.check.Count(), expected)
+			tag, s.mixer.check.count, expected)
 	}
 }
 
 // VerifyReportCount verifies the number of Report calls.
 func (s *TestSetup) VerifyReportCount(tag string, expected int) {
-	if s.mixer.report.Count() != expected {
+	if s.mixer.report.count != expected {
 		s.t.Fatalf("%s report count doesn't match: %v\n, expected: %+v",
-			tag, s.mixer.report.Count(), expected)
+			tag, s.mixer.report.count, expected)
 	}
 }
 
@@ -258,22 +255,6 @@ func (s *TestSetup) VerifyStats(actualStats string, expectedStats map[string]int
 		} else {
 			log.Printf("stat %s is matched. value is %d", eStatsName, eStatsValue)
 		}
-	}
-}
-
-// VerifyStatsLT verifies that Envoy stats contains stat expectedStat, whose value is less than
-// expectedStatVal.
-func (s *TestSetup) VerifyStatsLT(actualStats string, expectedStat string, expectedStatVal int) {
-	actualStatsMap := s.unmarshalStats(actualStats)
-
-	aStatsValue, ok := actualStatsMap[expectedStat]
-	if !ok {
-		s.t.Fatalf("Failed to find expected Stat %s\n", expectedStat)
-	} else if aStatsValue >= expectedStatVal {
-		s.t.Fatalf("Stat %s does not match. Expected value < %d, actual stat value is %d",
-			expectedStat, expectedStatVal, aStatsValue)
-	} else {
-		log.Printf("stat %s is matched. %d < %d", expectedStat, aStatsValue, expectedStatVal)
 	}
 }
 
