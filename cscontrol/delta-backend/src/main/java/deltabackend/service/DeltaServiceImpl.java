@@ -108,6 +108,8 @@ public class DeltaServiceImpl implements DeltaService{
 //                    break;
 //                }
             }
+
+            template.convertAndSendToUser(sessionId,"/topic/deltaend" ,"end", createHeaders(sessionId));
         }
     }
 
@@ -198,9 +200,6 @@ public class DeltaServiceImpl implements DeltaService{
         r.setServiceNames(serviceNames);
         return r;
     }
-
-
-
 
 
 ////////////////////////////////Node Delta/////////////////////////////////////////////

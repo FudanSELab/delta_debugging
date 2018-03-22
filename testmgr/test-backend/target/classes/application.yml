@@ -5,6 +5,3 @@ server:
 spring:
   application:
     name: Backend
-
-myConfig:
-  baseUrl: http://10.141.211.181:30004
