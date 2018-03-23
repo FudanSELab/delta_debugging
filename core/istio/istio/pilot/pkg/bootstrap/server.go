@@ -17,24 +17,16 @@ package bootstrap
 import (
 	"fmt"
 	"net"
-	"net/http"
 	"os"
 	"path"
-	"strconv"
 	"time"
-
-	"google.golang.org/grpc"
 
 	"code.cloudfoundry.org/copilot"
 	"github.com/davecgh/go-spew/spew"
-	durpb "github.com/golang/protobuf/ptypes/duration"
-	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	multierror "github.com/hashicorp/go-multierror"
 	// TODO(nmittler): Remove this
 	_ "github.com/golang/glog"
-	"k8s.io/api/core/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	durpb "github.com/golang/protobuf/ptypes/duration"
 	"k8s.io/client-go/kubernetes"
 
 	meshconfig "istio.io/api/mesh/v1alpha1"
@@ -42,14 +34,13 @@ import (
 	configaggregate "istio.io/istio/pilot/pkg/config/aggregate"
 	"istio.io/istio/pilot/pkg/config/clusterregistry"
 	"istio.io/istio/pilot/pkg/config/kube/crd"
+	"istio.io/istio/pilot/pkg/config/kube/crd/file"
 	"istio.io/istio/pilot/pkg/config/kube/ingress"
 	"istio.io/istio/pilot/pkg/config/memory"
-	configmonitor "istio.io/istio/pilot/pkg/config/monitor"
 	"istio.io/istio/pilot/pkg/kube/admit"
 	"istio.io/istio/pilot/pkg/model"
 	envoy "istio.io/istio/pilot/pkg/proxy/envoy/v1"
 	"istio.io/istio/pilot/pkg/proxy/envoy/v1/mock"
-	envoyv2 "istio.io/istio/pilot/pkg/proxy/envoy/v2"
 	"istio.io/istio/pilot/pkg/serviceregistry"
 	"istio.io/istio/pilot/pkg/serviceregistry/aggregate"
 	"istio.io/istio/pilot/pkg/serviceregistry/cloudfoundry"
@@ -74,19 +65,13 @@ const (
 	EurekaRegistry ServiceRegistry = "Eureka"
 	// CloudFoundryRegistry environment flag
 	CloudFoundryRegistry ServiceRegistry = "CloudFoundry"
-	// ConfigMapKey should match the expected MeshConfig file name
-	ConfigMapKey = "mesh"
-	// CopilotTimeout when to cancel remote gRPC call to copilot
-	CopilotTimeout = 5 * time.Second
-	// FilepathWalkInterval dictates how often the file system is walked for config
-	FilepathWalkInterval = 100 * time.Millisecond
 )
 
 var (
 	// TODO: use model.IstioConfigTypes once model.IngressRule is deprecated
 	configDescriptor = model.ConfigDescriptor{
 		model.RouteRule,
-		model.VirtualService,
+		model.V1alpha2RouteRule,
 		model.Gateway,
 		model.EgressRule,
 		model.ExternalService,
@@ -98,9 +83,6 @@ var (
 		model.QuotaSpecBinding,
 		model.EndUserAuthenticationPolicySpec,
 		model.EndUserAuthenticationPolicySpecBinding,
-		model.AuthenticationPolicy,
-		model.ServiceRole,
-		model.ServiceRoleBinding,
 	}
 )
 
@@ -182,44 +164,25 @@ type PilotArgs struct {
 	Config           ConfigArgs
 	Service          ServiceArgs
 	Admission        AdmissionArgs
-	RDSv2            bool
 }
 
 // Server contains the runtime configuration for the Pilot discovery service.
 type Server struct {
 	mesh              *meshconfig.MeshConfig
-	ServiceController *aggregate.Controller
+	serviceController *aggregate.Controller
 	configController  model.ConfigStoreCache
 	mixerSAN          []string
 	kubeClient        kubernetes.Interface
 	startFuncs        []startFunc
-	HTTPListeningAddr net.Addr
-	GRPCListeningAddr net.Addr
+	listeningAddr     net.Addr
 	clusterStore      *clusterregistry.ClusterStore
-
-	EnvoyXdsServer   *envoyv2.DiscoveryServer
-	HTTPServer       *http.Server
-	GRPCServer       *grpc.Server
-	DiscoveryService *envoy.DiscoveryService
-
-	// An in-memory service discovery, enabled if 'mock' registry is added.
-	// Currently used for tests.
-	MemoryServiceDiscovery *mock.ServiceDiscovery
 }
 
 // NewServer creates a new Server instance based on the provided arguments.
 func NewServer(args PilotArgs) (*Server, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - NewServer")
-
 	// If the namespace isn't set, try looking it up from the environment.
 	if args.Namespace == "" {
 		args.Namespace = os.Getenv("POD_NAMESPACE")
-	}
-
-	// TODO: remove when no longer needed
-	if os.Getenv("PILOT_VALIDATE_CLUSTERS") == "false" {
-		envoy.ValidateClusters = false
 	}
 
 	s := &Server{}
@@ -228,13 +191,13 @@ func NewServer(args PilotArgs) (*Server, error) {
 	if err := s.initMonitor(&args); err != nil {
 		return nil, err
 	}
+	if err := s.initMesh(&args); err != nil {
+		return nil, err
+	}
 	if err := s.initClusterRegistries(&args); err != nil {
 		return nil, err
 	}
 	if err := s.initKubeClient(&args); err != nil {
-		return nil, err
-	}
-	if err := s.initMesh(&args); err != nil {
 		return nil, err
 	}
 	if err := s.initAdmissionController(&args); err != nil {
@@ -260,9 +223,6 @@ func NewServer(args PilotArgs) (*Server, error) {
 // listening for incoming connections. Content serving is started by this method, but is executed asynchronously.
 // Serving can be cancelled at any time by closing the provided stop channel.
 func (s *Server) Start(stop chan struct{}) (net.Addr, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - Start")
-
 	// Now start all of the components.
 	for _, fn := range s.startFuncs {
 		if err := fn(stop); err != nil {
@@ -270,7 +230,7 @@ func (s *Server) Start(stop chan struct{}) (net.Addr, error) {
 		}
 	}
 
-	return s.HTTPListeningAddr, nil
+	return s.listeningAddr, nil
 }
 
 // startFunc defines a function that will be used to start one or more components of the Pilot discovery service.
@@ -278,9 +238,6 @@ type startFunc func(stop chan struct{}) error
 
 // initMonitor initializes the configuration for the pilot monitoring server.
 func (s *Server) initMonitor(args *PilotArgs) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - initMonitor")
-
 	s.addStartFunc(func(stop chan struct{}) error {
 		monitor, err := startMonitor(args.DiscoveryOptions.MonitoringPort)
 		if err != nil {
@@ -298,9 +255,6 @@ func (s *Server) initMonitor(args *PilotArgs) error {
 }
 
 func (s *Server) initClusterRegistries(args *PilotArgs) (err error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - initClusterRegistries")
-
 	if args.Config.ClusterRegistriesDir != "" {
 		s.clusterStore, err = clusterregistry.ReadClusters(args.Config.ClusterRegistriesDir)
 		if s.clusterStore != nil {
@@ -310,40 +264,8 @@ func (s *Server) initClusterRegistries(args *PilotArgs) (err error) {
 	return err
 }
 
-// GetMeshConfig fetches the ProxyMesh configuration from Kubernetes ConfigMap.
-func GetMeshConfig(kube kubernetes.Interface, namespace, name string) (*v1.ConfigMap, *meshconfig.MeshConfig, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - GetMeshConfig")
-
-	if kube == nil {
-		defaultMesh := model.DefaultMeshConfig()
-		return nil, &defaultMesh, nil
-	}
-
-	config, err := kube.CoreV1().ConfigMaps(namespace).Get(name, meta_v1.GetOptions{})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// values in the data are strings, while proto might use a different data type.
-	// therefore, we have to get a value by a key
-	cfgYaml, exists := config.Data[ConfigMapKey]
-	if !exists {
-		return nil, nil, fmt.Errorf("missing configuration map key %q", ConfigMapKey)
-	}
-
-	mesh, err := model.ApplyMeshConfigDefaults(cfgYaml)
-	if err != nil {
-		return nil, nil, err
-	}
-	return config, mesh, nil
-}
-
 // initMesh creates the mesh in the pilotConfig from the input arguments.
 func (s *Server) initMesh(args *PilotArgs) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - initMesh")
-
 	// If a config file was specified, use it.
 	var mesh *meshconfig.MeshConfig
 	if args.Mesh.ConfigFile != "" {
@@ -356,12 +278,9 @@ func (s *Server) initMesh(args *PilotArgs) error {
 	}
 
 	if mesh == nil {
-		var err error
 		// Config file either wasn't specified or failed to load - use a default mesh.
-		if _, mesh, err = GetMeshConfig(s.kubeClient, kube.IstioNamespace, kube.IstioConfigMap); err != nil {
-			log.Warnf("failed to read mesh configuration: %v", err)
-			return err
-		}
+		defaultMesh := model.DefaultMeshConfig()
+		mesh = &defaultMesh
 
 		// Allow some overrides for testing purposes.
 		if args.Mesh.MixerAddress != "" {
@@ -383,9 +302,6 @@ func (s *Server) initMesh(args *PilotArgs) error {
 
 // initMixerSan configures the mixerSAN configuration item. The mesh must already have been configured.
 func (s *Server) initMixerSan(args *PilotArgs) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - initMixerSan")
-
 	if s.mesh == nil {
 		return fmt.Errorf("the mesh has not been configured before configuring mixer san")
 	}
@@ -396,9 +312,6 @@ func (s *Server) initMixerSan(args *PilotArgs) error {
 }
 
 func (s *Server) getKubeCfgFile(args *PilotArgs) (kubeCfgFile string) {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - getKubeCfgFile")
-
 	// If the cluster store is configured, get pilot's kubeconfig from there
 	if s.clusterStore != nil {
 		if kubeCfgFile = s.clusterStore.GetPilotAccessConfig(); kubeCfgFile != "" {
@@ -413,9 +326,6 @@ func (s *Server) getKubeCfgFile(args *PilotArgs) (kubeCfgFile string) {
 
 // initKubeClient creates the k8s client if running in an k8s environment.
 func (s *Server) initKubeClient(args *PilotArgs) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - initKubeClient")
-
 	needToCreateClient := false
 	for _, r := range args.Service.Registries {
 		switch ServiceRegistry(r) {
@@ -428,7 +338,7 @@ func (s *Server) initKubeClient(args *PilotArgs) error {
 		}
 	}
 
-	if needToCreateClient && args.Config.FileDir == "" {
+	if needToCreateClient {
 		var client kubernetes.Interface
 		var kuberr error
 
@@ -456,110 +366,43 @@ func (c *mockController) Run(<-chan struct{}) {}
 
 // initConfigController creates the config controller in the pilotConfig.
 func (s *Server) initConfigController(args *PilotArgs) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - initConfigController")
-
+	var configController model.ConfigStoreCache
 	if args.Config.FileDir != "" {
 		store := memory.Make(configDescriptor)
-		configController := memory.NewController(store)
+		configController = memory.NewController(store)
+		fileMonitor := file.NewMonitor(configController, args.Config.FileDir, configDescriptor)
 
-		err := s.makeFileMonitor(args, configController)
-		if err != nil {
-			return err
-		}
-
-		if args.Config.CFConfig != "" {
-			err = s.makeCopilotMonitor(args, configController)
-			if err != nil {
-				return err
-			}
-		}
-
-		s.configController = configController
+		// Defer starting the file monitor until after the service is created.
+		s.addStartFunc(func(stop chan struct{}) error {
+			fileMonitor.Start(stop)
+			return nil
+		})
 	} else {
-		controller, err := s.makeKubeConfigController(args)
+		kubeCfgFile := s.getKubeCfgFile(args)
+		configClient, err := crd.NewClient(kubeCfgFile, configDescriptor,
+			args.Config.ControllerOptions.DomainSuffix)
 		if err != nil {
-			return err
+			return multierror.Prefix(err, "failed to open a config client.")
 		}
 
-		s.configController = controller
+		if err = configClient.RegisterResources(); err != nil {
+			return multierror.Prefix(err, "failed to register custom resources.")
+		}
+
+		configController = crd.NewController(configClient, args.Config.ControllerOptions)
 	}
 
 	// Defer starting the controller until after the service is created.
+	s.configController = configController
 	s.addStartFunc(func(stop chan struct{}) error {
 		go s.configController.Run(stop)
 		return nil
 	})
-
-	return nil
-}
-
-func (s *Server) makeKubeConfigController(args *PilotArgs) (model.ConfigStoreCache, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - makeKubeConfigController")
-
-	kubeCfgFile := s.getKubeCfgFile(args)
-	configClient, err := crd.NewClient(kubeCfgFile, configDescriptor, args.Config.ControllerOptions.DomainSuffix)
-	if err != nil {
-		return nil, multierror.Prefix(err, "failed to open a config client.")
-	}
-
-	if err = configClient.RegisterResources(); err != nil {
-		return nil, multierror.Prefix(err, "failed to register custom resources.")
-	}
-
-	return crd.NewController(configClient, args.Config.ControllerOptions), nil
-}
-
-func (s *Server) makeFileMonitor(args *PilotArgs, configController model.ConfigStore) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - makeFileMonitor")
-
-	fileSnapshot := configmonitor.NewFileSnapshot(args.Config.FileDir, configDescriptor)
-	fileMonitor := configmonitor.NewMonitor(configController, FilepathWalkInterval, fileSnapshot.ReadConfigFiles)
-
-	// Defer starting the file monitor until after the service is created.
-	s.addStartFunc(func(stop chan struct{}) error {
-		fileMonitor.Start(stop)
-		return nil
-	})
-
-	return nil
-}
-
-func (s *Server) makeCopilotMonitor(args *PilotArgs, configController model.ConfigStore) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - makeCopilotMonitor")
-
-	cfConfig, err := cloudfoundry.LoadConfig(args.Config.CFConfig)
-	if err != nil {
-		return multierror.Prefix(err, "loading cloud foundry config")
-	}
-	tlsConfig, err := cfConfig.ClientTLSConfig()
-	if err != nil {
-		return multierror.Prefix(err, "creating cloud foundry client tls config")
-	}
-	client, err := copilot.NewIstioClient(cfConfig.Copilot.Address, tlsConfig)
-	if err != nil {
-		return multierror.Prefix(err, "creating cloud foundry client")
-	}
-
-	copilotSnapshot := configmonitor.NewCopilotSnapshot(configController, client, []string{".internal"}, CopilotTimeout)
-	copilotMonitor := configmonitor.NewMonitor(configController, 1*time.Second, copilotSnapshot.ReadConfigFiles)
-
-	s.addStartFunc(func(stop chan struct{}) error {
-		copilotMonitor.Start(stop)
-		return nil
-	})
-
 	return nil
 }
 
 // createK8sServiceControllers creates all the k8s service controllers under this pilot
 func (s *Server) createK8sServiceControllers(serviceControllers *aggregate.Controller, args *PilotArgs) (err error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - createK8sServiceControllers")
-
 	kubectl := kube.NewController(s.kubeClient, args.Config.ControllerOptions)
 	serviceControllers.AddRegistry(
 		aggregate.Registry{
@@ -597,9 +440,6 @@ func (s *Server) createK8sServiceControllers(serviceControllers *aggregate.Contr
 
 // initServiceControllers creates and initializes the service controllers
 func (s *Server) initServiceControllers(args *PilotArgs) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - initServiceControllers")
-
 	serviceControllers := aggregate.NewController()
 	registered := make(map[ServiceRegistry]bool)
 	for _, r := range args.Service.Registries {
@@ -612,7 +452,31 @@ func (s *Server) initServiceControllers(args *PilotArgs) error {
 		log.Infof("Adding %s registry adapter", serviceRegistry)
 		switch serviceRegistry {
 		case MockRegistry:
-			initMemoryRegistry(s, serviceControllers)
+			discovery1 := mock.NewDiscovery(
+				map[string]*model.Service{
+					mock.HelloService.Hostname: mock.HelloService,
+				}, 2)
+
+			discovery2 := mock.NewDiscovery(
+				map[string]*model.Service{
+					mock.WorldService.Hostname: mock.WorldService,
+				}, 2)
+
+			registry1 := aggregate.Registry{
+				Name:             serviceregistry.ServiceRegistry("mockAdapter1"),
+				ServiceDiscovery: discovery1,
+				ServiceAccounts:  discovery1,
+				Controller:       &mockController{},
+			}
+
+			registry2 := aggregate.Registry{
+				Name:             serviceregistry.ServiceRegistry("mockAdapter2"),
+				ServiceDiscovery: discovery2,
+				ServiceAccounts:  discovery2,
+				Controller:       &mockController{},
+			}
+			serviceControllers.AddRegistry(registry1)
+			serviceControllers.AddRegistry(registry2)
 		case KubernetesRegistry:
 			if err := s.createK8sServiceControllers(serviceControllers, args); err != nil {
 				return err
@@ -696,126 +560,42 @@ func (s *Server) initServiceControllers(args *PilotArgs) error {
 		}
 	}
 
-	s.ServiceController = serviceControllers
+	s.serviceController = serviceControllers
 
 	// Defer running of the service controllers.
 	s.addStartFunc(func(stop chan struct{}) error {
-		go s.ServiceController.Run(stop)
+		go s.serviceController.Run(stop)
 		return nil
 	})
 
 	return nil
 }
-func initMemoryRegistry(s *Server, serviceControllers *aggregate.Controller) {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - initMemoryRegistry")
-
-	// ServiceDiscovery implementation
-	discovery1 := mock.NewDiscovery(
-		map[string]*model.Service{
-			//			mock.HelloService.Hostname: mock.HelloService,
-		}, 2)
-
-	s.MemoryServiceDiscovery = discovery1
-
-	discovery2 := mock.NewDiscovery(
-		map[string]*model.Service{
-			//			mock.WorldService.Hostname: mock.WorldService,
-		}, 2)
-
-	registry1 := aggregate.Registry{
-		Name:             serviceregistry.ServiceRegistry("mockAdapter1"),
-		ServiceDiscovery: discovery1,
-		ServiceAccounts:  discovery1,
-		Controller:       &mockController{},
-	}
-
-	registry2 := aggregate.Registry{
-		Name:             serviceregistry.ServiceRegistry("mockAdapter2"),
-		ServiceDiscovery: discovery2,
-		ServiceAccounts:  discovery2,
-		Controller:       &mockController{},
-	}
-	serviceControllers.AddRegistry(registry1)
-	serviceControllers.AddRegistry(registry2)
-}
 
 func (s *Server) initDiscoveryService(args *PilotArgs) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - initDiscoveryService")
-
 	environment := model.Environment{
 		Mesh:             s.mesh,
 		IstioConfigStore: model.MakeIstioStore(s.configController),
-		ServiceDiscovery: s.ServiceController,
-		ServiceAccounts:  s.ServiceController,
+		ServiceDiscovery: s.serviceController,
+		ServiceAccounts:  s.serviceController,
 		MixerSAN:         s.mixerSAN,
 	}
 
 	// Set up discovery service
 	discovery, err := envoy.NewDiscoveryService(
-		s.ServiceController,
+		s.serviceController,
 		s.configController,
 		environment,
-		args.DiscoveryOptions,
-	)
+		args.DiscoveryOptions)
 	if err != nil {
 		return fmt.Errorf("failed to create discovery service: %v", err)
 	}
-	s.DiscoveryService = discovery
-
-	// For now we create the gRPC server sourcing data from Pilot's older data model.
-	s.initGrpcServer()
-	envoy.V2ClearCache = envoyv2.EdsPushAll
-	s.EnvoyXdsServer = envoyv2.NewDiscoveryServer(discovery, s.GRPCServer, environment)
-
-	s.HTTPServer = &http.Server{
-		Addr:    ":" + strconv.Itoa(args.DiscoveryOptions.Port),
-		Handler: discovery.RestContainer}
-
-	addr := s.HTTPServer.Addr
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		return err
-	}
-	s.HTTPListeningAddr = listener.Addr()
-
-	grpcListener, err := net.Listen("tcp", args.DiscoveryOptions.GrpcAddr)
-	if err != nil {
-		return err
-	}
-	s.GRPCListeningAddr = grpcListener.Addr()
 
 	s.addStartFunc(func(stop chan struct{}) error {
-		log.Infof("Discovery service started at http=%s grpc=%s", listener.Addr().String(), grpcListener.Addr().String())
-
-		go func() {
-			if err = s.HTTPServer.Serve(listener); err != nil {
-				log.Warna(err)
-			}
-		}()
-		go func() {
-			if err = s.EnvoyXdsServer.GrpcServer.Serve(grpcListener); err != nil {
-				log.Warna(err)
-			}
-		}()
-
-		go func() {
-			<-stop
-			err = s.HTTPServer.Close()
-			if err != nil {
-				log.Warna(err)
-			}
-			s.EnvoyXdsServer.GrpcServer.Stop()
-		}()
-
-		if args.RDSv2 {
-			log.Info("xDS: enabling RDS")
-			cache := envoyv2.NewConfigCache(s.ServiceController, s.configController)
-			cache.Register(s.GRPCServer)
-			cache.RegisterInput(s.ServiceController, s.configController)
+		addr, err := discovery.Start(stop)
+		if err == nil {
+			// Store the listening address in the output config.
+			s.listeningAddr = addr
 		}
-
 		return err
 	})
 
@@ -824,9 +604,6 @@ func (s *Server) initDiscoveryService(args *PilotArgs) error {
 
 // initAdmissionController creates and initializes the k8s admission controller if running in a k8s environment.
 func (s *Server) initAdmissionController(args *PilotArgs) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - initAdmissionController")
-
 	if s.kubeClient == nil {
 		// Not running in a k8s environment - do nothing.
 		return nil
@@ -861,35 +638,6 @@ func (s *Server) initAdmissionController(args *PilotArgs) error {
 	return nil
 }
 
-// NewDiscoveryServer creates DiscoveryServer that sources data from Pilot's internal mesh data structures
-func (s *Server) initGrpcServer() {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - initGrpcServer")
-
-	// TODO for now use hard coded / default gRPC options. The constructor may evolve to use interfaces that guide specific options later.
-	// Example:
-	//		grpcOptions = append(grpcOptions, grpc.MaxConcurrentStreams(uint32(someconfig.MaxConcurrentStreams)))
-	var grpcOptions []grpc.ServerOption
-
-	var interceptors []grpc.UnaryServerInterceptor
-
-	// TODO: log request interceptor if debug enabled.
-
-	// setup server prometheus monitoring (as final interceptor in chain)
-	interceptors = append(interceptors, prometheus.UnaryServerInterceptor)
-	prometheus.EnableHandlingTimeHistogram()
-
-	grpcOptions = append(grpcOptions, grpc.UnaryInterceptor(middleware.ChainUnaryServer(interceptors...)))
-
-	// get the grpc server wired up
-	grpc.EnableTracing = true
-
-	s.GRPCServer = grpc.NewServer(grpcOptions...)
-}
-
 func (s *Server) addStartFunc(fn startFunc) {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - server.go - addStartFunc")
-
 	s.startFuncs = append(s.startFuncs, fn)
 }

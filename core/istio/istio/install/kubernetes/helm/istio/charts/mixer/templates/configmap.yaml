@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: istio-mixer
+  name: {{ template "mixer.fullname" . }}
   labels:
-    app: istio-mixer
+    app: {{ template "mixer.name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
@@ -14,9 +14,9 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: istio-mixer-custom-resources
+  name: {{ template "mixer.fullname" . }}-custom-resources
   labels:
-    app: istio-mixer
+    app: {{ template "mixer.name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}

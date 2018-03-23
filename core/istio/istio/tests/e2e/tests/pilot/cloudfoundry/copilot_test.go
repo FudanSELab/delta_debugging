@@ -49,11 +49,13 @@ const (
 	pilotPort   = 5555
 	copilotPort = 5556
 
-	cfRouteOne   = "public.example.com"
-	cfRouteTwo   = "public2.example.com"
-	publicPort   = 10080
-	backendPort  = 61005
-	backendPort2 = 61006
+	internalAppName  = "example-app-guid.apps.cloudfoundry.internal"
+	internalAppName2 = "example2-app-guid.apps.cloudfoundry.internal"
+	publicRouteName  = "public.example.com"
+	publicRouteName2 = "public2.example.com"
+	publicPort       = 10080
+	backendPort      = 61005
+	backendPort2     = 61006
 )
 
 func pilotURL(path string) string {
@@ -64,8 +66,40 @@ func pilotURL(path string) string {
 	}).String()
 }
 
+var routeRule = fmt.Sprintf(`
+apiVersion: config.istio.io/v1alpha2
+kind: V1alpha2RouteRule
+metadata:
+  name: route-for-myapp
+spec:
+  hosts:
+  - %s
+  gateways:
+  - cloudfoundry-ingress
+  http:
+  - route:
+    - destination:
+        name: example-app-guid.apps.cloudfoundry.internal
+`, publicRouteName)
+
+var routeRule2 = fmt.Sprintf(`
+apiVersion: config.istio.io/v1alpha2
+kind: V1alpha2RouteRule
+metadata:
+  name: route-for-other-app
+spec:
+  hosts:
+  - %s
+  gateways:
+  - cloudfoundry-ingress
+  http:
+  - route:
+    - destination:
+        name: example2-app-guid.apps.cloudfoundry.internal
+`, publicRouteName2)
+
 var gatewayConfig = fmt.Sprintf(`
-apiVersion: networking.istio.io/v1alpha3
+apiVersion: config.istio.io/v1alpha2
 kind: Gateway
 metadata:
   name: cloudfoundry-ingress
@@ -98,16 +132,22 @@ func TestWildcardHostEdgeRouterWithMockCopilot(t *testing.T) {
 	mockCopilot, err := bootMockCopilotInBackground(copilotAddr, copilotTLSConfig, quitCopilotServer)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 
-	mockCopilot.PopulateRoute(cfRouteOne, "127.0.0.1", backendPort)
-	mockCopilot.PopulateRoute(cfRouteTwo, "127.0.0.1", backendPort2)
+	mockCopilot.PopulateRoute(internalAppName, "127.0.0.1", backendPort)
+	mockCopilot.PopulateRoute(internalAppName2, "127.0.0.1", backendPort2)
 
 	err = testState.copilotConfig.Save(testState.copilotConfigFilePath)
 	g.Expect(err).To(gomega.BeNil())
 
-	t.Log("saving gateway config...")
+	t.Log("saving istio config...")
 
-	err = ioutil.WriteFile(filepath.Join(testState.istioConfigDir, "gateway.yml"), []byte(gatewayConfig), 0600)
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	for name, config := range map[string][]byte{
+		"gateway.yml":     []byte(gatewayConfig),
+		"route-rule.yml":  []byte(routeRule),
+		"route-rule2.yml": []byte(routeRule2)} {
+
+		err = ioutil.WriteFile(filepath.Join(testState.istioConfigDir, name), config, 0600)
+		g.Expect(err).NotTo(gomega.HaveOccurred())
+	}
 
 	t.Log("building pilot...")
 
@@ -125,7 +165,7 @@ func TestWildcardHostEdgeRouterWithMockCopilot(t *testing.T) {
 	t.Log("checking if pilot received routes from copilot")
 	g.Eventually(func() (string, error) {
 		return curlPilot(pilotURL("/v1/registration"))
-	}).Should(gomega.ContainSubstring(cfRouteOne))
+	}).Should(gomega.ContainSubstring(internalAppName))
 
 	t.Log("checking if pilot is creating the correct listeners")
 	g.Eventually(func() (string, error) {
@@ -140,28 +180,28 @@ func TestWildcardHostEdgeRouterWithMockCopilot(t *testing.T) {
 	t.Log("curling the app with expected host header")
 
 	g.Eventually(func() error {
-		respData, err := curlApp(fmt.Sprintf("http://127.0.0.1:%d", publicPort), cfRouteOne)
+		respData, err := curlApp(fmt.Sprintf("http://127.0.0.1:%d", publicPort), publicRouteName)
 		if err != nil {
 			return err
 		}
 		if !strings.Contains(respData, "hello") {
 			return fmt.Errorf("unexpected response data: %s", respData)
 		}
-		if !strings.Contains(respData, cfRouteOne) {
+		if !strings.Contains(respData, publicRouteName) {
 			return fmt.Errorf("unexpected response data: %s", respData)
 		}
 		return nil
 	}, "300s", "1s").Should(gomega.Succeed())
 
 	g.Eventually(func() error {
-		respData, err := curlApp(fmt.Sprintf("http://127.0.0.1:%d", publicPort), cfRouteTwo)
+		respData, err := curlApp(fmt.Sprintf("http://127.0.0.1:%d", publicPort), publicRouteName2)
 		if err != nil {
 			return err
 		}
 		if !strings.Contains(respData, "hello") {
 			return fmt.Errorf("unexpected response data: %s", respData)
 		}
-		if !strings.Contains(respData, cfRouteTwo) {
+		if !strings.Contains(respData, publicRouteName2) {
 			return fmt.Errorf("unexpected response data: %s", respData)
 		}
 		return nil

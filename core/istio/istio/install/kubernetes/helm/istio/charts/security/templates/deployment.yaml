@@ -2,7 +2,7 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: istio-ca
+  name: {{ template "security.fullname" . }}
   labels:
     app: {{ template "security.name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
@@ -14,14 +14,16 @@ spec:
   template:
     metadata:
       labels:
+        app: {{ template "security.name" . }}
+        heritage: {{ .Release.Service }}
         istio: istio-ca
       annotations:
         sidecar.istio.io/inject: "false"
     spec:
-      serviceAccountName: istio-ca-service-account
+      serviceAccountName: {{ template "security.serviceAccountName" . }}
       containers:
-        - name: istio-ca
-          image: "{{ .Values.global.hub }}/istio-ca:{{ .Values.global.tag }}"
+        - name: {{ template "security.name" . }}
+          image: "{{ .Values.global.security.repository }}:{{ .Values.global.security.tag }}"
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           args:
             - --grpc-port=8060

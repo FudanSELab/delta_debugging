@@ -110,8 +110,15 @@ func GetRootCmd(args []string, printf, fatalf shared.FormatFn) *cobra.Command {
 	rootCmd.SetArgs(args)
 	rootCmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 
+	// hack to make flag.Parsed return true such that glog is happy
+	// about the flags having been parsed
+	fs := flag.NewFlagSet("", flag.ContinueOnError)
+	/* #nosec */
+	_ = fs.Parse([]string{})
+	flag.CommandLine = fs
+
 	rootArgs := &rootArgs{
-		tracingOptions: tracing.DefaultOptions(),
+		tracingOptions: tracing.NewOptions(),
 	}
 
 	cc := checkCmd(rootArgs, printf, fatalf)
@@ -119,9 +126,6 @@ func GetRootCmd(args []string, printf, fatalf shared.FormatFn) *cobra.Command {
 
 	addAttributeFlags(cc, rootArgs)
 	addAttributeFlags(rc, rootArgs)
-
-	rootArgs.tracingOptions.AttachCobraFlags(cc)
-	rootArgs.tracingOptions.AttachCobraFlags(rc)
 
 	rootCmd.AddCommand(cc)
 	rootCmd.AddCommand(rc)
@@ -131,6 +135,8 @@ func GetRootCmd(args []string, printf, fatalf shared.FormatFn) *cobra.Command {
 		Section: "mixc CLI",
 		Manual:  "Istio Mixer Client",
 	}))
+
+	rootArgs.tracingOptions.AttachCobraFlags(rootCmd)
 
 	return rootCmd
 }

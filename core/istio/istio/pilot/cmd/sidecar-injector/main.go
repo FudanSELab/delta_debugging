@@ -19,9 +19,11 @@ import (
 	"fmt"
 	"os"
 	"time"
-
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/spf13/cobra"
+
 	"github.com/spf13/cobra/doc"
 
 	"istio.io/istio/pilot/cmd"
@@ -45,7 +47,7 @@ var (
 		healthCheckFile     string
 		probeOptions        probe.Options
 	}{
-		loggingOptions: log.DefaultOptions(),
+		loggingOptions: log.NewOptions(),
 	}
 
 	rootCmd = &cobra.Command{
@@ -96,9 +98,6 @@ var (
 )
 
 func init() {
-
-	fmt.Println("[调试标记] Pilot - cmd - sidecar-injector - main.go - init")
-
 	rootCmd.PersistentFlags().StringVar(&flags.meshconfig, "meshConfig", "/etc/istio/config/mesh",
 		"File containing the Istio mesh configuration")
 	rootCmd.PersistentFlags().StringVar(&flags.injectConfigFile, "injectConfig", "/etc/istio/inject/config",
@@ -134,8 +133,8 @@ func init() {
 }
 
 func main() {
-
-	fmt.Println("[调试标记] Pilot - cmd - sidecar-injector - main.go - main")
+	// Needed to avoid "logging before flag.Parse" error with glog.
+	cmd.SupressGlogWarnings()
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(-1)

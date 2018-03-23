@@ -101,7 +101,6 @@ func newDummyController() (Controller, *dummyImpl) {
 }
 
 func TestController(t *testing.T) {
-	t.Skip("issue https://github.com/istio/istio/issues/3082")
 	c, d := newDummyController()
 	defer c.Close()
 
@@ -186,7 +185,6 @@ func TestControllerRegisterTwice(t *testing.T) {
 }
 
 func TestControllerAfterClose(t *testing.T) {
-	t.Skip("issue https://github.com/istio/istio/issues/3082")
 	c, d := newDummyController()
 
 	p1 := NewProbe()
@@ -223,7 +221,6 @@ func TestControllerAfterClose(t *testing.T) {
 }
 
 func TestFileControllerMethods(t *testing.T) {
-	t.Skip("issue https://github.com/istio/istio/issues/3082")
 	d, err := ioutil.TempDir("", t.Name())
 	if err != nil {
 		t.Fatal(err)
@@ -254,7 +251,6 @@ func TestFileControllerMethods(t *testing.T) {
 }
 
 func TestFileController(t *testing.T) {
-	t.Skip("issue https://github.com/istio/istio/issues/3082")
 	d, err := ioutil.TempDir("", t.Name())
 	if err != nil {
 		t.Fatal(err)

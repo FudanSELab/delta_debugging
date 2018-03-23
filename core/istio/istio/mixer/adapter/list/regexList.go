@@ -55,8 +55,10 @@ func parseRegexList(buf []byte, overrides []string) (*regexList, error) {
 	}
 
 	for _, override := range overrides {
-		// cannot fail, override syntax was checked in the Validate method
-		exp, _ := regexp.Compile(override)
+		exp, err := regexp.Compile(override)
+		if err != nil {
+			return nil, err
+		}
 		entries = append(entries, exp)
 	}
 	return &regexList{entries}, nil

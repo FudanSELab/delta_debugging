@@ -22,8 +22,9 @@ import (
 	"github.com/gogo/protobuf/proto"
 	multierror "github.com/hashicorp/go-multierror"
 
-	adptTmpl "istio.io/api/mixer/adapter/model/v1beta1"
-	pb "istio.io/api/policy/v1beta1"
+	"istio.io/api/mixer/v1/config"
+	pb "istio.io/api/mixer/v1/config/descriptor"
+	adptTmpl "istio.io/api/mixer/v1/template"
 	"istio.io/istio/mixer/pkg/adapter"
 	"istio.io/istio/mixer/pkg/attribute"
 	"istio.io/istio/mixer/pkg/expr"
@@ -194,7 +195,7 @@ type (
 		ProcessQuota            ProcessQuotaFn
 		ProcessGenAttrs         ProcessGenerateAttributesFn
 
-		AttributeManifests []*pb.AttributeManifest
+		AttributeManifests []*config.AttributeManifest
 
 		DispatchReport   DispatchReportFn
 		DispatchCheck    DispatchCheckFn

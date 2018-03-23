@@ -20,8 +20,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	adptTmpl "istio.io/api/mixer/adapter/model/v1beta1"
-	cpb "istio.io/api/policy/v1beta1"
+	cpb "istio.io/api/mixer/v1/config"
+	adptTmpl "istio.io/api/mixer/v1/template"
 	"istio.io/istio/mixer/pkg/adapter"
 	"istio.io/istio/mixer/pkg/config/store"
 	"istio.io/istio/mixer/pkg/expr"
@@ -189,21 +189,17 @@ const maxEvents = 50
 // watchChanges watches for changes on a channel and
 // publishes a batch of changes via applyEvents.
 // watchChanges is started in a goroutine.
-func watchChanges(wch <-chan store.Event, duration time.Duration, applyEvents applyEventsFn) {
+func watchChanges(wch <-chan store.Event, applyEvents applyEventsFn) {
 	// consume changes and apply them to data indefinitely
 	var timeChan <-chan time.Time
 	var timer *time.Timer
 	events := make([]*store.Event, 0, maxEvents)
 
-loop:
 	for {
 		select {
-		case ev, ok := <-wch:
-			if !ok {
-				break loop
-			}
+		case ev := <-wch:
 			if len(events) == 0 {
-				timer = time.NewTimer(duration)
+				timer = time.NewTimer(watchFlushDuration)
 				timeChan = timer.C
 			}
 			events = append(events, &ev)

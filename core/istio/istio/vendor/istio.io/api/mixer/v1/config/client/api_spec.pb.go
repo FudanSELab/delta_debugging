@@ -21,7 +21,6 @@
 		EndUserAuthenticationPolicySpec
 		EndUserAuthenticationPolicySpecReference
 		EndUserAuthenticationPolicySpecBinding
-		NetworkFailPolicy
 		ServiceConfig
 		TransportConfig
 		HttpClientConfig

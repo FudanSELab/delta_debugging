@@ -153,14 +153,15 @@ func grpcClient() {
 		usage("Error: fortio grpcping needs host argument in the form of host, host:port or ip:port")
 	}
 	host := flag.Arg(0)
+	dest := fgrpc.GRPCDestination(host)
 	count := int(*exactlyFlag)
 	if count <= 0 {
 		count = 1
 	}
 	tls := *grpcSecureFlag
 	if *doHealthFlag {
-		grpcHealthCheck(host, tls, *healthSvcFlag, count)
+		grpcHealthCheck(dest, tls, *healthSvcFlag, count)
 	} else {
-		pingClientCall(host, tls, count, *payloadFlag)
+		pingClientCall(dest, tls, count, *payloadFlag)
 	}
 }

@@ -41,9 +41,9 @@ spec:
       value_type: STRING
     source.groups:
       value_type: STRING
-    destination.namespace:
+    target.namespace:
       value_type: STRING
-    destination.service:
+    target.service:
       value_type: STRING
     request.method:
       value_type: STRING
@@ -51,7 +51,7 @@ spec:
       value_type: STRING
     source.service:
       value_type: STRING
-    destination.service:
+    target.service:
       value_type: STRING
 
 ---
@@ -81,13 +81,13 @@ spec:
     user: source.uid | ""
     groups: source.groups | ""
   action:
-    namespace: destination.namespace | "default"
-    service: destination.service | ""
+    namespace: target.namespace | "default"
+    service: target.service | ""
     method: request.method | ""
     path: request.path | ""
     properties:
       source: source.service | ""
-      target: destination.service | ""
+      target: target.service | ""
 ---
 
 apiVersion: "config.istio.io/v1alpha2"
@@ -178,7 +178,7 @@ spec:
 )
 
 func TestServer(t *testing.T) {
-	args := server.DefaultArgs()
+	args := server.NewArgs()
 
 	args.APIPort = 0
 	args.MonitoringPort = 0
@@ -210,45 +210,50 @@ func TestServer(t *testing.T) {
 	}{
 		"Not important API": {
 			attrs: map[string]interface{}{
+				"destination.service": "svc.cluster.local",
 				"source.uid":          "janet",
 				"request.path":        "/detail/alice",
-				"destination.service": "landing_page",
+				"target.service":      "landing_page",
 				"source.service":      "details",
 			},
 			expectedStatusCode: 0,
 		},
 		"Self permission": {
 			attrs: map[string]interface{}{
+				"destination.service": "svc.cluster.local",
 				"source.uid":          "janet",
 				"request.path":        "/detail/janet",
-				"destination.service": "landing_page",
+				"target.service":      "landing_page",
 				"source.service":      "details",
 			},
 			expectedStatusCode: 0,
 		},
 		"Manager permission": {
 			attrs: map[string]interface{}{
+				"destination.service": "svc.cluster.local",
 				"source.uid":          "janet",
 				"request.path":        "/reviews/alice",
-				"destination.service": "landing_page",
+				"target.service":      "landing_page",
 				"source.service":      "details",
 			},
 			expectedStatusCode: 0,
 		},
 		"HR permission": {
 			attrs: map[string]interface{}{
+				"destination.service": "svc.cluster.local",
 				"source.uid":          "ken",
 				"request.path":        "/reviews/janet",
-				"destination.service": "landing_page",
+				"target.service":      "landing_page",
 				"source.service":      "details",
 			},
 			expectedStatusCode: 0,
 		},
 		"Denied request": {
 			attrs: map[string]interface{}{
+				"destination.service": "svc.cluster.local",
 				"source.uid":          "janet",
 				"request.path":        "/detail/ken",
-				"destination.service": "landing_pages",
+				"target.service":      "landing_pages",
 				"source.service":      "invalid",
 			},
 			expectedStatusCode: 7,

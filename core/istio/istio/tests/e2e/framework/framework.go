@@ -19,6 +19,8 @@ import (
 	"io/ioutil"
 	"os"
 	"sync"
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 
 	"istio.io/istio/pkg/log"
 )
@@ -68,7 +70,7 @@ func InitLogging() error {
 	}
 
 	// Configure Istio logging to use a file under the temp dir.
-	o := log.DefaultOptions()
+	o := log.NewOptions()
 	tmpLogFile, err := ioutil.TempFile(tmpDir, tmpPrefix)
 	if err != nil {
 		return err
@@ -82,15 +84,13 @@ func InitLogging() error {
 	return nil
 }
 
-// NewCommonConfigWithVersion creates a new CommonConfig with the specified
-// version of Istio. If baseVersion is empty, it will use the local head
-// version.
-func NewCommonConfigWithVersion(testID, version string) (*CommonConfig, error) {
+// NewTestConfig creates a full config will all supported configs.
+func NewTestConfig(testID, baseVersion string) (*CommonConfig, error) {
 	t, err := newTestInfo(testID)
 	if err != nil {
 		return nil, err
 	}
-	k, err := newKubeInfo(t.TempDir, t.RunID, version)
+	k, err := newKubeInfo(t.TempDir, t.RunID, baseVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -109,9 +109,9 @@ func NewCommonConfigWithVersion(testID, version string) (*CommonConfig, error) {
 	return c, nil
 }
 
-// NewCommonConfig creates a full config with the local head version.
+// NewCommonConfig creates a full config will all supported configs.
 func NewCommonConfig(testID string) (*CommonConfig, error) {
-	return NewCommonConfigWithVersion(testID, "")
+	return NewTestConfig(testID, "")
 }
 
 func (t *testCleanup) RegisterCleanable(c Cleanable) {

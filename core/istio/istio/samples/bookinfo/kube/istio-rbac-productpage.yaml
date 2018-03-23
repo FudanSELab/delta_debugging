@@ -5,7 +5,7 @@ metadata:
   namespace: default
 spec:
   rules:
-  - services: ["productpage"]
+  - services: ["productpage.default.svc.cluster.local"]
     methods: ["GET"]
 ---
 apiVersion: "config.istio.io/v1alpha2"
@@ -15,7 +15,8 @@ metadata:
   namespace: default
 spec:
   subjects:
-  - user: "*"
+  - properties:
+      namespace: "istio-system"
   roleRef:
     kind: ServiceRole
     name: "productpage-viewer"

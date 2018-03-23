@@ -28,8 +28,11 @@ import (
 	"text/template"
 
 	"github.com/ghodss/yaml"
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
+
 	"k8s.io/api/batch/v2alpha1"
 	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -143,10 +146,6 @@ type Config struct {
 }
 
 func injectRequired(ignored []string, namespacePolicy InjectionPolicy, podSpec *corev1.PodSpec, metadata *metav1.ObjectMeta) bool { // nolint: lll
-
-
-	fmt.Println("[调试标记] Pilot - pkg - kube - inject - inject.go - injectRequired")
-
 	// Skip injection when host networking is enabled. The problem is
 	// that the iptable changes are assumed to be within the pod when,
 	// in fact, they are changing the routing at the host level. This
@@ -206,9 +205,6 @@ func injectRequired(ignored []string, namespacePolicy InjectionPolicy, podSpec *
 }
 
 func formatDuration(in *duration.Duration) string {
-
-	fmt.Println("[调试标记] Pilot - pkg - kube - inject - inject.go - formatDuration")
-
 	dur, err := ptypes.Duration(in)
 	if err != nil {
 		return "1s"
@@ -217,9 +213,6 @@ func formatDuration(in *duration.Duration) string {
 }
 
 func injectionData(sidecarTemplate, version string, spec *v1.PodSpec, metadata *metav1.ObjectMeta, proxyConfig *meshconfig.ProxyConfig, meshConfig *meshconfig.MeshConfig) (*SidecarInjectionSpec, string, error) { // nolint: lll
-
-	fmt.Println("[调试标记] Pilot - pkg - kube - inject - inject.go - injectionData")
-
 	data := SidecarTemplateData{
 		ObjectMeta:  metadata,
 		Spec:        spec,
@@ -260,9 +253,6 @@ func injectionData(sidecarTemplate, version string, spec *v1.PodSpec, metadata *
 // IntoResourceFile injects the istio proxy into the specified
 // kubernetes YAML file.
 func IntoResourceFile(sidecarTemplate string, meshconfig *meshconfig.MeshConfig, in io.Reader, out io.Writer) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - kube - inject - inject.go - IntoResourceFile")
-
 	reader := yamlDecoder.NewYAMLReader(bufio.NewReaderSize(in, 4096))
 	for {
 		raw, err := reader.Read()
@@ -302,9 +292,6 @@ func IntoResourceFile(sidecarTemplate string, meshconfig *meshconfig.MeshConfig,
 }
 
 func fromRawToObject(raw []byte) (runtime.Object, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - kube - inject - inject.go - fromRawToObject")
-
 	var typeMeta metav1.TypeMeta
 	if err := yaml.Unmarshal(raw, &typeMeta); err != nil {
 		return nil, err
@@ -323,9 +310,6 @@ func fromRawToObject(raw []byte) (runtime.Object, error) {
 }
 
 func intoObject(sidecarTemplate string, meshconfig *meshconfig.MeshConfig, in runtime.Object) (interface{}, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - kube - inject - inject.go - intoObject")
-
 	out := in.DeepCopyObject()
 
 	var metadata *metav1.ObjectMeta
@@ -411,9 +395,6 @@ func intoObject(sidecarTemplate string, meshconfig *meshconfig.MeshConfig, in ru
 
 // GenerateTemplateFromParams generates a sidecar template from the legacy injection parameters
 func GenerateTemplateFromParams(params *Params) (string, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - kube - inject - inject.go - GenerateTemplateFromParams")
-
 	t := template.New("inject").Delims(parameterizedTemplateDelimBegin, parameterizedTemplateDelimEnd)
 	var tmp bytes.Buffer
 	err := template.Must(t.Parse(parameterizedTemplate)).Execute(&tmp, params)
@@ -433,9 +414,6 @@ type SidecarInjectionStatus struct {
 // helper function to generate a template version identifier from a
 // hash of the un-executed template contents.
 func sidecarTemplateVersionHash(in string) string {
-
-	fmt.Println("[调试标记] Pilot - pkg - kube - inject - inject.go - sidecarTemplateVersionHash")
-
 	hash := sha256.Sum256([]byte(in))
 	return hex.EncodeToString(hash[:])
 }

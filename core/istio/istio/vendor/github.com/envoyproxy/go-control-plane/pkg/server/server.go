@@ -1,4 +1,4 @@
-// Copyright 2018 Envoyproxy Authors
+// Copyright 2017 Envoyproxy Authors
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,78 +17,75 @@ package server
 
 import (
 	"context"
-	"errors"
 	"strconv"
 	"sync/atomic"
 
+	"github.com/envoyproxy/go-control-plane/api"
+	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
+	"github.com/golang/glog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/envoyproxy/go-control-plane/pkg/cache"
 )
+
+// Resource types in xDS v2.
+const (
+	typePrefix   = "type.googleapis.com/envoy.api.v2."
+	EndpointType = typePrefix + "ClusterLoadAssignment"
+	ClusterType  = typePrefix + "Cluster"
+	RouteType    = typePrefix + "RouteConfiguration"
+	ListenerType = typePrefix + "Listener"
+	AnyType      = ""
+)
+
+// GetTypeURL retrieves type URL by response type.
+func GetTypeURL(typ cache.ResponseType) string {
+	switch typ {
+	case cache.EndpointResponse:
+		return EndpointType
+	case cache.ClusterResponse:
+		return ClusterType
+	case cache.RouteResponse:
+		return RouteType
+	case cache.ListenerResponse:
+		return ListenerType
+	}
+	return AnyType
+}
 
 // Server is a collection of handlers for streaming discovery requests.
 type Server interface {
-	v2.EndpointDiscoveryServiceServer
-	v2.ClusterDiscoveryServiceServer
-	v2.RouteDiscoveryServiceServer
-	v2.ListenerDiscoveryServiceServer
-	discovery.AggregatedDiscoveryServiceServer
-
-	// Fetch is the universal fetch method.
-	Fetch(context.Context, *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error)
+	api.AggregatedDiscoveryServiceServer
+	api.EndpointDiscoveryServiceServer
+	api.ClusterDiscoveryServiceServer
+	api.RouteDiscoveryServiceServer
+	api.ListenerDiscoveryServiceServer
 }
 
-// Callbacks is a collection of callbacks inserted into the server operation.
-// The callbacks are invoked synchronously.
-type Callbacks interface {
-	// OnStreamOpen is called once an xDS stream is open with a stream ID and the type URL (or "" for ADS).
-	OnStreamOpen(int64, string)
-	// OnStreamClosed is called immediately prior to closing an xDS stream with a stream ID.
-	OnStreamClosed(int64)
-	// OnStreamRequest is called once a request is received on a stream.
-	OnStreamRequest(int64, *v2.DiscoveryRequest)
-	// OnStreamResponse is called immediately prior to sending a response on a stream.
-	OnStreamResponse(int64, *v2.DiscoveryRequest, *v2.DiscoveryResponse)
-	// OnFetchRequest is called for each Fetch request
-	OnFetchRequest(*v2.DiscoveryRequest)
-	// OnFetchResponse is called immediately prior to sending a response.
-	OnFetchResponse(*v2.DiscoveryRequest, *v2.DiscoveryResponse)
-}
-
-// NewServer creates handlers from a config watcher and an optional logger.
-func NewServer(config cache.Cache, callbacks Callbacks) Server {
-	return &server{cache: config, callbacks: callbacks}
+// NewServer creates handlers from a config watcher.
+func NewServer(config cache.ConfigWatcher) Server {
+	return &server{config: config}
 }
 
 type server struct {
-	cache     cache.Cache
-	callbacks Callbacks
+	config cache.ConfigWatcher
 
 	// streamCount for counting bi-di streams
 	streamCount int64
 }
 
 type stream interface {
-	Send(*v2.DiscoveryResponse) error
-	Recv() (*v2.DiscoveryRequest, error)
+	Send(*api.DiscoveryResponse) error
+	Recv() (*api.DiscoveryRequest, error)
 }
 
 // watches for all xDS resource types
 type watches struct {
-	endpoints chan cache.Response
-	clusters  chan cache.Response
-	routes    chan cache.Response
-	listeners chan cache.Response
-
-	endpointCancel func()
-	clusterCancel  func()
-	routeCancel    func()
-	listenerCancel func()
+	endpoints cache.Watch
+	clusters  cache.Watch
+	routes    cache.Watch
+	listeners cache.Watch
 
 	endpointNonce string
 	clusterNonce  string
@@ -96,47 +93,16 @@ type watches struct {
 	listenerNonce string
 }
 
-// Cancel all watches
-func (values watches) Cancel() {
-	if values.endpointCancel != nil {
-		values.endpointCancel()
-	}
-	if values.clusterCancel != nil {
-		values.clusterCancel()
-	}
-	if values.routeCancel != nil {
-		values.routeCancel()
-	}
-	if values.listenerCancel != nil {
-		values.listenerCancel()
-	}
-}
-
-func createResponse(resp *cache.Response, typeURL string) (*v2.DiscoveryResponse, error) {
-	if resp == nil {
-		return nil, errors.New("missing response")
-	}
-	resources := make([]types.Any, len(resp.Resources))
-	for i := 0; i < len(resp.Resources); i++ {
-		data, err := proto.Marshal(resp.Resources[i])
-		if err != nil {
-			return nil, err
-		}
-		resources[i] = types.Any{
-			TypeUrl: typeURL,
-			Value:   data,
-		}
-	}
-	out := &v2.DiscoveryResponse{
-		VersionInfo: resp.Version,
-		Resources:   resources,
-		TypeUrl:     typeURL,
-	}
-	return out, nil
+// cancel all watches
+func (values watches) cancel() {
+	values.endpoints.Cancel()
+	values.clusters.Cancel()
+	values.routes.Cancel()
+	values.listeners.Cancel()
 }
 
 // process handles a bi-di stream request
-func (s *server) process(stream stream, reqCh <-chan *v2.DiscoveryRequest, defaultTypeURL string) error {
+func (s *server) process(stream stream, reqCh <-chan *api.DiscoveryRequest, defaultTypeURL string) error {
 	// increment stream count
 	streamID := atomic.AddInt64(&s.streamCount, 1)
 
@@ -147,70 +113,74 @@ func (s *server) process(stream stream, reqCh <-chan *v2.DiscoveryRequest, defau
 	// a collection of watches per request type
 	var values watches
 	defer func() {
-		values.Cancel()
-		if s.callbacks != nil {
-			s.callbacks.OnStreamClosed(streamID)
-		}
+		values.cancel()
 	}()
 
 	// sends a response by serializing to protobuf Any
 	send := func(resp cache.Response, typeURL string) (string, error) {
-		out, err := createResponse(&resp, typeURL)
-		if err != nil {
-			return "", err
-		}
-
-		// increment nonce
+		resources := make([]*types.Any, len(resp.Resources))
 		streamNonce = streamNonce + 1
-		out.Nonce = strconv.FormatInt(streamNonce, 10)
-		if s.callbacks != nil {
-			s.callbacks.OnStreamResponse(streamID, &resp.Request, out)
+		for i := 0; i < len(resp.Resources); i++ {
+			data, err := proto.Marshal(resp.Resources[i])
+			if err != nil {
+				return "", err
+			}
+			resources[i] = &types.Any{
+				TypeUrl: typeURL,
+				Value:   data,
+			}
 		}
-		return out.Nonce, stream.Send(out)
+		nonce := strconv.FormatInt(streamNonce, 10)
+		glog.V(10).Infof("[%d] respond %s with nonce %q version %q", streamID, typeURL, nonce, resp.Version)
+		out := &api.DiscoveryResponse{
+			VersionInfo: resp.Version,
+			Resources:   resources,
+			Canary:      resp.Canary,
+			TypeUrl:     typeURL,
+			Nonce:       nonce,
+		}
+		return nonce, stream.Send(out)
 	}
 
-	if s.callbacks != nil {
-		s.callbacks.OnStreamOpen(streamID, defaultTypeURL)
-	}
-
+	glog.V(10).Infof("[%d] open stream for %q", streamID, defaultTypeURL)
 	for {
 		select {
 		// config watcher can send the requested resources types in any order
-		case resp, more := <-values.endpoints:
+		case resp, more := <-values.endpoints.Value:
 			if !more {
 				return status.Errorf(codes.Unavailable, "endpoints watch failed")
 			}
-			nonce, err := send(resp, cache.EndpointType)
+			nonce, err := send(resp, EndpointType)
 			if err != nil {
 				return err
 			}
 			values.endpointNonce = nonce
 
-		case resp, more := <-values.clusters:
+		case resp, more := <-values.clusters.Value:
 			if !more {
 				return status.Errorf(codes.Unavailable, "clusters watch failed")
 			}
-			nonce, err := send(resp, cache.ClusterType)
+			nonce, err := send(resp, ClusterType)
 			if err != nil {
 				return err
 			}
 			values.clusterNonce = nonce
 
-		case resp, more := <-values.routes:
+		case resp, more := <-values.routes.Value:
 			if !more {
 				return status.Errorf(codes.Unavailable, "routes watch failed")
 			}
-			nonce, err := send(resp, cache.RouteType)
+			nonce, err := send(resp, RouteType)
 			if err != nil {
 				return err
 			}
 			values.routeNonce = nonce
 
-		case resp, more := <-values.listeners:
+		case resp, more := <-values.listeners.Value:
 			if !more {
 				return status.Errorf(codes.Unavailable, "listeners watch failed")
 			}
-			nonce, err := send(resp, cache.ListenerType)
+			nonce, err := send(resp, ListenerType)
 			if err != nil {
 				return err
 			}
@@ -219,50 +189,40 @@ func (s *server) process(stream stream, reqCh <-chan *v2.DiscoveryRequest, defau
 		case req, more := <-reqCh:
 			// input stream ended or errored out
 			if !more {
+				glog.V(10).Infof("[%d] stream closed", streamID)
 				return nil
-			}
-			if req == nil {
-				return status.Errorf(codes.Unavailable, "empty request")
 			}
 
 			// nonces can be reused across streams; we verify nonce only if nonce is not initialized
 			nonce := req.GetResponseNonce()
 
 			// type URL is required for ADS but is implicit for xDS
-			if defaultTypeURL == cache.AnyType {
-				if req.TypeUrl == "" {
+			typeURL := req.TypeUrl
+			if defaultTypeURL == AnyType {
+				if typeURL == "" {
 					return status.Errorf(codes.InvalidArgument, "type URL is required for ADS")
 				}
-			} else if req.TypeUrl == "" {
-				req.TypeUrl = defaultTypeURL
+			} else if typeURL == "" {
+				typeURL = defaultTypeURL
 			}
 
-			if s.callbacks != nil {
-				s.callbacks.OnStreamRequest(streamID, req)
-			}
+			glog.V(10).Infof("[%d] request %s%v with nonce %q from version %q", streamID, typeURL,
+				req.GetResourceNames(), nonce, req.GetVersionInfo())
 
 			// cancel existing watches to (re-)request a newer version
 			switch {
-			case req.TypeUrl == cache.EndpointType && (values.endpointNonce == "" || values.endpointNonce == nonce):
-				if values.endpointCancel != nil {
-					values.endpointCancel()
-				}
-				values.endpoints, values.endpointCancel = s.cache.CreateWatch(*req)
-			case req.TypeUrl == cache.ClusterType && (values.clusterNonce == "" || values.clusterNonce == nonce):
-				if values.clusterCancel != nil {
-					values.clusterCancel()
-				}
-				values.clusters, values.clusterCancel = s.cache.CreateWatch(*req)
-			case req.TypeUrl == cache.RouteType && (values.routeNonce == "" || values.routeNonce == nonce):
-				if values.routeCancel != nil {
-					values.routeCancel()
-				}
-				values.routes, values.routeCancel = s.cache.CreateWatch(*req)
-			case req.TypeUrl == cache.ListenerType && (values.listenerNonce == "" || values.listenerNonce == nonce):
-				if values.listenerCancel != nil {
-					values.listenerCancel()
-				}
-				values.listeners, values.listenerCancel = s.cache.CreateWatch(*req)
+			case typeURL == EndpointType && (values.endpointNonce == "" || values.endpointNonce == nonce):
+				values.endpoints.Cancel()
+				values.endpoints = s.config.Watch(cache.EndpointResponse, req.GetNode(), req.GetVersionInfo(), req.GetResourceNames())
+			case typeURL == ClusterType && (values.clusterNonce == "" || values.clusterNonce == nonce):
+				values.clusters.Cancel()
+				values.clusters = s.config.Watch(cache.ClusterResponse, req.GetNode(), req.GetVersionInfo(), req.GetResourceNames())
+			case typeURL == RouteType && (values.routeNonce == "" || values.routeNonce == nonce):
+				values.routes.Cancel()
+				values.routes = s.config.Watch(cache.RouteResponse, req.GetNode(), req.GetVersionInfo(), req.GetResourceNames())
+			case typeURL == ListenerType && (values.listenerNonce == "" || values.listenerNonce == nonce):
+				values.listeners.Cancel()
+				values.listeners = s.config.Watch(cache.ListenerResponse, req.GetNode(), req.GetVersionInfo(), req.GetResourceNames())
 			}
 		}
 	}
@@ -271,7 +231,7 @@ func (s *server) process(stream stream, reqCh <-chan *v2.DiscoveryRequest, defau
 // handler converts a blocking read call to channels and initiates stream processing
 func (s *server) handler(stream stream, typeURL string) error {
 	// a channel for receiving incoming requests
-	reqCh := make(chan *v2.DiscoveryRequest)
+	reqCh := make(chan *api.DiscoveryRequest)
 	reqStop := int32(0)
 	go func() {
 		for {
@@ -296,70 +256,42 @@ func (s *server) handler(stream stream, typeURL string) error {
 	return err
 }
 
-func (s *server) StreamAggregatedResources(stream discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) error {
-	return s.handler(stream, cache.AnyType)
+func (s *server) StreamAggregatedResources(stream api.AggregatedDiscoveryService_StreamAggregatedResourcesServer) error {
+	return s.handler(stream, AnyType)
 }
 
-func (s *server) StreamEndpoints(stream v2.EndpointDiscoveryService_StreamEndpointsServer) error {
-	return s.handler(stream, cache.EndpointType)
+func (s *server) StreamEndpoints(stream api.EndpointDiscoveryService_StreamEndpointsServer) error {
+	return s.handler(stream, EndpointType)
 }
 
-func (s *server) StreamClusters(stream v2.ClusterDiscoveryService_StreamClustersServer) error {
-	return s.handler(stream, cache.ClusterType)
+func (s *server) StreamLoadStats(stream api.EndpointDiscoveryService_StreamLoadStatsServer) error {
+	return status.Errorf(codes.Unimplemented, "not implemented")
 }
 
-func (s *server) StreamRoutes(stream v2.RouteDiscoveryService_StreamRoutesServer) error {
-	return s.handler(stream, cache.RouteType)
+func (s *server) StreamClusters(stream api.ClusterDiscoveryService_StreamClustersServer) error {
+	return s.handler(stream, ClusterType)
 }
 
-func (s *server) StreamListeners(stream v2.ListenerDiscoveryService_StreamListenersServer) error {
-	return s.handler(stream, cache.ListenerType)
+func (s *server) StreamRoutes(stream api.RouteDiscoveryService_StreamRoutesServer) error {
+	return s.handler(stream, RouteType)
 }
 
-// Fetch is the universal fetch method.
-func (s *server) Fetch(ctx context.Context, req *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error) {
-	if s.callbacks != nil {
-		s.callbacks.OnFetchRequest(req)
-	}
-	resp, err := s.cache.Fetch(ctx, *req)
-	if err != nil {
-		return nil, err
-	}
-	out, err := createResponse(resp, req.TypeUrl)
-	if s.callbacks != nil {
-		s.callbacks.OnFetchResponse(req, out)
-	}
-	return out, err
+func (s *server) StreamListeners(stream api.ListenerDiscoveryService_StreamListenersServer) error {
+	return s.handler(stream, ListenerType)
 }
 
-func (s *server) FetchEndpoints(ctx context.Context, req *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error) {
-	if req == nil {
-		return nil, status.Errorf(codes.Unavailable, "empty request")
-	}
-	req.TypeUrl = cache.EndpointType
-	return s.Fetch(ctx, req)
+func (s *server) FetchEndpoints(ctx context.Context, req *api.DiscoveryRequest) (*api.DiscoveryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "not implemented")
 }
 
-func (s *server) FetchClusters(ctx context.Context, req *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error) {
-	if req == nil {
-		return nil, status.Errorf(codes.Unavailable, "empty request")
-	}
-	req.TypeUrl = cache.ClusterType
-	return s.Fetch(ctx, req)
+func (s *server) FetchClusters(ctx context.Context, req *api.DiscoveryRequest) (*api.DiscoveryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "not implemented")
 }
 
-func (s *server) FetchRoutes(ctx context.Context, req *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error) {
-	if req == nil {
-		return nil, status.Errorf(codes.Unavailable, "empty request")
-	}
-	req.TypeUrl = cache.RouteType
-	return s.Fetch(ctx, req)
+func (s *server) FetchRoutes(ctx context.Context, req *api.DiscoveryRequest) (*api.DiscoveryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "not implemented")
 }
 
-func (s *server) FetchListeners(ctx context.Context, req *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error) {
-	if req == nil {
-		return nil, status.Errorf(codes.Unavailable, "empty request")
-	}
-	req.TypeUrl = cache.ListenerType
-	return s.Fetch(ctx, req)
+func (s *server) FetchListeners(ctx context.Context, req *api.DiscoveryRequest) (*api.DiscoveryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "not implemented")
 }

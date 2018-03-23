@@ -19,7 +19,8 @@ import (
 	"fmt"
 	"reflect"
 	"time"
-
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 	multierror "github.com/hashicorp/go-multierror"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -68,11 +69,7 @@ func (c *controller) addInformer(schema model.ProtoSchema, namespace string, res
 	c.kinds[schema.Type] = c.createInformer(knownTypes[schema.Type].object.DeepCopyObject(), resyncPeriod,
 		func(opts meta_v1.ListOptions) (result runtime.Object, err error) {
 			result = knownTypes[schema.Type].collection.DeepCopyObject()
-			rc, ok := c.client.clientset[apiVersion(&schema)]
-			if !ok {
-				return nil, fmt.Errorf("client not initialized %s", schema.Type)
-			}
-			err = rc.dynamic.Get().
+			err = c.client.dynamic.Get().
 				Namespace(namespace).
 				Resource(ResourceName(schema.Plural)).
 				VersionedParams(&opts, meta_v1.ParameterCodec).
@@ -81,11 +78,7 @@ func (c *controller) addInformer(schema model.ProtoSchema, namespace string, res
 			return
 		},
 		func(opts meta_v1.ListOptions) (watch.Interface, error) {
-			rc, ok := c.client.clientset[apiVersion(&schema)]
-			if !ok {
-				return nil, fmt.Errorf("client not initialized %s", schema.Type)
-			}
-			return rc.dynamic.Get().
+			return c.client.dynamic.Get().
 				Prefix("watch").
 				Namespace(namespace).
 				Resource(ResourceName(schema.Plural)).
@@ -149,7 +142,7 @@ func (c *controller) RegisterEventHandler(typ string, f func(model.Config, model
 		if ok {
 			config, err := ConvertObject(schema, item, c.client.domainSuffix)
 			if err != nil {
-				log.Warnf("error translating object for schema %#v : %v\n Object:\n%#v", schema, err, object)
+				log.Warnf("error translating object %#v", object)
 			} else {
 				f(*config, ev)
 			}

@@ -21,7 +21,8 @@ import (
 	"testing"
 	"time"
 
-	"istio.io/istio/pkg/log"
+	"github.com/golang/glog"
+
 	"istio.io/istio/security/pkg/pki/ca/controller"
 	"istio.io/istio/security/tests/integration"
 	"istio.io/istio/tests/integration/framework"
@@ -58,7 +59,7 @@ func TestCertificateRotation(t *testing.T) {
 	term := certValidationInterval
 	for i := 0; i < certValidateRetry; i++ {
 		if i > 0 {
-			t.Logf("checking certificate rotation in %v seconds", term)
+			glog.Infof("checking certificate rotation in %v seconds", term)
 			time.Sleep(time.Duration(term) * time.Second)
 			term = term * 2
 		}
@@ -79,7 +80,7 @@ func TestCertificateRotation(t *testing.T) {
 
 		if !bytes.Equal(initialSecret.Data[controller.PrivateKeyID], secret.Data[controller.PrivateKeyID]) &&
 			!bytes.Equal(initialSecret.Data[controller.CertChainID], secret.Data[controller.CertChainID]) {
-			t.Logf("certificates were successfully rotated")
+			glog.Infof("certificates were successfully rotated")
 
 			return
 		}
@@ -97,14 +98,14 @@ func TestMain(m *testing.M) {
 	testEnv = integration.NewCertRotationTestEnv(testEnvName, *kubeconfig, *hub, *tag)
 
 	if testEnv == nil {
-		log.Error("test environment creation failure")
+		glog.Error("test environment creation failure")
 		// There is no cleanup needed at this point.
 		os.Exit(1)
 	}
 
 	res := framework.NewTestEnvManager(testEnv, testID).RunTest(m)
 
-	log.Infof("Test result %d in env %s", res, testEnvName)
+	glog.Infof("Test result %d in env %s", res, testEnvName)
 
 	os.Exit(res)
 }

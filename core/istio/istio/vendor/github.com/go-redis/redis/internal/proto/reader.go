@@ -6,7 +6,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/go-redis/redis/internal/util"
+	"github.com/go-redis/redis/internal"
 )
 
 const bytesAllocLimit = 1024 * 1024 // 1mb
@@ -18,16 +18,6 @@ const (
 	StringReply = '$'
 	ArrayReply  = '*'
 )
-
-//------------------------------------------------------------------------------
-
-const Nil = RedisError("redis: nil")
-
-type RedisError string
-
-func (e RedisError) Error() string { return string(e) }
-
-//------------------------------------------------------------------------------
 
 type MultiBulkParse func(*Reader, int64) (interface{}, error)
 
@@ -76,7 +66,7 @@ func (r *Reader) ReadLine() ([]byte, error) {
 		return nil, fmt.Errorf("redis: reply is empty")
 	}
 	if isNilReply(line) {
-		return nil, Nil
+		return nil, internal.Nil
 	}
 	return line, nil
 }
@@ -93,7 +83,7 @@ func (r *Reader) ReadReply(m MultiBulkParse) (interface{}, error) {
 	case StatusReply:
 		return parseStatusValue(line), nil
 	case IntReply:
-		return util.ParseInt(line[1:], 10, 64)
+		return parseInt(line[1:], 10, 64)
 	case StringReply:
 		return r.readTmpBytesValue(line)
 	case ArrayReply:
@@ -115,7 +105,7 @@ func (r *Reader) ReadIntReply() (int64, error) {
 	case ErrorReply:
 		return 0, ParseErrorReply(line)
 	case IntReply:
-		return util.ParseInt(line[1:], 10, 64)
+		return parseInt(line[1:], 10, 64)
 	default:
 		return 0, fmt.Errorf("redis: can't parse int reply: %.100q", line)
 	}
@@ -161,7 +151,7 @@ func (r *Reader) ReadFloatReply() (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return util.ParseFloat(b, 64)
+	return parseFloat(b, 64)
 }
 
 func (r *Reader) ReadArrayReply(m MultiBulkParse) (interface{}, error) {
@@ -231,7 +221,7 @@ func (r *Reader) ReadScanReply() ([]string, uint64, error) {
 
 func (r *Reader) readTmpBytesValue(line []byte) ([]byte, error) {
 	if isNilReply(line) {
-		return nil, Nil
+		return nil, internal.Nil
 	}
 
 	replyLen, err := strconv.Atoi(string(line[1:]))
@@ -251,7 +241,7 @@ func (r *Reader) ReadInt() (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return util.ParseInt(b, 10, 64)
+	return parseInt(b, 10, 64)
 }
 
 func (r *Reader) ReadUint() (uint64, error) {
@@ -259,7 +249,7 @@ func (r *Reader) ReadUint() (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return util.ParseUint(b, 10, 64)
+	return parseUint(b, 10, 64)
 }
 
 // --------------------------------------------------------------------
@@ -313,7 +303,7 @@ func isNilReply(b []byte) bool {
 }
 
 func ParseErrorReply(line []byte) error {
-	return RedisError(string(line[1:]))
+	return internal.RedisError(string(line[1:]))
 }
 
 func parseStatusValue(line []byte) []byte {
@@ -322,7 +312,23 @@ func parseStatusValue(line []byte) []byte {
 
 func parseArrayLen(line []byte) (int64, error) {
 	if isNilReply(line) {
-		return 0, Nil
+		return 0, internal.Nil
 	}
-	return util.ParseInt(line[1:], 10, 64)
+	return parseInt(line[1:], 10, 64)
+}
+
+func atoi(b []byte) (int, error) {
+	return strconv.Atoi(internal.BytesToString(b))
+}
+
+func parseInt(b []byte, base int, bitSize int) (int64, error) {
+	return strconv.ParseInt(internal.BytesToString(b), base, bitSize)
+}
+
+func parseUint(b []byte, base int, bitSize int) (uint64, error) {
+	return strconv.ParseUint(internal.BytesToString(b), base, bitSize)
+}
+
+func parseFloat(b []byte, bitSize int) (float64, error) {
+	return strconv.ParseFloat(internal.BytesToString(b), bitSize)
 }

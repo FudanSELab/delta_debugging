@@ -17,7 +17,6 @@ package proxy
 import (
 	"net"
 	"time"
-	"fmt"
 )
 
 // Network-related utility functions
@@ -29,9 +28,6 @@ const (
 
 // GetPrivateIP returns a private IP address, or panics if no IP is available.
 func GetPrivateIP() net.IP {
-
-	fmt.Println("[调试标记] Pilot - pkg - proxy - net.go - GetPrivateIP")
-
 	addr := getPrivateIPIfAvailable()
 	if addr.IsUnspecified() {
 		panic("No private IP address is available")
@@ -42,9 +38,6 @@ func GetPrivateIP() net.IP {
 // WaitForPrivateNetwork blocks until a private IP address is available, or a timeout is reached.
 // Returns 'true' if a private IP is available before timeout is reached, and 'false' otherwise.
 func WaitForPrivateNetwork() bool {
-
-	fmt.Println("[调试标记] Pilot - pkg - proxy - net.go - WaitForPrivateNetwork")
-
 	deadline := time.Now().Add(waitTimeout)
 	for {
 		addr := getPrivateIPIfAvailable()
@@ -60,9 +53,6 @@ func WaitForPrivateNetwork() bool {
 
 // Returns a private IP address, or unspecified IP (0.0.0.0) if no IP is available
 func getPrivateIPIfAvailable() net.IP {
-
-	fmt.Println("[调试标记] Pilot - pkg - proxy - net.go - getPrivateIPIfAvailable")
-
 	addrs, _ := net.InterfaceAddrs()
 	for _, addr := range addrs {
 		var ip net.IP

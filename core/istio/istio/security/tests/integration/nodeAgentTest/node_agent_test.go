@@ -25,7 +25,8 @@ import (
 	"testing"
 	"time"
 
-	"istio.io/istio/pkg/log"
+	"github.com/golang/glog"
+
 	"istio.io/istio/security/tests/integration"
 	"istio.io/istio/tests/integration/framework"
 )
@@ -96,20 +97,20 @@ func TestNodeAgent(t *testing.T) {
 	term := certValidationInterval
 	for i := 0; i < certValidateRetry; i++ {
 		if i > 0 {
-			t.Logf("retry checking certificate update and validation in %v seconds", term)
+			glog.Infof("retry checking certificate update and validation in %v seconds", term)
 			time.Sleep(time.Duration(term) * time.Second)
 			term = term * 2
 		}
 
 		retrievedCertChain, err := readURI(fmt.Sprintf("http://%v:8080/cert", nodeAgentIPAddress))
 		if err != nil {
-			t.Errorf("failed to read the certificate of NodeAgent: %v", err)
+			glog.Errorf("failed to read the certificate of NodeAgent: %v", err)
 			continue
 		}
 
 		retrievedRootCert, err := readURI(fmt.Sprintf("http://%v:8080/root", nodeAgentIPAddress))
 		if err != nil {
-			t.Errorf("failed to read the root certificate of NodeAgent: %v", err)
+			glog.Errorf("failed to read the root certificate of NodeAgent: %v", err)
 			continue
 		}
 
@@ -118,7 +119,7 @@ func TestNodeAgent(t *testing.T) {
 		}
 
 		if initialCertChain == retrievedCertChain {
-			t.Log("certificate chain is not updated yet")
+			glog.Warning("certificate chain is not updated yet")
 			continue
 		}
 
@@ -166,19 +167,19 @@ func TestMain(m *testing.M) {
 		certChain: *certChain,
 	}
 
-	log.Errorf("%v", config)
+	glog.Errorf("%v", config)
 
 	testEnv = integration.NewNodeAgentTestEnv(testEnvName, *kubeconfig, *hub, *tag)
 
 	if testEnv == nil {
-		log.Error("test environment creation failure")
+		glog.Error("test environment creation failure")
 		// There is no cleanup needed at this point.
 		os.Exit(1)
 	}
 
 	res := framework.NewTestEnvManager(testEnv, testID).RunTest(m)
 
-	log.Infof("Test result %d in env %s", res, testEnvName)
+	glog.Infof("Test result %d in env %s", res, testEnvName)
 
 	os.Exit(res)
 }

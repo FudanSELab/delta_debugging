@@ -22,7 +22,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 
-	cfg "istio.io/api/policy/v1beta1"
+	cfg "istio.io/api/mixer/v1/config"
 )
 
 type testStore struct {
@@ -86,9 +86,10 @@ func TestStore(t *testing.T) {
 	}
 	defer s.Stop()
 
-	b.getError = ErrNotFound
 	k := Key{Kind: "Handler", Name: "name", Namespace: "ns"}
-	if _, err := s.Get(k); err != ErrNotFound {
+	b.getError = ErrNotFound
+	h1 := &cfg.Handler{}
+	if err := s.Get(k, h1); err != ErrNotFound {
 		t.Errorf("Got %v, Want ErrNotFound", err)
 	}
 	if b.calledKey != k {
@@ -102,14 +103,12 @@ func TestStore(t *testing.T) {
 		Spec:     map[string]interface{}{"name": "default", "adapter": "noop"},
 	}
 	b.getResponse = bres
-	var r1 *Resource
-	var err error
-	if r1, err = s.Get(k); err != nil {
+	if err := s.Get(k, h1); err != nil {
 		t.Errorf("Got %v, Want nil", err)
 	}
 	want := &cfg.Handler{Name: "default", Adapter: "noop"}
-	if !reflect.DeepEqual(r1.Spec, want) {
-		t.Errorf("Got %v, Want %v", r1, want)
+	if !reflect.DeepEqual(h1, want) {
+		t.Errorf("Got %v, Want %v", h1, want)
 	}
 
 	b.listResponse[k] = bres

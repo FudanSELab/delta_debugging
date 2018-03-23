@@ -15,7 +15,7 @@ spec:
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
-  name: raw-cli-deployment
+  name: raw-cli-deployement
 spec:
   replicas: 1
   template:

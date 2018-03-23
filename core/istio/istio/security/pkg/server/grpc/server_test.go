@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -28,8 +27,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"istio.io/istio/security/pkg/pki/ca"
-	mockca "istio.io/istio/security/pkg/pki/ca/mock"
-	mockutil "istio.io/istio/security/pkg/pki/util/mock"
 	pb "istio.io/istio/security/proto"
 )
 
@@ -46,28 +43,10 @@ AAOBgQCw9dL6xRQSjdYKt7exqlTJliuNEhw/xDVGlNUbDZnT0uL3zXI//Z8tsejn
 hKldzzeCKNgztEvsUKVqltFZ3ZYnkj/8/Cg8zUtTkOhHOjvuig==
 -----END CERTIFICATE REQUEST-----`
 
-const badSanCsr = `
-MIICdzCCAV8CAQAwCzEJMAcGA1UEChMAMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A
-MIIBCgKCAQEAr8uTt9MSXAHugljyfxCS1BE3X0U5YQnN8Cgj1qn5cnu43LDdwA/x
-Zgsd7ZfkuA+fpxBW2x4yR4LOSEwZAav6z45f9dxoZea0/wTPUHXam2tHIuhz1F1F
-LlZX0EbZErBcjiPs6Y/FUaVROZZftOkq+sfNExTiXR7q5fAyYP/9L57OHOEx6RA3
-kNEFBaa190j4ITvuS8fqsMT3lsRqLQ7fTCd5Ygw8rGZWOT6GSpLm1YJvSXhDUdxL
-hYvoMoDgJ+SRpXWvG/YlzP6nMvJN45flTcIGXSMFvqaFGs5HhYxIviX8dE1Vso+/
-1GV5MNPksTuGh/QqCjjcKvzZ6cMRuUeziQIDAQABoCcwJQYJKoZIhvcNAQkOMRgw
-FjAUBgNVHREEDTALgglsb2NhbGhvc3QwDQYJKoZIhvcNAQELBQADggEBAEHIduLz
-5oei9NHapvYsDDe6A+Q2nUm9uvWn/mMBujbstY9ZmLc73gWS0A8maXFFCjtMf7+n
-u8naR7rmw0MjbVJPL2gbbqWjlNqvfm/upiYT2o8UtXyi0ZIQwfxL/iLqHZOVfm//
-GGpTOohc7joR0EUnBa5piK3XXc4U5aCWMwlnmENMBAtNlRBuAzYJsMydv0Be72ga
-gCojNs0xyJ77JA80HLY7iR4J6BRYsZQ/5UB/pYR55e4TGFDbI+C/6NBqLkzEfyX0
-5KLq/6IJesVZLnKoxOt07OYriZS+U4b+Lx3++vWVnI8z2iOdGPUuJj7ys57zKJZ3
-1sT/u25qExkefck=
------END CERTIFICATE REQUEST-----`
-
 type mockCA struct {
-	cert      string
-	root      string
-	certChain string
-	errMsg    string
+	cert   string
+	root   string
+	errMsg string
 }
 
 func (ca *mockCA) Sign(csrPEM []byte, ttl time.Duration, forCA bool) ([]byte, error) {
@@ -79,10 +58,6 @@ func (ca *mockCA) Sign(csrPEM []byte, ttl time.Duration, forCA bool) ([]byte, er
 
 func (ca *mockCA) GetRootCertificate() []byte {
 	return []byte(ca.root)
-}
-
-func (ca *mockCA) GetCertChain() []byte {
-	return []byte(ca.certChain)
 }
 
 type mockAuthenticator struct {
@@ -120,55 +95,30 @@ func TestSign(t *testing.T) {
 		ca             ca.CertificateAuthority
 		csr            string
 		cert           string
-		certChain      string
 		code           codes.Code
 	}{
-		"No authenticator": {
-			authenticators: nil,
-			code:           codes.Unauthenticated,
-			authorizer:     &mockAuthorizer{},
-			ca:             &mockca.FakeCA{SignErr: fmt.Errorf("cannot sign")},
-		},
 		"Unauthenticated request": {
 			authenticators: []authenticator{&mockAuthenticator{
 				errMsg: "Not authorized",
 			}},
 			code:       codes.Unauthenticated,
 			authorizer: &mockAuthorizer{},
-			ca:         &mockca.FakeCA{SignErr: fmt.Errorf("cannot sign")},
-		},
-		"Corrupted CSR": {
-			authorizer:     &mockAuthorizer{},
-			authenticators: []authenticator{&mockAuthenticator{}},
-			ca:             &mockca.FakeCA{SignErr: fmt.Errorf("cannot sign")},
-			csr:            "deadbeef",
-			code:           codes.InvalidArgument,
-		},
-		"Invalid SAN CSR": {
-			authorizer:     &mockAuthorizer{},
-			authenticators: []authenticator{&mockAuthenticator{}},
-			ca:             &mockca.FakeCA{SignErr: fmt.Errorf("cannot sign")},
-			csr:            badSanCsr,
-			code:           codes.InvalidArgument,
+			ca:         &mockCA{errMsg: "cannot sign"},
 		},
 		"Failed to sign": {
 			authorizer:     &mockAuthorizer{},
 			authenticators: []authenticator{&mockAuthenticator{}},
-			ca:             &mockca.FakeCA{SignErr: fmt.Errorf("cannot sign")},
+			ca:             &mockCA{errMsg: "cannot sign"},
 			csr:            csr,
 			code:           codes.Internal,
 		},
 		"Successful signing": {
 			authenticators: []authenticator{&mockAuthenticator{}},
 			authorizer:     &mockAuthorizer{},
-			ca: &mockca.FakeCA{
-				SignedCert:    []byte("generated cert"),
-				KeyCertBundle: &mockutil.FakeKeyCertBundle{CertChainBytes: []byte("cert chain")},
-			},
-			csr:       csr,
-			cert:      "generated cert",
-			certChain: "cert chain",
-			code:      codes.OK,
+			ca:             &mockCA{cert: "generated cert"},
+			csr:            csr,
+			cert:           "generated cert",
+			code:           codes.OK,
 		},
 	}
 
@@ -186,15 +136,9 @@ func TestSign(t *testing.T) {
 		s, _ := status.FromError(err)
 		code := s.Code()
 		if c.code != code {
-			t.Errorf("Case %s: expecting code to be (%d) but got (%d: %s)", id, c.code, code, s.Message())
-		} else if c.code == codes.OK {
-			if !bytes.Equal(response.SignedCert, []byte(c.cert)) {
-				t.Errorf("Case %s: expecting cert to be (%s) but got (%s)", id, c.cert, response.SignedCert)
-			}
-			if !bytes.Equal(response.CertChain, []byte(c.certChain)) {
-				t.Errorf("Case %s: expecting cert chain to be (%s) but got (%s)", id, c.certChain, response.CertChain)
-			}
-
+			t.Errorf("Case %s: expecting code to be (%d) but got (%d)", id, c.code, code)
+		} else if c.code == codes.OK && !bytes.Equal(response.SignedCertChain, []byte(c.cert)) {
+			t.Errorf("Case %s: expecting cert to be (%s) but got (%s)", id, c.cert, response.SignedCertChain)
 		}
 	}
 }
@@ -239,7 +183,7 @@ func TestShouldRefresh(t *testing.T) {
 
 func TestRun(t *testing.T) {
 	testCases := map[string]struct {
-		ca                          *mockca.FakeCA
+		ca                          *mockCA
 		hostname                    string
 		port                        int
 		expectedErr                 string
@@ -247,20 +191,12 @@ func TestRun(t *testing.T) {
 		expectedAuthenticatorsLen   int
 	}{
 		"Invalid listening port number": {
-			ca:          &mockca.FakeCA{SignedCert: []byte(csr)},
+			ca:          &mockCA{cert: csr},
 			port:        -1,
 			expectedErr: "cannot listen on port -1 (error: listen tcp: address -1: invalid port)",
 		},
-		"CA sign error": {
-			ca:                          &mockca.FakeCA{SignErr: errors.New("mock CA cannot sign")},
-			hostname:                    "localhost",
-			port:                        0,
-			expectedErr:                 "",
-			expectedAuthenticatorsLen:   2,
-			applyServerCertificateError: "mock CA cannot sign",
-		},
-		"Bad signed cert": {
-			ca:                        &mockca.FakeCA{SignedCert: []byte(csr)},
+		"Random listening port number": {
+			ca:                        &mockCA{cert: csr},
 			hostname:                  "localhost",
 			port:                      0,
 			expectedErr:               "",

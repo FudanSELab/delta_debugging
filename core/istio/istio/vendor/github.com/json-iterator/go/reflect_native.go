@@ -2,13 +2,10 @@ package jsoniter
 
 import (
 	"encoding/base64"
-	"github.com/modern-go/reflect2"
 	"reflect"
-	"strconv"
 	"unsafe"
+	"github.com/v2pro/plz/reflect2"
 )
-
-const ptrSize = 32 << uintptr(^uintptr(0)>>63)
 
 func createEncoderOfNative(ctx *ctx, typ reflect2.Type) ValEncoder {
 	if typ.Kind() == reflect.Slice && typ.(reflect2.SliceType).Elem().Kind() == reflect.Uint8 {
@@ -27,10 +24,7 @@ func createEncoderOfNative(ctx *ctx, typ reflect2.Type) ValEncoder {
 		if typeName != "int" {
 			return encoderOfType(ctx, reflect2.TypeOfPtr((*int)(nil)).Elem())
 		}
-		if strconv.IntSize == 32 {
-			return &int32Codec{}
-		}
-		return &int64Codec{}
+		return &intCodec{}
 	case reflect.Int8:
 		if typeName != "int8" {
 			return encoderOfType(ctx, reflect2.TypeOfPtr((*int8)(nil)).Elem())
@@ -55,10 +49,7 @@ func createEncoderOfNative(ctx *ctx, typ reflect2.Type) ValEncoder {
 		if typeName != "uint" {
 			return encoderOfType(ctx, reflect2.TypeOfPtr((*uint)(nil)).Elem())
 		}
-		if strconv.IntSize == 32 {
-			return &uint32Codec{}
-		}
-		return &uint64Codec{}
+		return &uintCodec{}
 	case reflect.Uint8:
 		if typeName != "uint8" {
 			return encoderOfType(ctx, reflect2.TypeOfPtr((*uint8)(nil)).Elem())
@@ -78,10 +69,7 @@ func createEncoderOfNative(ctx *ctx, typ reflect2.Type) ValEncoder {
 		if typeName != "uintptr" {
 			return encoderOfType(ctx, reflect2.TypeOfPtr((*uintptr)(nil)).Elem())
 		}
-		if ptrSize == 32 {
-			return &uint32Codec{}
-		}
-		return &uint64Codec{}
+		return &uintptrCodec{}
 	case reflect.Uint64:
 		if typeName != "uint64" {
 			return encoderOfType(ctx, reflect2.TypeOfPtr((*uint64)(nil)).Elem())
@@ -122,10 +110,7 @@ func createDecoderOfNative(ctx *ctx, typ reflect2.Type) ValDecoder {
 		if typeName != "int" {
 			return decoderOfType(ctx, reflect2.TypeOfPtr((*int)(nil)).Elem())
 		}
-		if strconv.IntSize == 32 {
-			return &int32Codec{}
-		}
-		return &int64Codec{}
+		return &intCodec{}
 	case reflect.Int8:
 		if typeName != "int8" {
 			return decoderOfType(ctx, reflect2.TypeOfPtr((*int8)(nil)).Elem())
@@ -150,10 +135,7 @@ func createDecoderOfNative(ctx *ctx, typ reflect2.Type) ValDecoder {
 		if typeName != "uint" {
 			return decoderOfType(ctx, reflect2.TypeOfPtr((*uint)(nil)).Elem())
 		}
-		if strconv.IntSize == 32 {
-			return &uint32Codec{}
-		}
-		return &uint64Codec{}
+		return &uintCodec{}
 	case reflect.Uint8:
 		if typeName != "uint8" {
 			return decoderOfType(ctx, reflect2.TypeOfPtr((*uint8)(nil)).Elem())
@@ -173,10 +155,7 @@ func createDecoderOfNative(ctx *ctx, typ reflect2.Type) ValDecoder {
 		if typeName != "uintptr" {
 			return decoderOfType(ctx, reflect2.TypeOfPtr((*uintptr)(nil)).Elem())
 		}
-		if ptrSize == 32 {
-			return &uint32Codec{}
-		}
-		return &uint64Codec{}
+		return &uintptrCodec{}
 	case reflect.Uint64:
 		if typeName != "uint64" {
 			return decoderOfType(ctx, reflect2.TypeOfPtr((*uint64)(nil)).Elem())
@@ -215,6 +194,40 @@ func (codec *stringCodec) Encode(ptr unsafe.Pointer, stream *Stream) {
 
 func (codec *stringCodec) IsEmpty(ptr unsafe.Pointer) bool {
 	return *((*string)(ptr)) == ""
+}
+
+type intCodec struct {
+}
+
+func (codec *intCodec) Decode(ptr unsafe.Pointer, iter *Iterator) {
+	if !iter.ReadNil() {
+		*((*int)(ptr)) = iter.ReadInt()
+	}
+}
+
+func (codec *intCodec) Encode(ptr unsafe.Pointer, stream *Stream) {
+	stream.WriteInt(*((*int)(ptr)))
+}
+
+func (codec *intCodec) IsEmpty(ptr unsafe.Pointer) bool {
+	return *((*int)(ptr)) == 0
+}
+
+type uintptrCodec struct {
+}
+
+func (codec *uintptrCodec) Decode(ptr unsafe.Pointer, iter *Iterator) {
+	if !iter.ReadNil() {
+		*((*uintptr)(ptr)) = uintptr(iter.ReadUint64())
+	}
+}
+
+func (codec *uintptrCodec) Encode(ptr unsafe.Pointer, stream *Stream) {
+	stream.WriteUint64(uint64(*((*uintptr)(ptr))))
+}
+
+func (codec *uintptrCodec) IsEmpty(ptr unsafe.Pointer) bool {
+	return *((*uintptr)(ptr)) == 0
 }
 
 type int8Codec struct {
@@ -283,6 +296,24 @@ func (codec *int64Codec) Encode(ptr unsafe.Pointer, stream *Stream) {
 
 func (codec *int64Codec) IsEmpty(ptr unsafe.Pointer) bool {
 	return *((*int64)(ptr)) == 0
+}
+
+type uintCodec struct {
+}
+
+func (codec *uintCodec) Decode(ptr unsafe.Pointer, iter *Iterator) {
+	if !iter.ReadNil() {
+		*((*uint)(ptr)) = iter.ReadUint()
+		return
+	}
+}
+
+func (codec *uintCodec) Encode(ptr unsafe.Pointer, stream *Stream) {
+	stream.WriteUint(*((*uint)(ptr)))
+}
+
+func (codec *uintCodec) IsEmpty(ptr unsafe.Pointer) bool {
+	return *((*uint)(ptr)) == 0
 }
 
 type uint8Codec struct {
@@ -405,7 +436,7 @@ func (codec *boolCodec) IsEmpty(ptr unsafe.Pointer) bool {
 }
 
 type base64Codec struct {
-	sliceType    *reflect2.UnsafeSliceType
+	sliceType *reflect2.UnsafeSliceType
 	sliceDecoder ValDecoder
 }
 
@@ -418,7 +449,7 @@ func (codec *base64Codec) Decode(ptr unsafe.Pointer, iter *Iterator) {
 	case StringValue:
 		encoding := base64.StdEncoding
 		src := iter.SkipAndReturnBytes()
-		src = src[1 : len(src)-1]
+		src = src[1: len(src)-1]
 		decodedLen := encoding.DecodedLen(len(src))
 		dst := make([]byte, decodedLen)
 		len, err := encoding.Decode(dst, src)

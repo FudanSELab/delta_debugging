@@ -20,6 +20,8 @@ import (
 	"path"
 	"sort"
 	"strings"
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 
 	meshconfig "istio.io/api/mesh/v1alpha1"
 	routing "istio.io/api/routing/v1alpha1"
@@ -49,7 +51,7 @@ func buildIngressListeners(mesh *meshconfig.MeshConfig, proxyInstances []*model.
 
 	// lack of SNI in Envoy implies that TLS secrets are attached to listeners
 	// therefore, we should first check that TLS endpoint is needed before shipping TLS listener
-	_, secret := BuildIngressRoutes(mesh, ingress, proxyInstances, discovery, config)
+	_, secret := buildIngressRoutes(mesh, ingress, proxyInstances, discovery, config)
 	if secret != "" {
 		opts.port = 443
 		opts.rds = "443"
@@ -65,8 +67,7 @@ func buildIngressListeners(mesh *meshconfig.MeshConfig, proxyInstances []*model.
 	return listeners
 }
 
-// BuildIngressRoutes builds ingress routes.
-func BuildIngressRoutes(mesh *meshconfig.MeshConfig, node model.Proxy,
+func buildIngressRoutes(mesh *meshconfig.MeshConfig, node model.Proxy,
 	proxyInstances []*model.ServiceInstance,
 	discovery model.ServiceDiscovery,
 	config model.IstioConfigStore) (HTTPRouteConfigs, string) {
@@ -111,8 +112,8 @@ func BuildIngressRoutes(mesh *meshconfig.MeshConfig, node model.Proxy,
 		}
 	}
 
-	// Normalize config
-	rc := &HTTPRouteConfig{ValidateClusters: ValidateClusters, VirtualHosts: make([]*VirtualHost, 0)}
+	// normalize config
+	rc := &HTTPRouteConfig{VirtualHosts: make([]*VirtualHost, 0)}
 	for host, routes := range vhosts {
 		sort.Sort(RoutesByPath(routes))
 		rc.VirtualHosts = append(rc.VirtualHosts, &VirtualHost{
@@ -122,7 +123,7 @@ func BuildIngressRoutes(mesh *meshconfig.MeshConfig, node model.Proxy,
 		})
 	}
 
-	rcTLS := &HTTPRouteConfig{ValidateClusters: ValidateClusters, VirtualHosts: make([]*VirtualHost, 0)}
+	rcTLS := &HTTPRouteConfig{VirtualHosts: make([]*VirtualHost, 0)}
 	for host, routes := range vhostsTLS {
 		sort.Sort(RoutesByPath(routes))
 		rcTLS.VirtualHosts = append(rcTLS.VirtualHosts, &VirtualHost{
@@ -133,7 +134,7 @@ func BuildIngressRoutes(mesh *meshconfig.MeshConfig, node model.Proxy,
 	}
 
 	configs := HTTPRouteConfigs{80: rc, 443: rcTLS}
-	return configs.Normalize(), tlsAll
+	return configs.normalize(), tlsAll
 }
 
 // buildIngressVhostDomains returns an array of domain strings with the port attached
@@ -172,14 +173,14 @@ func buildIngressRoute(mesh *meshconfig.MeshConfig, node model.Proxy,
 	}
 
 	// unfold the rules for the destination port
-	routes := buildDestinationHTTPRoutes(node, service, servicePort, proxyInstances, config, BuildOutboundCluster)
+	routes := buildDestinationHTTPRoutes(node, service, servicePort, proxyInstances, config, buildOutboundCluster)
 
 	// filter by path, prefix from the ingress
 	ingressRoute := buildHTTPRouteMatch(ingress.Match)
 
 	// TODO: not handling header match in ingress apart from uri and authority (uri must not be regex)
 	if len(ingressRoute.Headers) > 0 {
-		if len(ingressRoute.Headers) > 1 || ingressRoute.Headers[0].Name != HeaderAuthority {
+		if len(ingressRoute.Headers) > 1 || ingressRoute.Headers[0].Name != headerAuthority {
 			return nil, "", errors.New("header matches in ingress rule not supported")
 		}
 	}
@@ -197,7 +198,7 @@ func buildIngressRoute(mesh *meshconfig.MeshConfig, node model.Proxy,
 
 		// enable mixer check on the route
 		if mesh.MixerCheckServer != "" || mesh.MixerReportServer != "" {
-			route.OpaqueConfig = BuildMixerOpaqueConfig(!mesh.DisablePolicyChecks, true, service.Hostname)
+			route.OpaqueConfig = buildMixerOpaqueConfig(!mesh.DisablePolicyChecks, true, service.Hostname)
 		}
 
 		if applied := route.CombinePathPrefix(ingressRoute.Path, ingressRoute.Prefix); applied != nil {

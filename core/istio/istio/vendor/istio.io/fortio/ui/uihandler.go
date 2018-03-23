@@ -17,7 +17,6 @@ package ui // import "istio.io/fortio/ui"
 
 import (
 	"bytes"
-	"net"
 	// md5 is mandated, not our choice
 	"crypto/md5" // nolint: gas
 	"encoding/base64"
@@ -38,7 +37,6 @@ import (
 	"sync"
 	"time"
 
-	"istio.io/fortio/fgrpc"
 	"istio.io/fortio/fhttp"
 	"istio.io/fortio/fnet"
 	"istio.io/fortio/log"
@@ -82,7 +80,6 @@ var (
 const (
 	fetchURI    = "fetch/"
 	faviconPath = "/favicon.ico"
-	modegrpc    = "grpc"
 )
 
 // Gets the resources directory from one of 3 sources:
@@ -143,14 +140,13 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	DoSave := (r.FormValue("save") == "on")
 	url := r.FormValue("url")
 	runid := int64(0)
-	runner := r.FormValue("runner")
 	if r.FormValue("load") == "Start" {
 		mode = run
 		if r.FormValue("json") == "on" {
 			JSONOnly = true
-			log.Infof("Starting JSON only %s load request from %v for %s", runner, r.RemoteAddr, url)
+			log.Infof("Starting JSON only load request from %v for %s", r.RemoteAddr, url)
 		} else {
-			log.Infof("Starting %s load request from %v for %s", runner, r.RemoteAddr, url)
+			log.Infof("Starting load request from %v for %s", r.RemoteAddr, url)
 		}
 	} else {
 		if r.FormValue("stop") == "Stop" {
@@ -165,8 +161,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	percList, _ := stats.ParsePercentiles(r.FormValue("p"))   // nolint: gas
 	qps, _ := strconv.ParseFloat(r.FormValue("qps"), 64)      // nolint: gas
 	durStr := r.FormValue("t")
-	grpcSecure := (r.FormValue("grpc-secure") == "on")
-	stdClient := (r.FormValue("stdclient") == "on")
 	var dur time.Duration
 	if durStr == "on" || ((len(r.Form["t"]) > 1) && r.Form["t"][1] == "on") {
 		dur = -1
@@ -190,6 +184,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	if strings.TrimSpace(url) == "" {
 		url = "http://url.needed" // just because url validation doesn't like empty urls
 	}
+	opts := fhttp.NewHTTPOptions(url)
 	ro := periodic.RunnerOptions{
 		QPS:         qps,
 		Duration:    dur,
@@ -209,8 +204,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		uiRunMapMutex.Unlock()
 		log.Infof("New run id %d", runid)
 	}
-	httpopts := fhttp.NewHTTPOptions(url)
-	httpopts.DisableFastClient = stdClient
 	if !JSONOnly {
 		// Normal html mode
 		if mainTemplate == nil {
@@ -244,7 +237,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			URLHostPort                 string
 			DoStop                      bool
 			DoLoad                      bool
-		}{r, httpopts.GetHeaders(), version.Short(), logoPath, debugPath, chartJSPath,
+		}{r, opts.GetHeaders(), version.Short(), logoPath, debugPath, chartJSPath,
 			startTime.Format(time.ANSIC), url, labels, runid,
 			fhttp.RoundDuration(time.Since(startTime)), durSeconds, urlHostPort, mode == stop, mode == run})
 		if err != nil {
@@ -282,37 +275,29 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			log.LogVf("adding header %v", header)
 			if firstHeader {
 				// If there is at least 1 non empty H passed, reset the header list
-				httpopts.ResetHeaders()
+				opts.ResetHeaders()
 				firstHeader = false
 			}
-			err := httpopts.AddAndValidateExtraHeader(header)
+			err := opts.AddAndValidateExtraHeader(header)
 			if err != nil {
 				log.Errf("Error adding custom headers: %v", err)
 			}
 		}
-		onBehalfOf(httpopts, r)
+		onBehalfOf(opts, r)
+		o := fhttp.HTTPRunnerOptions{
+			RunnerOptions:      ro,
+			HTTPOptions:        *opts,
+			AllowInitialErrors: true,
+		}
 		if !JSONOnly {
 			flusher.Flush()
 		}
-		var res periodic.HasRunnerResult
-		var err error
-		if runner == modegrpc {
-			o := fgrpc.GRPCRunnerOptions{
-				RunnerOptions: ro,
-				Destination:   url,
-				Secure:        grpcSecure,
-			}
-			res, err = fgrpc.RunGRPCTest(&o)
-		} else {
-			o := fhttp.HTTPRunnerOptions{
-				HTTPOptions:        *httpopts,
-				RunnerOptions:      ro,
-				AllowInitialErrors: true,
-			}
-			res, err = fhttp.RunHTTPTest(&o)
-		}
+		res, err := fhttp.RunHTTPTest(&o)
+		uiRunMapMutex.Lock()
+		delete(runs, runid)
+		uiRunMapMutex.Unlock()
 		if err != nil {
-			log.Errf("Init error for %s mode with url %s and options %+v : %v", runner, url, ro, err)
+			log.Errf("Init error %+v : %v", o, err)
 			// nolint: errcheck,gas
 			w.Write([]byte(fmt.Sprintf(
 				"Aborting because %s\n</pre><script>document.getElementById('running').style.display = 'none';</script></body></html>\n",
@@ -324,9 +309,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			log.Fatalf("Unable to json serialize result: %v", err)
 		}
 		savedAs := ""
-		id := res.Result().ID()
 		if DoSave {
-			savedAs = SaveJSON(id, json)
+			savedAs = SaveJSON(res.ID(), json)
 		}
 		if JSONOnly {
 			w.Header().Set("Content-Type", "application/json")
@@ -338,16 +322,15 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		}
 		if savedAs != "" {
 			// nolint: errcheck, gas
-			w.Write([]byte(fmt.Sprintf("Saved result to <a href='%s'>%s</a>"+
-				" (<a href='browse?url=%s.json' target='_new'>graph link</a>)\n", savedAs, savedAs, id)))
+			w.Write([]byte(fmt.Sprintf("Saved result to <a href='%s'>%s</a>\n", savedAs, savedAs)))
 		}
 		// nolint: errcheck, gas
 		w.Write([]byte(fmt.Sprintf("All done %d calls %.3f ms avg, %.1f qps\n</pre>\n<script>\n",
-			res.Result().DurationHistogram.Count,
-			1000.*res.Result().DurationHistogram.Avg,
-			res.Result().ActualQPS)))
+			res.DurationHistogram.Count,
+			1000.*res.DurationHistogram.Avg,
+			res.ActualQPS)))
 		ResultToJsData(w, json)
-		w.Write([]byte("</script><p>Go to <a href='./'>Top</a>.</p></body></html>\n")) // nolint: gas
+		w.Write([]byte("</script></body></html>\n")) // nolint: gas
 	}
 }
 
@@ -605,7 +588,6 @@ func FetcherHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Errf("Error writing fetched data to %v: %v", r.RemoteAddr, err)
 	}
-	client.Close()
 }
 
 func onBehalfOf(o *fhttp.HTTPOptions, r *http.Request) {
@@ -683,7 +665,6 @@ func SyncHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	code, data, _ := client.Fetch()
-	defer client.Close()
 	if code != http.StatusOK {
 		w.Write([]byte(fmt.Sprintf("http error, code %d<script>setPB(1,1)</script></body></html>\n", code))) // nolint: gas, errcheck
 		w.WriteHeader(424 /*Failed Dependency*/)
@@ -852,9 +833,9 @@ func downloadOne(w http.ResponseWriter, client *fhttp.Client, name string, u str
 func Serve(baseurl, port, debugpath, uipath, staticRsrcDir string, datadir string) {
 	baseURL = baseurl
 	startTime = time.Now()
-	hostPort := fnet.NormalizePort(port)
+	hostPort := setHostAndPort(fnet.NormalizePort(port))
 	if uipath == "" {
-		fhttp.Serve(hostPort, debugpath)
+		fhttp.Serve(hostPort, debugpath) // doesn't return until exit
 		return
 	}
 	uiPath = uipath
@@ -865,6 +846,11 @@ func Serve(baseurl, port, debugpath, uipath, staticRsrcDir string, datadir strin
 	}
 	debugPath = ".." + debugpath // TODO: calculate actual path if not same number of directories
 	http.HandleFunc(uiPath, Handler)
+	uiMsg := fmt.Sprintf("UI starting - visit:\nhttp://%s%s", urlHostPort, uiPath)
+	if !strings.Contains(port, ":") {
+		uiMsg += "   (or any host/ip reachable on this server)"
+	}
+	fmt.Printf(uiMsg + "\n")
 	fetchPath = uiPath + fetchURI
 	http.HandleFunc(fetchPath, FetcherHandler)
 	fhttp.CheckConnectionClosedHeader = true // needed for proxy to avoid errors
@@ -905,14 +891,7 @@ func Serve(baseurl, port, debugpath, uipath, staticRsrcDir string, datadir strin
 		fs := http.FileServer(http.Dir(dataDir))
 		http.Handle(uiPath+"data/", LogAndFilterDataRequest(http.StripPrefix(uiPath+"data", fs)))
 	}
-	addr := fhttp.Serve(hostPort, debugpath)
-	setHostAndPort(hostPort, addr)
-	uiMsg := fmt.Sprintf("UI starting - visit:\nhttp://%s%s", urlHostPort, uiPath)
-	if !strings.Contains(port, ":") {
-		uiMsg += "   (or any host/ip reachable on this server)"
-	}
-	fmt.Printf(uiMsg + "\n")
-
+	fhttp.Serve(hostPort, debugpath)
 }
 
 // Report starts the browsing only UI server on the given port.
@@ -921,8 +900,7 @@ func Report(baseurl, port, staticRsrcDir string, datadir string) {
 	http.DefaultServeMux = http.NewServeMux() // drop the pprof default handlers
 	baseURL = baseurl
 	extraBrowseLabel = ", report only limited UI"
-	hostPort := fnet.NormalizePort(port)
-	setHostAndPort(hostPort, nil)
+	hostPort := setHostAndPort(fnet.NormalizePort(port))
 	uiMsg := fmt.Sprintf("Browse only UI starting - visit:\nhttp://%s/", urlHostPort)
 	if !strings.Contains(port, ":") {
 		uiMsg += "   (or any host/ip reachable on this server)"
@@ -978,14 +956,11 @@ func RedirectToHTTPS(port string) {
 
 // setHostAndPort takes hostport in the form of hostname:port, ip:port or :port,
 // sets the urlHostPort variable and returns hostport unmodified.
-func setHostAndPort(inputPort string, addr *net.TCPAddr) {
-	urlHostPort = inputPort
-	portStr := inputPort
-	if addr != nil {
-		urlHostPort = addr.String()
-		portStr = fmt.Sprintf(":%d", addr.Port)
+func setHostAndPort(hostport string) string {
+	if strings.HasPrefix(hostport, ":") {
+		urlHostPort = "localhost" + hostport
+		return hostport
 	}
-	if strings.HasPrefix(inputPort, ":") {
-		urlHostPort = "localhost" + portStr
-	}
+	urlHostPort = hostport
+	return hostport
 }

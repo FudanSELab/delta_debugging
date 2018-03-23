@@ -1,7 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: servicegraph
+  name: {{ template "servicegraph.fullname" . }}
   labels:
     app: {{ template "servicegraph.name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
@@ -12,26 +12,27 @@ spec:
   template:
     metadata:
       labels:
-        app: servicegraph
+        app: {{ template "servicegraph.name" . }}
+        release: {{ .Release.Name }}
       annotations:
         sidecar.istio.io/inject: "false"
     spec:
       containers:
-        - name: servicegraph
-          image: "{{ .Values.global.hub }}/servicegraph:{{ .Values.global.tag }}"
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.global.servicegraph.repository }}:{{ .Values.global.servicegraph.tag }}"
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           ports:
             - containerPort: {{ .Values.service.internalPort }}
           args:
-          - --prometheusAddr=http://prometheus:9090
-#          livenessProbe:
-#            httpGet:
-#              path: /
-#              port: {{ .Values.service.internalPort }}
-#          readinessProbe:
-#            httpGet:
-#              path: /
-#              port: {{ .Values.service.internalPort }}
+          - --prometheusAddr={{ .Values.prometheusAddr }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.service.internalPort }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.service.internalPort }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
     {{- if .Values.nodeSelector }}

@@ -20,7 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"istio.io/istio/pkg/log"
+	"github.com/golang/glog"
+
 	"istio.io/istio/security/tests/integration"
 	"istio.io/istio/tests/integration/framework"
 )
@@ -43,7 +44,7 @@ func TestSecretCreation(t *testing.T) {
 		t.Error(err)
 	}
 
-	t.Log(`checking secret "istio.default" is correctly created`)
+	glog.Info(`checking secret "istio.default" is correctly created`)
 	if err := integration.ExamineSecret(s); err != nil {
 		t.Error(err)
 	}
@@ -52,15 +53,14 @@ func TestSecretCreation(t *testing.T) {
 	if err := integration.DeleteSecret(testEnv.ClientSet, testEnv.NameSpace, "istio.default"); err != nil {
 		t.Error(err)
 	}
-
-	t.Log(`secret "istio.default" has been deleted`)
+	glog.Info(`secret "istio.default" has been deleted`)
 
 	// Test that the deleted secret is re-created properly.
 	if _, err := integration.WaitForSecretExist(testEnv.ClientSet, testEnv.NameSpace, "istio.default",
 		secretWaitTime); err != nil {
 		t.Error(err)
 	}
-	t.Log(`checking secret "istio.default" is correctly re-created`)
+	glog.Info(`checking secret "istio.default" is correctly re-created`)
 }
 
 func TestMain(m *testing.M) {
@@ -73,14 +73,14 @@ func TestMain(m *testing.M) {
 	testEnv = integration.NewSecretTestEnv(testEnvName, *kubeconfig, *hub, *tag)
 
 	if testEnv == nil {
-		log.Error("test environment creation failure")
+		glog.Error("test environment creation failure")
 		// There is no cleanup needed at this point.
 		os.Exit(1)
 	}
 
 	res := framework.NewTestEnvManager(testEnv, testID).RunTest(m)
 
-	log.Infof("Test result %d in env %s", res, testEnvName)
+	glog.Infof("Test result %d in env %s", res, testEnvName)
 
 	os.Exit(res)
 }

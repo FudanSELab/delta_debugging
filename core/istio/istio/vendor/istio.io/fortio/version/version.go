@@ -23,14 +23,14 @@ import (
 const (
 	major = 0
 	minor = 7
-	patch = 3
+	patch = 1
 
 	debug = false // turn on to debug init()
 )
 
 var (
 	// The following are set by Dockerfile during link time:
-	tag       = "n/a"
+	tag       = "pre"
 	buildInfo = "unknown"
 	// Number of lines in git status --porcelain; 0 means clean
 	gitstatus = "0" // buildInfo default is unknown so no need to add -dirty
@@ -39,34 +39,29 @@ var (
 	longVersion = ""
 )
 
-// Major returns the numerical major version number (first digit of version.Short()).
+// Major returns the numerical major version number (first digit of Version()).
 func Major() int {
 	return major
 }
 
-// Minor returns the numerical minor version number (second digit of version.Short()).
+// Minor returns the numerical minor version number (second digit of Version()).
 func Minor() int {
 	return minor
 }
 
-// Patch returns the numerical patch level (third digit of version.Short()).
+// Patch returns the numerical patch level (third digit of Version()).
 func Patch() int {
 	return patch
 }
 
-// Short returns the 3 digit short version string Major.Minor.Patch[-pre]
+// Short returns the 3 digit short version string Major.Minor.Patch[-build]
 // version.Short() is the overall project version (used to version json
-// output too). "-pre" is added when the version doesn't match exactly
-// a git tag or the build isn't from a clean source tree. (only standard
-// dockerfile based build of a clean, tagged source tree should print "X.Y.Z"
-// as short version).
+// output too).
 func Short() string {
 	return version
 }
 
 // Long returns the full version and build information.
-// Format is "X.Y.X[-pre] YYYY-MM-DD HH:MM SHA[-dirty]" date and time is
-// the build date (UTC), sha is the git sha of the source tree.
 func Long() string {
 	return longVersion
 }
@@ -88,5 +83,5 @@ func init() {
 		buildInfo += "-dirty"
 		log.Debugf("gitstatus is %q, marking buildinfo as dirty: %v", gitstatus, buildInfo)
 	}
-	longVersion = version + " " + buildInfo
+	longVersion = version + "-" + buildInfo
 }

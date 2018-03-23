@@ -15,28 +15,25 @@
 /*
 Simple test - first time:
 source istio.VERSION
-bazel run //tests/e2e/tests/simple:go_default_test -- -test.v \
+bazel run //tests/e2e/tests/simple:go_default_test -- -alsologtostderr -test.v -v 2 \
     -test.run TestSimple1 --skip_cleanup --auth_enable --namespace=e2e
 After which to Retest:
-bazel run //tests/e2e/tests/simple:go_default_test -- -test.v \
+bazel run //tests/e2e/tests/simple:go_default_test -- -alsologtostderr -test.v -v 2 \
     -test.run TestSimple1 --skip_setup --skip_cleanup --auth_enable --namespace=e2e
 */
 
 package simple
 
 import (
-	"context"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/golang/sync/errgroup"
-	"golang.org/x/net/context/ctxhttp"
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 
 	"istio.io/fortio/fhttp"
 	"istio.io/istio/pkg/log"
@@ -69,53 +66,38 @@ func TestMain(m *testing.M) {
 	os.Exit(tc.RunTest(m))
 }
 
-// TODO: need an "is cluster ready" before running any tests
-
 func TestSimpleIngress(t *testing.T) {
 	// Tests the rewrite/dropping of the /fortio/ prefix as fortio only replies
 	// with "echo debug server ..." on the /debug uri.
-	url := tc.Kube.IngressOrFail(t) + "/fortio/debug"
+	url := "http://" + tc.Kube.Ingress + "/fortio/debug"
 	log.Infof("Fetching '%s'", url)
-
-	retry := util.Retrier{
-		BaseDelay:   time.Second,
-		MaxDelay:    time.Second,
-		Retries:     1000,
-		MaxDuration: 105 * time.Second,
-	}
-
-	client := &http.Client{Timeout: 5 * time.Second}
-	_, err := retry.Retry(context.Background(), func(ctx context.Context, i int) error {
-		resp, err := ctxhttp.Get(ctx, client, url)
+	attempts := 7 // should not take more than 70s to be live...
+	for i := 1; i <= attempts; i++ {
+		if i > 1 {
+			time.Sleep(10 * time.Second) // wait between retries
+		}
+		resp, err := http.Get(url)
 		if err != nil {
 			log.Warnf("Attempt %d : http.Get error %v", i, err)
-			return fmt.Errorf("attempt %d : http.Get error %v", i, err)
+			continue
 		}
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Warnf("Attempt %d : ReadAll error %v", i, err)
-			return fmt.Errorf("attempt %d : ReadAll error %v", i, err)
+			continue
 		}
-
 		_ = resp.Body.Close()
 		bodyStr := string(body)
-		if len(bodyStr) == 0 {
-			log.Infof("Attempt %d: reply body is empty", i)
-			return fmt.Errorf("attempt %d: reply body is empty", i)
-		}
-
 		log.Infof("Attempt %d: reply is\n%s\n---END--", i, bodyStr)
 		needle := "echo debug server up"
 		if !strings.Contains(bodyStr, needle) {
-			log.Warnf("Not finding expected %q in %q", needle, fhttp.DebugSummary(body, 128))
-			return fmt.Errorf("not finding expected %q in %q", needle, fhttp.DebugSummary(body, 128))
+			log.Warnf("Not finding expected %s in %s", needle, fhttp.DebugSummary(body, 128))
+			continue
 		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err.Error())
+		return // success
 	}
+	t.Errorf("Unable to find expected output after %d attempts", attempts)
 }
 
 func TestSvc2Svc(t *testing.T) {
@@ -128,33 +110,6 @@ func TestSvc2Svc(t *testing.T) {
 	if len(podList) != 2 {
 		t.Fatalf("Unexpected to get %d pods when expecting 2. got %v", len(podList), podList)
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	g, ctx := errgroup.WithContext(ctx)
-
-	log.Infof("Configuration readiness pre-check from %v to http://echosrv.%s:8080/echo", podList, ns)
-	for i := range podList {
-		pod := podList[i]
-		g.Go(func() error {
-			for {
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				default:
-					_, err := util.ShellContext(ctx, "kubectl exec -n %s %s -c echosrv -- /usr/local/bin/fortio curl http://echosrv.%s:8080/echo", ns, pod, ns) // nolint: lll
-					if err == nil {
-						return nil
-					}
-					time.Sleep(time.Second)
-				}
-			}
-		})
-	}
-	if err := g.Wait(); err != nil {
-		t.Fatalf("Configuration readiness pre-check failed after %v", err)
-	}
-
 	// call into the service from each of the pods
 	// TODO: use the fortio 0.3.1 web/api endpoint instead and get JSON results (across this file)
 	for _, pod := range podList {
@@ -218,7 +173,7 @@ func setTestConfig() error {
 	tag := os.Getenv("FORTIO_TAG")
 	image := hub + "/fortio:" + tag
 	if hub == "" || tag == "" {
-		image = "istio/fortio:latest_release"
+		image = "istio/fortio:latest" // TODO: change
 	}
 	log.Infof("Fortio hub %s tag %s -> image %s", hub, tag, image)
 	services := []framework.App{

@@ -30,7 +30,7 @@ import (
 )
 
 type routing struct {
-	*tutil.Environment
+	*tutil.Infra
 }
 
 func (t *routing) String() string {
@@ -44,11 +44,11 @@ func (t *routing) Setup() error {
 // TODO: test negatives
 func (t *routing) Run() error {
 	versions := make([]string, 0)
-	if t.Config.V1alpha1 {
+	if t.V1alpha1 {
 		versions = append(versions, "v1alpha1")
 	}
-	if t.Config.V1alpha3 {
-		versions = append(versions, "v1alpha3")
+	if t.V1alpha2 {
+		versions = append(versions, "v1alpha2")
 	}
 
 	cases := []struct {
@@ -137,8 +137,8 @@ func (t *routing) Run() error {
 
 	var errs error
 	for _, version := range versions {
-		if version == "v1alpha3" {
-			if err := t.ApplyConfig("v1alpha3/destination-rule-c.yaml.tmpl", nil); err != nil {
+		if version == "v1alpha2" {
+			if err := t.ApplyConfig("v1alpha2/destination-rule-c.yaml.tmpl", nil); err != nil {
 				errs = multierror.Append(errs, err)
 				continue
 			}
@@ -205,13 +205,13 @@ func (t *routing) verifyRouting(scheme, src, dst, headerKey, headerVal string,
 
 // verify that the traces were picked up by Zipkin and decorator has been applied
 func (t *routing) verifyDecorator(operation string) error {
-	if !t.Config.Zipkin {
+	if !t.Zipkin {
 		return nil
 	}
 
-	response := t.Environment.ClientRequest(
+	response := t.Infra.ClientRequest(
 		"t",
-		fmt.Sprintf("http://zipkin.%s:9411/api/v1/traces", t.Config.IstioNamespace),
+		fmt.Sprintf("http://zipkin.%s:9411/api/v1/traces", t.IstioNamespace),
 		1, "",
 	)
 

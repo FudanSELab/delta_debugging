@@ -18,11 +18,14 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 
 	"istio.io/istio/pilot/pkg/kube/inject"
 	"istio.io/istio/pilot/pkg/model"
 	"istio.io/istio/pilot/test/util"
 	"istio.io/istio/pkg/log"
+
 	tutil "istio.io/istio/tests/e2e/tests/pilot/util"
 )
 
@@ -55,8 +58,8 @@ func (a *accessLogs) add(app, id, desc string) {
 }
 
 // check logs against a deployment
-func (a *accessLogs) check(e *tutil.Environment) error {
-	if !e.Config.CheckLogs {
+func (a *accessLogs) check(infra *tutil.Infra) error {
+	if !infra.CheckLogs {
 		log.Info("Log checking is disabled")
 		return nil
 	}
@@ -70,30 +73,30 @@ func (a *accessLogs) check(e *tutil.Environment) error {
 		name := fmt.Sprintf("Checking log of %s", app)
 		funcs[name] = (func(app string) func() tutil.Status {
 			return func() tutil.Status {
-				if len(e.Apps[app]) == 0 {
+				if len(infra.Apps[app]) == 0 {
 					return fmt.Errorf("missing pods for app %q", app)
 				}
 
-				pod := e.Apps[app][0]
+				pod := infra.Apps[app][0]
 				container := inject.ProxyContainerName
-				ns := e.Config.Namespace
+				ns := infra.Namespace
 				switch app {
 				case "mixer":
 					container = "mixer"
-					ns = e.Config.IstioNamespace
+					ns = infra.IstioNamespace
 				case "ingress":
-					ns = e.Config.IstioNamespace
+					ns = infra.IstioNamespace
 				}
-				util.CopyPodFiles(container, pod, ns, model.ConfigPathDir, e.Config.CoreFilesDir+"/"+pod+"."+ns)
-				logs := util.FetchLogs(e.KubeClient, pod, ns, container)
+				util.CopyPodFiles(container, pod, ns, model.ConfigPathDir, infra.CoreFilesDir+"/"+pod+"."+ns)
+				logs := util.FetchLogs(infra.KubeClient, pod, ns, container)
 
 				if strings.Contains(logs, "segmentation fault") {
-					util.CopyPodFiles(container, pod, ns, model.ConfigPathDir, e.Config.CoreFilesDir+"/"+pod+"."+ns)
+					util.CopyPodFiles(container, pod, ns, model.ConfigPathDir, infra.CoreFilesDir+"/"+pod+"."+ns)
 					return fmt.Errorf("segmentation fault %s log: %s", pod, logs)
 				}
 
 				if strings.Contains(logs, "assert failure") {
-					util.CopyPodFiles(container, pod, ns, model.ConfigPathDir, e.Config.CoreFilesDir+"/"+pod+"."+ns)
+					util.CopyPodFiles(container, pod, ns, model.ConfigPathDir, infra.CoreFilesDir+"/"+pod+"."+ns)
 					return fmt.Errorf("assert failure in %s log: %s", pod, logs)
 				}
 

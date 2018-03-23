@@ -22,15 +22,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"istio.io/istio/pkg/log"
-	"fmt"
 )
 
 // removeIPFromEndpoint verifies if the provided IP to deregister
 // has already been registered.
 func removeIPFromEndpoint(eps *v1.Endpoints, ip string) bool {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - deregister.go - removeIPFromEndpoint")
-
 	var match bool
 	/*
 		1. Check if this is the only entry; if this is the only entry
@@ -69,9 +65,6 @@ func removeIPFromEndpoint(eps *v1.Endpoints, ip string) bool {
 // already exists). It creates or updates as needed.
 func DeRegisterEndpoint(client kubernetes.Interface, namespace string, svcName string,
 	ip string) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - deregister.go - DeRegisterEndpoint")
-
 	getOpt := meta_v1.GetOptions{IncludeUninitialized: true}
 	var match bool
 	eps, err := client.CoreV1().Endpoints(namespace).Get(svcName, getOpt)

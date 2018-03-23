@@ -457,7 +457,6 @@
         "operation_name": "ingress"
        },
        "route_config": {
-        "validate_clusters": true,
         "virtual_hosts": [
          {
           "name": "inbound|1081",
@@ -575,7 +574,7 @@
         "mixerAttributes": {
          "attributes": {
           "destination.ip": {
-           "bytesValue": "AAAAAAAAAAAAAP//CgEBAA=="
+           "stringValue": "10.1.1.0"
           },
           "destination.service": {
            "stringValue": "hello.default.svc.cluster.local"
@@ -634,7 +633,7 @@
         "mixerAttributes": {
          "attributes": {
           "destination.ip": {
-           "bytesValue": "AAAAAAAAAAAAAP//CgEBAA=="
+           "stringValue": "10.1.1.0"
           },
           "destination.service": {
            "stringValue": "hello.default.svc.cluster.local"
@@ -700,7 +699,7 @@
         "mixerAttributes": {
          "attributes": {
           "destination.ip": {
-           "bytesValue": "AAAAAAAAAAAAAP//CgEBAA=="
+           "stringValue": "10.1.1.0"
           },
           "destination.service": {
            "stringValue": "hello.default.svc.cluster.local"
@@ -782,7 +781,6 @@
         "operation_name": "ingress"
        },
        "route_config": {
-        "validate_clusters": true,
         "virtual_hosts": [
          {
           "name": "inbound|80",

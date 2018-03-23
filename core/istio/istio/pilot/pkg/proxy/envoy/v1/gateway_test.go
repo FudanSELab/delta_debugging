@@ -20,7 +20,7 @@ import (
 
 	"github.com/onsi/gomega"
 
-	networking "istio.io/api/networking/v1alpha3"
+	routing "istio.io/api/routing/v1alpha2"
 	"istio.io/istio/pilot/pkg/model"
 )
 
@@ -31,7 +31,7 @@ func TestFindRulesAndMatchingHosts(t *testing.T) {
 		ConfigMeta: model.ConfigMeta{
 			Name: "some-rule",
 		},
-		Spec: &networking.VirtualService{
+		Spec: &routing.RouteRule{
 			Hosts: []string{
 				"foo.com",
 				"bar.com",
@@ -45,7 +45,7 @@ func TestFindRulesAndMatchingHosts(t *testing.T) {
 		ConfigMeta: model.ConfigMeta{
 			Name: "some-other-rule",
 		},
-		Spec: &networking.VirtualService{
+		Spec: &routing.RouteRule{
 			Hosts: []string{
 				"other-foo.com",
 				"other-foo.org",
@@ -60,7 +60,7 @@ func TestFindRulesAndMatchingHosts(t *testing.T) {
 		ConfigMeta: model.ConfigMeta{
 			Name: "our-rule",
 		},
-		Spec: &networking.VirtualService{
+		Spec: &routing.RouteRule{
 			Hosts: []string{
 				"example.com",
 			},

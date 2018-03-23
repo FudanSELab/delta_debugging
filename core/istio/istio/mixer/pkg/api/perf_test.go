@@ -226,8 +226,8 @@ func getGlobalDict() []string {
 		"response.time",
 		"source.namespace",
 		"source.uid",
-		"destination.namespace",
-		"destination.uid",
+		"target.namespace",
+		"target.uid",
 	}
 }
 
@@ -260,6 +260,6 @@ func setRequestAttrs(bag *attribute.MutableBag, uuid []byte) {
 	bag.Set("response.time", time.Now())
 	bag.Set("source.namespace", "XYZ11")
 	bag.Set("source.uid", "POD11")
-	bag.Set("destination.namespace", "XYZ222")
-	bag.Set("destination.uid", "POD222")
+	bag.Set("target.namespace", "XYZ222")
+	bag.Set("target.uid", "POD222")
 }

@@ -42,15 +42,7 @@ spec:
   type: LoadBalancer
 {{end}}
   ports:
-  - port: 8080
-    name: http-discovery-orig
   - port: 15003
-    name: discovery
-  - port: 15005
-    name: https-discovery
-  - port: 15010
-    name: grpc-discovery
-  - port: 15007
     name: http-discovery
 {{if .DebugPort}}
   - port: {{.DebugPort}}
@@ -85,9 +77,10 @@ spec:
       containers:
       - name: discovery
         image: {{.Hub}}/pilot:{{.Tag}}
-        imagePullPolicy: {{.ImagePullPolicy}}
+        imagePullPolicy: IfNotPresent
         args:
         - discovery
+        - --v={{.Verbosity}}
         - -a
         - {{.Namespace}}
         - --registries
@@ -97,8 +90,6 @@ spec:
 {{if .UseAdmissionWebhook}}
         - --admission-service={{.AdmissionServiceName}}
 {{end}}
-        - --rdsv2
-        - "{{.RDSv2}}"
         ports:
         - containerPort: 8080
 {{if .DebugPort}}
@@ -130,20 +121,16 @@ spec:
 {{end}}
       - name: istio-proxy
         image: {{.Hub}}/proxy_debug:{{.Tag}}
-        imagePullPolicy: {{.ImagePullPolicy}}
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 15003
-        - containerPort: 15005
-        - containerPort: 15007
         args:
         - proxy
         - pilot
+        - -v
+        - "{{.Verbosity}}"
         - "--discoveryAddress"
-{{if eq .ControlPlaneAuthPolicy.String "NONE"}}
-        - "istio-pilot:15007"
-{{else}}
-        - "istio-pilot:15005"
-{{end}}
+        - "istio-pilot:15003"
         - "--controlPlaneAuthPolicy"
         - "{{.ControlPlaneAuthPolicy.String}}"
         - --customConfigFile
@@ -170,11 +157,7 @@ spec:
       - name: istio-certs
         secret:
           secretName: istio.istio-pilot-service-account
-{{if eq .ControlPlaneAuthPolicy.String "NONE"}}
           optional: true
-{{else}}
-          optional: false
-{{end}}
 {{if .DebugPort}}
       - name: debug
         persistentVolumeClaim:
