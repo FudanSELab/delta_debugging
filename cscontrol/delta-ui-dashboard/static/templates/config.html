@@ -1,30 +1,35 @@
 <div class="admin">
 
-    <div class="admin-biaoge" style="float:left;padding-left: 60px;margin-top: 20px;width:46%;">
+    <div class="admin-biaoge" style="float:left;padding-left: 10px;margin-top: 20px;width:46%;">
+
 
         <div id="serviceTable" style="width:50%;float:left">
-            <h4 style="font-weight: bold; margin-bottom: 30px">Services</h4>
-            <div ng-repeat="service in serviceGroup" style="margin-bottom: 8px">
-                <input type="checkbox" icheck  value="{{service.serviceName}}" name="service">
-                <span style="font-size: 16px;margin-left: 10px">{{service.serviceName}} : {{service.numOfReplicas}}</span>
+            <h4 style="font-weight: bold;">Cluster</h4>
+            <div ng-repeat="cluster in clusterConfig" >
+                <fieldset>
+                    <legend style="font-size:18px;margin-bottom: 5px">{{cluster.system}}</legend>
+                    <p ng-repeat="config in cluster.configs" >
+                        <input type="checkbox" icheck  value="{{cluster.system}}:{{config.configName}}" name="config">
+                        <span style="font-size: 16px;margin-left: 10px; word-break: break-all">{{config.configName}} : {{config.value}}</span>
+                    </p>
+                </fieldset>
             </div>
             <!--<button  ng-click="test()"  class="btn btn-primary">test</button>-->
         </div>
 
         <div id="case-names"  style="width:49%; float:right">
-            <h4 style="font-weight: bold; margin-bottom: 30px">TestCases</h4>
-            <div ng-repeat="(key, names) in testCases" style="margin-bottom: 8px">
+            <h4 style="font-weight: bold; ">Services</h4>
+            <div ng-repeat="service in serviceConfig" style="margin-bottom: 8px">
                 <fieldset>
-                    <legend style="font-size:18px;margin-bottom: 5px">{{key}}</legend>
-                    <p ng-repeat="name in names">
-                        <input type="checkbox" icheck value="{{name}}" name="testcase">
-                        <span style="font-size: 16px;margin-left: 10px">{{name}}</span>
+                    <legend style="font-size: 18px;margin-bottom: 5px">{{service.serviceName}}</legend>
+                    <p ng-repeat="config in service.configs">
+                        <input type="checkbox" icheck value="{{service.serviceName}}:{{config.configName}}" name="config">
+                        <span style="font-size: 16px;margin-left: 10px">{{config.configName}} : {{config.value}}</span>
                     </p>
                 </fieldset>
             </div>
             <!--<button ng-click="test()">2333</button>-->
         </div>
-
 
     </div>
 
@@ -37,34 +42,12 @@
             </button>
             <button  class="btn btn-primary" style="float: right;margin-right: 20px;display: none" id="test-button" ng-click="sendDeltaData()">Start Delta
             </button>
+            <div style="clear: both"></div>
         </div>
 
-        <table class="table table-hover table-bordered" style="margin-top: 50px;width:100%">
-            <thead >
-                <tr style="background-color: #aeb2b7;color:#fff;">
-                    <th style="text-align: center"><span style="font-size:18px;font-weight: bold">Service Env</span></th>
-                    <th style="text-align: center"><span style="font-size:18px;font-weight: bold">Test Result</span></th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr  ng-repeat=" result in deltaResults">
-                    <td>{{result.services}}</td>
-                    <td>
-                        {{result.tests}}
-                        <span ng-if="result.diff" style="color: red">
-                            different from the first test!
-                        </span>
-                    </td>
-                    <!--<td >-->
-                    <!--<img ng-if="result.status == 'SUCCESS'" ng-src="img/pass.png">-->
-                    <!--<img ng-if="result.status == 'FAILURE'" ng-src="img/failed.png">-->
-                    <!--<img ng-if="result.status == 'SKIP'" ng-src="img/skip.png">-->
-                    <!--</td>-->
-                    <!--<td>{{result.startTime}}</td>-->
-                 </tr>
-
-            </tbody>
-        </table>
+        <div style="margin-top:30px;margin-left: 20px;padding:10px;border:2px #a2abb6 solid;border-radius: 4px;background-color: #FFFFFF; min-height:80px">
+            <span ng-model="configDeltaResult">{{configDeltaResult}}</span>
+        </div>
 
         <div style="border: 2px #a2abb6 dashed; margin-top: 20px;"></div>
 
@@ -99,8 +82,8 @@
             <div class="panel-heading">
                 Logs
             </div>
-            <div class="panel-body" id="instance-logs" style="height:90%; overflow-x: scroll;overflow-y: scroll;" >
-                <article ng-bind-html="instancelogs | trustHtml">
+            <div class="panel-body" id="config-logs" style="height:90%; overflow-x: scroll;overflow-y: scroll;" >
+                <article ng-bind-html="configlogs | trustHtml">
                 </article>
             </div>
         </div>

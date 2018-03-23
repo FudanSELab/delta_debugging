@@ -5,17 +5,18 @@ import java.util.List;
 
 public class DeltaTestResponse {
 
-    private boolean status;
+    private int status;//0:FAUILUE; 1:SUCCESS; -1:EXCEPTION
     private String message;
     List<DeltaTestResult> deltaResults = new ArrayList<DeltaTestResult>();
 
-    public boolean isStatus() {
+    public int getStatus() {
         return status;
     }
 
-    public void setStatus(boolean status) {
+    public void setStatus(int status) {
         this.status = status;
     }
+
 
     public String getMessage() {
         return message;

@@ -41,14 +41,18 @@ public class DeltaTestReporter implements IReporter {
     }
 
     private void transferResult( List<ITestResult> list){
-        deltaResult.setStatus("SUCCESS");
-        for (ITestResult l : list) {
-            if( ! "SUCCESS".equals(this.getStatus(l.getStatus())) ){
-                deltaResult.setStatus("FAILURE");
-                break;
+        if(list.size() > 0){
+            deltaResult.setStatus("SUCCESS");
+            deltaResult.setClassName(list.get(0).getTestClass().getName());
+            for (ITestResult l : list) {
+                if( ! "SUCCESS".equals(this.getStatus(l.getStatus())) ){
+                    deltaResult.setStatus("FAILURE");
+                    break;
+                }
             }
-            deltaResult.setDuration(deltaResult.getDuration() + l.getEndMillis() - l.getStartMillis() );
-            deltaResult.setClassName(l.getTestClass().getName());
+            for (ITestResult l : list) {
+                deltaResult.setDuration(deltaResult.getDuration() + l.getEndMillis() - l.getStartMillis() );
+            }
         }
     }
 

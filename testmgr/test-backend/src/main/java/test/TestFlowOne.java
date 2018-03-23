@@ -2,11 +2,15 @@ package test;
 
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.remote.DesiredCapabilities;
+import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.support.ui.Select;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
@@ -38,8 +42,11 @@ public class TestFlowOne {
     }
     @BeforeClass
     public void setUp() throws Exception {
-        System.setProperty("webdriver.chrome.driver", "F:/app/chromedriver.exe");
-        driver = new ChromeDriver();
+//        System.setProperty("webdriver.chrome.driver", "F:/app/chromedriver.exe");
+//        driver = new ChromeDriver();
+//        baseUrl = "http://10.141.211.181:30004";
+        driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
+                DesiredCapabilities.chrome());
         baseUrl = "http://10.141.211.181:30004";
         trainType = "0";//all
         driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
