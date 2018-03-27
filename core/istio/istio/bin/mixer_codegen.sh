@@ -14,7 +14,7 @@ if [ ! -e $ROOT/Gopkg.lock ]; then
   exit 1
 fi
 
-GOGO_VERSION=$(sed -n '/gogo\/protobuf/,/\[\[projects/p' $ROOT/Gopkg.lock | grep 'version =' | sed -e 's/^[^\"]*\"//g' -e 's/\"//g')
+GOGO_VERSION=$(sed -n '/gogo\/protobuf/,/\[\[projects/p' $ROOT/Gopkg.lock | grep version | sed -e 's/^[^\"]*\"//g' -e 's/\"//g')
 GENDOCS_VERSION=$(sed -n '/protoc-gen-docs/,/\[\[projects/p' $ROOT/Gopkg.lock | grep revision | sed -e 's/^[^\"]*\"//g' -e 's/\"//g')
 
 set -e
@@ -97,12 +97,27 @@ popd
 echo "Done."
 fi
 
+GOOGLEAPIS_SHA=c8c975543a134177cc41b64cbbf10b88fe66aa1d
+GOOGLEAPIS_URL=https://raw.githubusercontent.com/googleapis/googleapis/${GOOGLEAPIS_SHA}
+
+if [ ! -e ${ROOT}/vendor/github.com/googleapis/googleapis ]; then
+echo "Pull down source protos from googleapis..."
+
+mkdir -p ${ROOT}/vendor/github.com/googleapis/googleapis
+
+# all the google_rpc protos
+mkdir -p ${ROOT}/vendor/github.com/googleapis/googleapis/google/rpc
+curl -sS ${GOOGLEAPIS_URL}/google/rpc/status.proto > ${ROOT}/vendor/github.com/googleapis/googleapis/google/rpc/status.proto
+curl -sS ${GOOGLEAPIS_URL}/google/rpc/code.proto > ${ROOT}/vendor/github.com/googleapis/googleapis/google/rpc/code.proto
+curl -sS ${GOOGLEAPIS_URL}/google/rpc/error_details.proto > ${ROOT}/vendor/github.com/googleapis/googleapis/google/rpc/error_details.proto
+fi
+
 imports=(
  "${ROOT}"
  "${ROOT}/vendor/istio.io/api"
  "${ROOT}/vendor/github.com/gogo/protobuf"
- "${ROOT}/vendor/github.com/gogo/googleapis"
  "${ROOT}/vendor/github.com/gogo/protobuf/protobuf"
+ "${ROOT}/vendor/github.com/googleapis/googleapis"
 )
 
 IMPORTS=""
@@ -118,9 +133,9 @@ mappings=(
   "gogoproto/gogo.proto=github.com/gogo/protobuf/gogoproto"
   "google/protobuf/any.proto=github.com/gogo/protobuf/types"
   "google/protobuf/duration.proto=github.com/gogo/protobuf/types"
-  "google/rpc/status.proto=github.com/gogo/googleapis/google/rpc"
-  "google/rpc/code.proto=github.com/gogo/googleapis/google/rpc"
-  "google/rpc/error_details.proto=github.com/gogo/googleapis/google/rpc"
+  "google/rpc/status.proto=istio.io/gogo-genproto/googleapis/google/rpc"
+  "google/rpc/code.proto=istio.io/gogo-genproto/googleapis/google/rpc"
+  "google/rpc/error_details.proto=istio.io/gogo-genproto/googleapis/google/rpc"
 )
 
 MAPPINGS=""

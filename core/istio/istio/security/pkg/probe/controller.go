@@ -123,8 +123,7 @@ func (c *LivenessCheckController) checkGrpcServer() error {
 		return err
 	}
 
-	_, _, _, rootCertBytes := c.ca.GetCAKeyCertBundle().GetAll()
-	err = ioutil.WriteFile(testRoot.Name(), rootCertBytes, 0644)
+	err = ioutil.WriteFile(testRoot.Name(), c.ca.GetRootCertificate(), 0644)
 	if err != nil {
 		return err
 	}

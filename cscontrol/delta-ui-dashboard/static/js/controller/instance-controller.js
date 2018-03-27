@@ -1,7 +1,7 @@
 var instance = angular.module('app.instance-controller', []);
 
-instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases','loadServiceList', '$interval', 'instanceLogService','getPodLogService','refreshPodsService',
-        function($scope, $http,$window,loadTestCases,loadServiceList,  $interval, instanceLogService, getPodLogService, refreshPodsService) {
+instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases','loadServiceList', 'getPodLogService','refreshPodsService',
+        function($scope, $http,$window,loadTestCases,loadServiceList, getPodLogService, refreshPodsService) {
 
         //刷新页面
         $scope.reloadRoute = function () {
@@ -164,13 +164,13 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
                 pods.push($(this).val());
             });
             if(pods.length > 0){
-                $('#suspectPodButton').addClass('disabled');
+                $('#inspectPodButton').addClass('disabled');
                 getPodLogService.load(pods[0]).then(function(result){
                     if(result.status){
                         $scope.instancelogs += result.podLog.podName +  ":</br>" + result.podLog.logs + "</br>";
                         var height = $('#instance-logs').prop('scrollHeight');
                         $('#instance-logs').scrollTop(height);
-                        $('#suspectPodButton').removeClass('disabled');
+                        $('#inspectPodButton').removeClass('disabled');
                     } else {
                         alert(result.message);
                     }
@@ -196,216 +196,8 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
         //     $('#instance-logs').scrollTop(height);
         // }
 
-
-            // $scope.serviceGroup = [
-            //     {
-            //         "serviceName": "redis",
-            //         "numOfReplicas": 1
-            //
-            //     },
-            //
-            //     {
-            //         "serviceName": "ts-route-service",
-            //         "numOfReplicas": 1
-            //     },
-            //     {
-            //         "serviceName": "ts-seat-service",
-            //         "numOfReplicas": 1
-            //     },
-            //     {
-            //         "serviceName": "ts-security-mongo",
-            //         "numOfReplicas": 1
-            //     },
-            //     {
-            //         "serviceName": "ts-security-service",
-            //         "numOfReplicas": 1
-            //     },
-            //     {
-            //         "serviceName": "ts-sso-service",
-            //         "numOfReplicas": 1
-            //     },
-            //     {
-            //         "serviceName": "ts-station-mongo",
-            //         "numOfReplicas": 1
-            //     },
-            //     {
-            //         "serviceName": "ts-station-service",
-            //         "numOfReplicas": 1
-            //     },
-            //     {
-            //         "serviceName": "ts-ticket-office-mongo",
-            //         "numOfReplicas": 1
-            //     },
-            //     {
-            //         "serviceName": "ts-ticket-office-service",
-            //         "numOfReplicas": 1
-            //     },
-            //     {
-            //         "serviceName": "ts-ticketinfo-service",
-            //         "numOfReplicas": 1
-            //     },
-            //
-            //     {
-            //         "serviceName": "zipkin",
-            //         "numOfReplicas": 1
-            //     }
-            // ];
-            //
-            // $scope.testCases={
-            //     "Ticket Reserve":[
-            //         "TestFlowOne",
-            //         "TestServiceLogin",
-            //         "TestServiceSSO",
-            //         "TestServiceVerificationCode",
-            //         "TestServiceTravel",
-            //         "TestServiceTravel2",
-            //         "TestServiceSecurity",
-            //         "TestServiceBasicInfo",
-            //         "TestServiceTicketInfo",
-            //         "TestServiceContacts",
-            //         "TestServicePrice",
-            //         "TestServiceTrain",
-            //         "TestServiceStation",
-            //         "TestServiceOrders",
-            //         "TestServiceConsign",
-            //         "TestServiceConfig",
-            //         "TestServiceFood",
-            //         "TestServiceRoute"
-            //     ],
-            //     "Ticket Rebook":[
-            //         "TestFlowTwoPay",
-            //         "TestFlowTwoRebook",
-            //         "TestServiceRebook",
-            //         "TestServiceInsidePay",
-            //         "TestServicePayment",
-            //         "TestServiceNotification",
-            //         "TestServiceCancel"
-            //     ],
-            //     "Single Service":[
-            //         "TestFlowFour",
-            //         "TestServiceRegister",
-            //         "TestServiceExecute",
-            //         "TestServiceVoucher",
-            //         "TestServiceNews",
-            //         "TestServiceTicketOffice"
-            //     ]
-            //
-            // };
-
-
 }]);
 
-instance.factory('loadTestCases', function ($http, $q) {
-
-    var service = {};
-
-    //获取并返回数据
-    service.loadTestList = function () {
-        var deferred = $q.defer();
-        var promise = deferred.promise;
-
-        $http({
-            method: "get",
-            url: "/testBackend/getFileTree",
-            contentType: "application/json",
-            dataType: "json",
-            withCredentials: true,
-        }).success(function (data, status, headers, config) {
-            if (data) {
-                deferred.resolve(data);
-            }
-            else{
-                alert("Request the order list fail!" + data.message);
-            }
-        });
-        return promise;
-    };
-    return service;
-});
-
-instance.factory('loadServiceList', function ($http, $q) {
-    var service = {};
-    //获取并返回数据
-    service.loadServiceList = function () {
-        var deferred = $q.defer();
-        var promise = deferred.promise;
-        $http({
-            method: "get",
-            url: "/api/getServicesList",
-            contentType: "application/json",
-            dataType: "json",
-            withCredentials: true
-        }).success(function (data, status, headers, config) {
-            if (data) {
-                deferred.resolve(data);
-            }
-            else{
-                alert("Request the order list fail!" + data.message);
-            }
-        });
-        return promise;
-    };
-    return service;
-});
-
-
-instance.factory('instanceLogService', function ($http, $q) {
-    var service = {};
-    service.loadLogs = function () {
-        var deferred = $q.defer();
-        var promise = deferred.promise;
-        // $http({
-        //     method: "post",
-        //     url: "/xxx/xxx",
-        //     contentType: "application/json",
-        //     dataType: "json",
-        //     withCredentials: true
-        // }).success(function (data) {
-        //     if (data) {
-        //         deferred.resolve(data);
-        //     } else{
-        //         alert("Get logs fail!" + data.message);
-        //     }
-        // });
-        deferred.resolve("2333");
-        return promise;
-    };
-    return service;
-});
 
 
 
-// instance.factory('serviceDeltaService', function ($http, $q) {
-//
-//     var service = {};
-//     service.deltaService = function (testCaseList) {
-//         var deferred = $q.defer();
-//         var promise = deferred.promise;
-//
-//         var checkedTest = $("input[name='case']:checked");
-//         var tests = [];
-//         checkedTest.each(function(){
-//             tests.push($(this).val());
-//         });
-//
-//         $http({
-//             method: "post",
-//             url: "/delta/extractServices",
-//             contentType: "application/json",
-//             dataType: "json",
-//             data: {
-//                 tests:testCaseList
-//             },
-//             withCredentials: true
-//         }).success(function (data) {
-//             if (data) {
-//                 deferred.resolve(data);
-//             }
-//             else{
-//                 alert("Request the order list fail!" + data.message);
-//             }
-//         });
-//         return promise;
-//     };
-//     return service;
-// });

@@ -1,46 +1,36 @@
-# TODO: the original template has service account, roles, etc
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: prometheus
+  name: {{ template "prometheus.fullname" . }}
   labels:
-    app: prometheus
+    app: {{ template "prometheus.name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
   replicas: {{ .Values.replicaCount }}
-  selector:
-    matchLabels:
-      app: prometheus
   template:
     metadata:
       labels:
-        app: prometheus
+        app: {{ template "prometheus.name" . }}
+        release: {{ .Release.Name }}
       annotations:
         sidecar.istio.io/inject: "false"
     spec:
-{{- if .Values.global.rbacEnabled }}
-      serviceAccountName: prometheus
-{{ end }}
       containers:
-        - name: prometheus
+        - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args:
-            - '--storage.tsdb.retention=6h'
-            - '--config.file=/etc/prometheus/prometheus.yml'
           ports:
-            - containerPort: 9090
-              name: http
+            - containerPort: {{ .Values.service.internalPort }}
           livenessProbe:
             httpGet:
               path: /-/healthy
-              port: 9090
+              port: {{ .Values.service.internalPort }}
           readinessProbe:
             httpGet:
               path: /-/ready
-              port: 9090
+              port: {{ .Values.service.internalPort }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
           volumeMounts:
@@ -49,7 +39,7 @@ spec:
       volumes:
       - name: config-volume
         configMap:
-          name: prometheus
+          name: {{ template "prometheus.fullname" . }}
     {{- if .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml .Values.nodeSelector | indent 8 }}

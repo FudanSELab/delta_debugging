@@ -2,12 +2,21 @@ package backend.domain.delta;
 
 public class DeltaTestResult {
 
-    String status; //failure/success
+    String status; //failure/success/exception
+    String message;
     String className;
     long duration = 0;//how long it run
 
     public DeltaTestResult(){
 
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     public String getStatus() {

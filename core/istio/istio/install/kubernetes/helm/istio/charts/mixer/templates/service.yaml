@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: istio-mixer
+  name: {{ .Release.Name }}-mixer
   labels:
     app: {{ template "mixer.name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
@@ -26,6 +26,6 @@ spec:
   - name: prometheus
     port: 42422
   selector:
-    app: istio-mixer
+    app: {{ template "mixer.name" . }}
     release: {{ .Release.Name }}
     istio: mixer

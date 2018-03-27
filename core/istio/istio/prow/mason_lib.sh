@@ -18,13 +18,14 @@ MASON_CLIENT_PID=-1
 
 function mason_cleanup() {
   if [[ ${MASON_CLIENT_PID} != -1 ]]; then
-    kill -SIGINT ${MASON_CLIENT_PID} || echo "failed to kill mason client"
+    kill -SIGINT ${MASON_CLIENT_PID}
     wait
   fi
 }
 
 function get_resource() {
-  go get istio.io/test-infra/boskos/cmd/mason_client
+  wget https://storage.googleapis.com/istio-tools/mason_client/mason_client
+  chmod a+x mason_client
   # TODO: Remove once submitted
   # go install istio.io/test-infra/boskos/cmd/mason_client
   local type="${1}"
@@ -32,7 +33,7 @@ function get_resource() {
   local info_path="${3}"
   local file_log="${4}"
 
-  mason_client \
+  ./mason_client \
     --type="${type}" \
     --boskos-url='http://boskos.boskos.svc.cluster.local' \
     --owner="${owner}" \
@@ -41,7 +42,7 @@ function get_resource() {
   MASON_CLIENT_PID=$!
 
   local ready
-  local exited
+  local fail
 
   # Wait up to 10 mn by increment of 10 seconds unit ready or failure
   for i in {1..60}; do
@@ -50,15 +51,13 @@ function get_resource() {
       cat "${info_path}"
       return 0
     fi
-    kill -s 0 ${MASON_CLIENT_PID} && exited=false || exited=true
-    if [[ ${exited} == true ]]; then
+    kill -s 0 ${MASON_CLIENT_PID} && fail=false || fail=true
+    if [[ ${fail} == true ]]; then
       cat "${file_log}"
-      echo "Failed to get a Boskos resource"
       return 1
     fi
     sleep 10
   done
-  echo 'failed to get a Boskos resource'
   return 1
 }
 

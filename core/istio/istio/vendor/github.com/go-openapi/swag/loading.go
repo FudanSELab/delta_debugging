@@ -19,7 +19,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
@@ -44,10 +43,7 @@ func LoadStrategy(path string, local, remote func(string) ([]byte, error)) func(
 	if strings.HasPrefix(path, "http") {
 		return remote
 	}
-	return func(pth string) ([]byte, error) {
-		upth, _ := url.PathUnescape(pth)
-		return local(filepath.FromSlash(upth))
-	}
+	return func(pth string) ([]byte, error) { return local(filepath.FromSlash(pth)) }
 }
 
 func loadHTTPBytes(timeout time.Duration) func(path string) ([]byte, error) {

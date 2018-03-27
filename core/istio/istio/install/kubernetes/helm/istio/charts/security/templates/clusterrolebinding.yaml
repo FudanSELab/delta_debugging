@@ -7,13 +7,13 @@ metadata:
     chart: {{ .Chart.Name }}-{{ .Chart.Version }}
     heritage: {{ .Release.Service }}
     release: {{ .Release.Name }}
-  name: istio-ca-role-binding-{{ .Release.Namespace }}
+  name: {{ template "security.fullname" . }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: istio-ca-{{ .Release.Namespace }}
+  name: {{ template "security.fullname" . }}
 subjects:
   - kind: ServiceAccount
-    name: istio-ca-service-account
+    name: {{ template "security.serviceAccountName" . }}
     namespace: {{ .Release.Namespace }}
 {{- end }}

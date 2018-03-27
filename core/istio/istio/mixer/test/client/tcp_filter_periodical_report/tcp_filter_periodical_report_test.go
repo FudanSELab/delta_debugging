@@ -37,8 +37,7 @@ const deltaReportAttributesOkPost = `
   "connection.received.bytes": 191,
   "connection.received.bytes_total": 191,
   "connection.sent.bytes": 0,
-  "connection.sent.bytes_total": 0,
-  "connection.id": "*"
+  "connection.sent.bytes_total": 0
 }
 `
 const finalReportAttributesOkPost = `
@@ -57,8 +56,7 @@ const finalReportAttributesOkPost = `
   "connection.received.bytes_total": 191,
   "connection.sent.bytes": 138,
   "connection.sent.bytes_total": 138,
-  "connection.duration": "*",
-  "connection.id": "*"
+  "connection.duration": "*"
 }
 `
 
@@ -84,9 +82,6 @@ func TestTCPMixerFilterPeriodicalReport(t *testing.T) {
 		t.Fatalf("Failed to setup test: %v", err)
 	}
 	defer s.TearDown()
-
-	// Make sure tcp port is ready before starting the test.
-	env.WaitForPort(s.Ports().TCPProxyPort)
 
 	// Sends a request with parameter delay=3, so that server sleeps 3 seconds and sends response.
 	// Mixerclient sends a delta report after 2 seconds, and sends a final report after another 1

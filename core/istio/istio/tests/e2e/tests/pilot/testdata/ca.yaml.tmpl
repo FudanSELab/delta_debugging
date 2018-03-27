@@ -21,8 +21,4 @@ spec:
       containers:
       - name: istio-ca-container
         image: {{.Hub}}/istio-ca:{{.Tag}}
-        imagePullPolicy: {{.ImagePullPolicy}}
-        args:
-        - --istio-ca-storage-namespace=istio-system
-        - --grpc-port=8060
-        - --grpc-hostname=istio-ca
+        imagePullPolicy: IfNotPresent

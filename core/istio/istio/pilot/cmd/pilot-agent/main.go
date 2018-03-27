@@ -20,10 +20,12 @@ import (
 	"os"
 	"strings"
 	"time"
-
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/spf13/cobra"
+
 	"github.com/spf13/cobra/doc"
 
 	meshconfig "istio.io/api/mesh/v1alpha1"
@@ -60,7 +62,7 @@ var (
 	concurrency            int
 	bootstrapv2            bool
 
-	loggingOptions = log.DefaultOptions()
+	loggingOptions = log.NewOptions()
 
 	rootCmd = &cobra.Command{
 		Use:   "pilot-agent",
@@ -149,11 +151,11 @@ var (
 					parts := strings.Split(discoveryHostname, ".")
 					if len(parts) == 1 {
 						// namespace of pilot is not part of discovery address use
-						// pod namespace e.g. istio-pilot:15005
+						// pod namespace e.g. istio-pilot:15003
 						ns = os.Getenv("POD_NAMESPACE")
 					} else {
 						// namespace is found in the discovery address
-						// e.g. istio-pilot.istio-system:15005
+						// e.g. istio-pilot.istio-system:15003
 						ns = parts[1]
 					}
 				}
@@ -219,9 +221,6 @@ var (
 )
 
 func timeDuration(dur *duration.Duration) time.Duration {
-
-	fmt.Println("[调试标记] Pilot - cmd - pilot-agent - main.go - timeDuration")
-
 	out, err := ptypes.Duration(dur)
 	if err != nil {
 		log.Warna(err)
@@ -230,9 +229,6 @@ func timeDuration(dur *duration.Duration) time.Duration {
 }
 
 func init() {
-
-	fmt.Println("[调试标记] Pilot - cmd - pilot-agent - main.go - init")
-
 	proxyCmd.PersistentFlags().StringVar((*string)(&registry), "serviceregistry",
 		string(serviceregistry.KubernetesRegistry),
 		fmt.Sprintf("Select the platform for service registry, options are {%s, %s, %s}",
@@ -303,8 +299,8 @@ func init() {
 }
 
 func main() {
-
-	fmt.Println("[调试标记] Pilot - cmd - pilot-agent - main.go - main")
+	// Needed to avoid "logging before flag.Parse" error with glog.
+	cmd.SupressGlogWarnings()
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Errora(err)

@@ -80,7 +80,7 @@ func initializeArgs(settings *Settings, setup *Setup) (*testEnv.Args, error) {
 		}
 	}
 
-	var args = testEnv.DefaultArgs()
+	var args = testEnv.NewArgs()
 	args.APIPort = 0
 	args.MonitoringPort = 0
 	args.Templates = templates
@@ -96,13 +96,13 @@ func initializeArgs(settings *Settings, setup *Setup) (*testEnv.Args, error) {
 		// Override enableLog. This should skip the next if conditional
 		setup.Config.EnableLog = true
 
-		o := log.DefaultOptions()
+		o := log.NewOptions()
 		_ = o.SetOutputLevel(log.DebugLevel)
 		args.LoggingOptions = o
 	}
 
 	if !setup.Config.EnableLog {
-		o := log.DefaultOptions()
+		o := log.NewOptions()
 		_ = o.SetOutputLevel(log.NoneLevel)
 		args.LoggingOptions = o
 	}

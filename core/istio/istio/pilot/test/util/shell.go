@@ -19,6 +19,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 
 	"istio.io/istio/pkg/log"
 )

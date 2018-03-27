@@ -18,10 +18,9 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-
-	envoyv2 "istio.io/istio/pilot/pkg/proxy/envoy/v2"
 
 	"istio.io/istio/pkg/log"
 	"istio.io/istio/pkg/version"
@@ -38,9 +37,6 @@ const (
 )
 
 func startMonitor(port int) (*monitor, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - monitoring.go - startMonitor")
-
 	m := &monitor{
 		shutdown: make(chan struct{}),
 	}
@@ -63,7 +59,6 @@ func startMonitor(port int) (*monitor, error) {
 			log.Errorf("Unable to write version string: %v", err)
 		}
 	})
-	mux.HandleFunc("/debug/edsz", envoyv2.Edsz)
 
 	m.monitoringServer = &http.Server{
 		Handler: mux,
@@ -84,9 +79,6 @@ func startMonitor(port int) (*monitor, error) {
 }
 
 func (m *monitor) Close() error {
-
-	fmt.Println("[调试标记] Pilot - pkg - bootstrap - monitoring.go - Close")
-
 	err := m.monitoringServer.Close()
 	<-m.shutdown
 	return err

@@ -43,7 +43,7 @@ func TestOpts(t *testing.T) {
 
 	for i, c := range cases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			o := DefaultOptions()
+			o := NewOptions()
 			cmd := &cobra.Command{}
 			o.AttachCobraFlags(cmd)
 			cmd.SetArgs(strings.Split(c.cmdLine, " "))
@@ -60,7 +60,7 @@ func TestOpts(t *testing.T) {
 }
 
 func TestValidate(t *testing.T) {
-	o := DefaultOptions()
+	o := NewOptions()
 	o.JaegerURL = "https://foo"
 	o.ZipkinURL = "https://bar"
 
@@ -70,27 +70,27 @@ func TestValidate(t *testing.T) {
 }
 
 func TestTracingEnabled(t *testing.T) {
-	o := DefaultOptions()
+	o := NewOptions()
 
 	if o.TracingEnabled() {
 		t.Fatal("default arg values should not have enabled tracing")
 	}
 
-	o = DefaultOptions()
+	o = NewOptions()
 	o.LogTraceSpans = true
 	if !o.TracingEnabled() {
-		t.Fatal("LogTraceSpans should have triggered tracing")
+		t.Fatal("logTraceSpans should have trigged tracing")
 	}
 
-	o = DefaultOptions()
+	o = NewOptions()
 	o.ZipkinURL = "http://foo.bar.com"
 	if !o.TracingEnabled() {
-		t.Fatal("ZipkinURL should have triggered tracing")
+		t.Fatal("zipkinURL should have trigged tracing")
 	}
 
-	o = DefaultOptions()
+	o = NewOptions()
 	o.JaegerURL = "http://foo.bar.com"
 	if !o.TracingEnabled() {
-		t.Fatal("JaegerURL should have triggered tracing")
+		t.Fatal("jaegerURL should have trigged tracing")
 	}
 }

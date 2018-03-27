@@ -26,7 +26,7 @@ type ClusterOptions struct {
 
 	// The maximum number of retries before giving up. Command is retried
 	// on network errors and MOVED/ASK redirects.
-	// Default is 8.
+	// Default is 16.
 	MaxRedirects int
 
 	// Enables read-only commands on slave nodes.
@@ -58,7 +58,7 @@ func (opt *ClusterOptions) init() {
 	if opt.MaxRedirects == -1 {
 		opt.MaxRedirects = 0
 	} else if opt.MaxRedirects == 0 {
-		opt.MaxRedirects = 8
+		opt.MaxRedirects = 16
 	}
 
 	if opt.RouteByLatency {
@@ -203,11 +203,11 @@ func (n *clusterNode) SetGeneration(gen uint32) {
 type clusterNodes struct {
 	opt *ClusterOptions
 
-	mu           sync.RWMutex
-	allAddrs     []string
-	allNodes     map[string]*clusterNode
-	clusterAddrs []string
-	closed       bool
+	mu       sync.RWMutex
+	allAddrs []string
+	addrs    []string
+	nodes    map[string]*clusterNode
+	closed   bool
 
 	nodeCreateGroup singleflight.Group
 
@@ -219,7 +219,7 @@ func newClusterNodes(opt *ClusterOptions) *clusterNodes {
 		opt: opt,
 
 		allAddrs: opt.Addrs,
-		allNodes: make(map[string]*clusterNode),
+		nodes:    make(map[string]*clusterNode),
 	}
 }
 
@@ -233,14 +233,14 @@ func (c *clusterNodes) Close() error {
 	c.closed = true
 
 	var firstErr error
-	for _, node := range c.allNodes {
+	for _, node := range c.nodes {
 		if err := node.Client.Close(); err != nil && firstErr == nil {
 			firstErr = err
 		}
 	}
 
-	c.allNodes = nil
-	c.clusterAddrs = nil
+	c.addrs = nil
+	c.nodes = nil
 
 	return firstErr
 }
@@ -250,8 +250,8 @@ func (c *clusterNodes) Addrs() ([]string, error) {
 	c.mu.RLock()
 	closed := c.closed
 	if !closed {
-		if len(c.clusterAddrs) > 0 {
-			addrs = c.clusterAddrs
+		if len(c.addrs) > 0 {
+			addrs = c.addrs
 		} else {
 			addrs = c.allAddrs
 		}
@@ -276,20 +276,25 @@ func (c *clusterNodes) NextGeneration() uint32 {
 func (c *clusterNodes) GC(generation uint32) {
 	var collected []*clusterNode
 	c.mu.Lock()
-	for addr, node := range c.allNodes {
+	for i := 0; i < len(c.addrs); {
+		addr := c.addrs[i]
+		node := c.nodes[addr]
 		if node.Generation() >= generation {
+			i++
 			continue
 		}
 
-		c.clusterAddrs = remove(c.clusterAddrs, addr)
-		delete(c.allNodes, addr)
+		c.addrs = append(c.addrs[:i], c.addrs[i+1:]...)
+		delete(c.nodes, addr)
 		collected = append(collected, node)
 	}
 	c.mu.Unlock()
 
-	for _, node := range collected {
-		_ = node.Client.Close()
-	}
+	time.AfterFunc(time.Minute, func() {
+		for _, node := range collected {
+			_ = node.Client.Close()
+		}
+	})
 }
 
 func (c *clusterNodes) All() ([]*clusterNode, error) {
@@ -300,28 +305,23 @@ func (c *clusterNodes) All() ([]*clusterNode, error) {
 		return nil, pool.ErrClosed
 	}
 
-	cp := make([]*clusterNode, 0, len(c.allNodes))
-	for _, node := range c.allNodes {
-		cp = append(cp, node)
+	nodes := make([]*clusterNode, 0, len(c.nodes))
+	for _, node := range c.nodes {
+		nodes = append(nodes, node)
 	}
-	return cp, nil
+	return nodes, nil
 }
 
 func (c *clusterNodes) GetOrCreate(addr string) (*clusterNode, error) {
 	var node *clusterNode
-	var err error
+	var ok bool
 
 	c.mu.RLock()
-	if c.closed {
-		err = pool.ErrClosed
-	} else {
-		node = c.allNodes[addr]
+	if !c.closed {
+		node, ok = c.nodes[addr]
 	}
 	c.mu.RUnlock()
-	if err != nil {
-		return nil, err
-	}
-	if node != nil {
+	if ok {
 		return node, nil
 	}
 
@@ -329,6 +329,9 @@ func (c *clusterNodes) GetOrCreate(addr string) (*clusterNode, error) {
 		node := newClusterNode(c.opt, addr)
 		return node, node.Test()
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -337,20 +340,18 @@ func (c *clusterNodes) GetOrCreate(addr string) (*clusterNode, error) {
 		return nil, pool.ErrClosed
 	}
 
-	node, ok := c.allNodes[addr]
+	node, ok = c.nodes[addr]
 	if ok {
 		_ = v.(*clusterNode).Close()
-		return node, err
+		return node, nil
 	}
 	node = v.(*clusterNode)
 
 	c.allAddrs = appendIfNotExists(c.allAddrs, addr)
-	if err == nil {
-		c.clusterAddrs = append(c.clusterAddrs, addr)
-	}
-	c.allNodes[addr] = node
+	c.addrs = append(c.addrs, addr)
+	c.nodes[addr] = node
 
-	return node, err
+	return node, nil
 }
 
 func (c *clusterNodes) Random() (*clusterNode, error) {
@@ -678,27 +679,25 @@ func (c *ClusterClient) WrapProcess(
 }
 
 func (c *ClusterClient) Process(cmd Cmder) error {
-	return c.process(cmd)
+	if c.process != nil {
+		return c.process(cmd)
+	}
+	return c.defaultProcess(cmd)
 }
 
 func (c *ClusterClient) defaultProcess(cmd Cmder) error {
-	var node *clusterNode
+	_, node, err := c.cmdSlotAndNode(cmd)
+	if err != nil {
+		cmd.setErr(err)
+		return err
+	}
+
 	var ask bool
 	for attempt := 0; attempt <= c.opt.MaxRedirects; attempt++ {
 		if attempt > 0 {
 			time.Sleep(c.retryBackoff(attempt))
 		}
 
-		if node == nil {
-			var err error
-			_, node, err = c.cmdSlotAndNode(cmd)
-			if err != nil {
-				cmd.setErr(err)
-				break
-			}
-		}
-
-		var err error
 		if ask {
 			pipe := node.Client.Pipeline()
 			_ = pipe.Process(NewCmd("ASKING"))
@@ -722,8 +721,9 @@ func (c *ClusterClient) defaultProcess(cmd Cmder) error {
 		}
 
 		if internal.IsRetryableError(err, true) {
-			node, err = c.nodes.Random()
-			if err != nil {
+			var nodeErr error
+			node, nodeErr = c.nodes.Random()
+			if nodeErr != nil {
 				break
 			}
 			continue
@@ -735,15 +735,20 @@ func (c *ClusterClient) defaultProcess(cmd Cmder) error {
 		if moved || ask {
 			c.lazyReloadState()
 
-			node, err = c.nodes.GetOrCreate(addr)
-			if err != nil {
+			var nodeErr error
+			node, nodeErr = c.nodes.GetOrCreate(addr)
+			if nodeErr != nil {
 				break
 			}
 			continue
 		}
 
 		if err == pool.ErrClosed {
-			node = nil
+			_, node, err = c.cmdSlotAndNode(cmd)
+			if err != nil {
+				cmd.setErr(err)
+				break
+			}
 			continue
 		}
 
@@ -913,9 +918,7 @@ func (c *ClusterClient) reloadState() bool {
 		state, err := c.loadState()
 		if err == nil {
 			c._state.Store(state)
-			time.AfterFunc(time.Minute, func() {
-				c.nodes.GC(state.generation)
-			})
+			c.nodes.GC(state.generation)
 			return true
 		}
 

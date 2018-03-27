@@ -19,11 +19,11 @@ import (
 	"errors"
 	"reflect"
 	"time"
-
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 	"golang.org/x/time/rate"
 
 	"istio.io/istio/pkg/log"
-	"fmt"
 )
 
 // Agent manages the restarts and the life cycle of a proxy binary.  Agent
@@ -159,16 +159,10 @@ type exitStatus struct {
 }
 
 func (a *agent) ScheduleConfigUpdate(config interface{}) {
-
-	fmt.Println("[调试标记] Pilot - pkg - proxy - agent.go - ScheduleConfigUpdate")
-
 	a.configCh <- config
 }
 
 func (a *agent) Run(ctx context.Context) {
-
-	fmt.Println("[调试标记] Pilot - pkg - proxy - agent.go - Run")
-
 	log.Info("Starting proxy agent")
 
 	// Throttle processing up to smoothed 1 qps with bursts up to 10 qps.
@@ -258,17 +252,11 @@ func (a *agent) Run(ctx context.Context) {
 }
 
 func (a *agent) terminate() {
-
-	fmt.Println("[调试标记] Pilot - pkg - proxy - agent.go - rterminate")
-
 	log.Infof("Agent terminating")
 	a.abortAll()
 }
 
 func (a *agent) reconcile() {
-
-	fmt.Println("[调试标记] Pilot - pkg - proxy - agent.go - reconcile")
-
 	// cancel any scheduled restart
 	a.retry.restart = nil
 
@@ -292,9 +280,6 @@ func (a *agent) reconcile() {
 
 // waitForExit runs the start-up command as a go routine and waits for it to finish
 func (a *agent) waitForExit(config interface{}, epoch int, abortCh <-chan error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - proxy - agent.go - waitForExit")
-
 	log.Infof("Epoch %d starting", epoch)
 	err := a.proxy.Run(config, epoch, abortCh)
 	a.statusCh <- exitStatus{epoch: epoch, err: err}
@@ -302,9 +287,6 @@ func (a *agent) waitForExit(config interface{}, epoch int, abortCh <-chan error)
 
 // latestEpoch returns the latest epoch, or -1 if no epoch is running
 func (a *agent) latestEpoch() int {
-
-	fmt.Println("[调试标记] Pilot - pkg - proxy - agent.go - latestEpoch")
-
 	epoch := -1
 	for active := range a.epochs {
 		if active > epoch {
@@ -316,9 +298,6 @@ func (a *agent) latestEpoch() int {
 
 // abortAll sends abort error to all proxies
 func (a *agent) abortAll() {
-
-	fmt.Println("[调试标记] Pilot - pkg - proxy - agent.go - abortAll")
-
 	for epoch, abortCh := range a.abortCh {
 		log.Warnf("Aborting epoch %d...", epoch)
 		abortCh <- errAbort

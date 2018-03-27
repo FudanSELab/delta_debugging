@@ -2,13 +2,18 @@
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
-  name: istio-ingress-admin-role-binding-{{ .Release.Namespace }}
+  labels:
+    app: {{ template "istio.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "istio.fullname" . }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: istio-pilot-{{ .Release.Namespace }}
+  name: {{ template "istio.fullname" . }}
 subjects:
   - kind: ServiceAccount
-    name: istio-ingress-service-account
+    name: {{ template "istio.serviceAccountName" . }}
     namespace: {{ .Release.Namespace }}
 {{- end }}

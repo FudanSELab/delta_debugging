@@ -1,7 +1,7 @@
 var node = angular.module('app.node-controller', []);
 
-node.controller('NodeCtrl', ['$scope', '$http','$window','loadNodeList','$interval', 'nodeLogService', 'refreshPodsService','getPodLogService',
-    function($scope, $http,$window,loadNodeList, $interval, nodeLogService, refreshPodsService, getPodLogService) {
+node.controller('NodeCtrl', ['$scope', '$http','$window','loadNodeList', 'refreshPodsService','getPodLogService',
+    function($scope, $http,$window,loadNodeList, refreshPodsService, getPodLogService) {
 
     $scope.refreshNodeList = function(){
         // 加载node列表
@@ -9,7 +9,7 @@ node.controller('NodeCtrl', ['$scope', '$http','$window','loadNodeList','$interv
             $scope.nodeList = result.nodes;
         });
 
-        // console.log("23333");
+
         // $scope.nodeList = [
         //     {
         //         "role": "Master",
@@ -165,13 +165,13 @@ node.controller('NodeCtrl', ['$scope', '$http','$window','loadNodeList','$interv
             pods.push($(this).val());
         });
         if(pods.length > 0){
-            $('#suspectPodButton').addClass('disabled');
+            $('#inspectPodButton').addClass('disabled');
             getPodLogService.load(pods[0]).then(function(result){
                 if(result.status){
                     $scope.nodelogs += result.podLog.podName +  ":</br>" + result.podLog.logs + "</br>";
                     var height = $('#node-logs').prop('scrollHeight');
                     $('#node-logs').scrollTop(height);
-                    $('#suspectPodButton').removeClass('disabled');
+                    $('#inspectPodButton').removeClass('disabled');
                 } else {
                     alert(result.message);
                 }
@@ -181,75 +181,59 @@ node.controller('NodeCtrl', ['$scope', '$http','$window','loadNodeList','$interv
         }
     };
 
-    // var i = 0;
-    // var timer = $interval(function () {
-    //     nodeLogService.loadLogs().then(function(result){
-    //         $scope.nodelogs += (++i) + ": " + result + "</br>";
-    //         var height = $('#node-logs').prop('scrollHeight');
-    //         $('#node-logs').scrollTop(height);
-    //     });
-    // }, 100, 30);
-    //
-    // timer.then(endNotify);
-    //
-    // function endNotify(){
-    //     $scope.nodelogs += "Logs end!";
-    //     var height = $('#node-logs').prop('scrollHeight');
-    //     $('#node-logs').scrollTop(height);
-    // }
 
 }]);
 
-node.factory('nodeLogService', function ($http, $q) {
-    var service = {};
-    service.loadLogs = function () {
-        var deferred = $q.defer();
-        var promise = deferred.promise;
-        // $http({
-        //     method: "post",
-        //     url: "/xxx/xxx",
-        //     contentType: "application/json",
-        //     dataType: "json",
-        //     withCredentials: true
-        // }).success(function (data) {
-        //     if (data) {
-        //         deferred.resolve(data);
-        //     } else{
-        //         alert("Get logs fail!" + data.message);
-        //     }
-        // });
-        deferred.resolve("2333");
-        return promise;
-    };
-    return service;
-});
+// node.factory('nodeLogService', function ($http, $q) {
+//     var service = {};
+//     service.loadLogs = function () {
+//         var deferred = $q.defer();
+//         var promise = deferred.promise;
+//         // $http({
+//         //     method: "post",
+//         //     url: "/xxx/xxx",
+//         //     contentType: "application/json",
+//         //     dataType: "json",
+//         //     withCredentials: true
+//         // }).success(function (data) {
+//         //     if (data) {
+//         //         deferred.resolve(data);
+//         //     } else{
+//         //         alert("Get logs fail!" + data.message);
+//         //     }
+//         // });
+//         deferred.resolve("2333");
+//         return promise;
+//     };
+//     return service;
+// });
 
 
-node.factory('loadNodeList', function ($http, $q) {
-    var service = {};
-    //获取并返回数据
-    service.load = function () {
-        var deferred = $q.defer();
-        var promise = deferred.promise;
-
-        $http({
-            method: "get",
-            url: "/api/getNodesList",
-            contentType: "application/json",
-            dataType: "json",
-            withCredentials: true,
-        }).success(function (data, status, headers, config) {
-            if (data) {
-                deferred.resolve(data);
-            }
-            else{
-                alert("Request the order list fail!" + data.message);
-            }
-        });
-        return promise;
-    };
-    return service;
-});
+// node.factory('loadNodeList', function ($http, $q) {
+//     var service = {};
+//     //获取并返回数据
+//     service.load = function () {
+//         var deferred = $q.defer();
+//         var promise = deferred.promise;
+//
+//         $http({
+//             method: "get",
+//             url: "/api/getNodesList",
+//             contentType: "application/json",
+//             dataType: "json",
+//             withCredentials: true
+//         }).success(function (data, status, headers, config) {
+//             if (data) {
+//                 deferred.resolve(data);
+//             }
+//             else{
+//                 alert("Request the order list fail!" + data.message);
+//             }
+//         });
+//         return promise;
+//     };
+//     return service;
+// });
 
 
 

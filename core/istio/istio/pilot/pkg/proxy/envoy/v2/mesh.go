@@ -67,12 +67,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	xdsapi "github.com/envoyproxy/go-control-plane/api"
 	types "github.com/gogo/protobuf/types"
 	multierror "github.com/hashicorp/go-multierror"
 
-	networking "istio.io/api/networking/v1alpha3"
+	route "istio.io/api/routing/v1alpha2"
 	"istio.io/istio/pkg/log"
 )
 
@@ -80,7 +79,7 @@ const (
 	// TODO: move istioConfigFilter to github.com/istio.io/api
 	// The internal filter name for attributes that should be used for
 	// constructing Istio attributes on the Endpoint in reverse DNS
-	// form. See core.Metadata.Name
+	// form. See xdsapi.Metadata.Name
 	istioConfigFilter = "io.istio.istio-config"
 
 	// nameValueSeparator is a separator for creating label name-value keys used for
@@ -247,7 +246,7 @@ type Mesh struct {
 
 	// subsetDefinitions holds the metadata of the subset i.e. the combination of
 	// the destination address and the subset name supplied during configuration.
-	subsetDefinitions map[string]*networking.Subset
+	subsetDefinitions map[string]*route.Subset
 
 	// subsetEndpoints allows for look-ups from the Subset name to a set of Endpoints.
 	// The endpoints in the set are guaranteed to exist in allEndpoints and the
@@ -271,7 +270,7 @@ type Mesh struct {
 // Endpoint is a environment independent representation of a Mesh Endpoints that
 // uses Envoy v2 API's LbEndpoint as its internal implementation. It also
 // provides utility methods intended for environment specific service registries.
-type Endpoint endpoint.LbEndpoint
+type Endpoint xdsapi.LbEndpoint
 
 // endpointSet is a unique set of Endpoints.
 type endpointSet map[*Endpoint]bool
@@ -288,8 +287,8 @@ type subsetEndpoints map[string]endpointSet
 
 // RuleChange encapsulates changes to Route Destination Rules
 type RuleChange struct {
-	// Rule networking/v1alpha3/destination_rule.proto
-	Rule *networking.DestinationRule
+	// Rule routing/v1alpha2/destination_rule.proto
+	Rule *route.DestinationRule
 	// Type of destination rule config change
 	Type ConfigChangeType
 }
@@ -297,7 +296,7 @@ type RuleChange struct {
 // EndpointChange is intended for incremental updates from service registries
 type EndpointChange struct {
 	// Endpoint the endpoint being added, deleted or updated
-	Endpoint *endpoint.Endpoint
+	Endpoint *xdsapi.Endpoint
 	// Type of config change
 	Type ConfigChangeType
 }
@@ -312,7 +311,7 @@ type EndpointLabel struct {
 func NewMesh() *Mesh {
 	return &Mesh{
 		allEndpoints:      map[string]*Endpoint{},
-		subsetDefinitions: map[string]*networking.Subset{},
+		subsetDefinitions: map[string]*route.Subset{},
 		subsetEndpoints:   subsetEndpoints{},
 		reverseAttrMap:    labelEndpoints{},
 		reverseEpSubsets:  endpointSubsets{},
@@ -816,24 +815,24 @@ func NewEndpoint(address string, port uint32, socketProtocol SocketProtocol, lab
 	if errs != nil {
 		return nil, multierror.Prefix(errs, "Mesh endpoint creation errors")
 	}
-	var epSocketProtocol core.SocketAddress_Protocol
+	var epSocketProtocol xdsapi.SocketAddress_Protocol
 	switch socketProtocol {
 	case SocketProtocolTCP:
-		epSocketProtocol = core.TCP
+		epSocketProtocol = xdsapi.SocketAddress_TCP
 	case SocketProtocolUDP:
-		epSocketProtocol = core.UDP
+		epSocketProtocol = xdsapi.SocketAddress_UDP
 	}
 	miscLabels[DestinationIP.AttrName()] = ipAddr.String()
 	miscLabels[DestinationPort.AttrName()] = strconv.Itoa((int)(port))
 	ep := Endpoint{
-		Endpoint: &endpoint.Endpoint{
-			Address: &core.Address{
-				Address: &core.Address_SocketAddress{
-					&core.SocketAddress{
+		Endpoint: &xdsapi.Endpoint{
+			Address: &xdsapi.Address{
+				Address: &xdsapi.Address_SocketAddress{
+					&xdsapi.SocketAddress{
 						Address:    address,
 						Ipv4Compat: ipAddr.To4() != nil,
 						Protocol:   epSocketProtocol,
-						PortSpecifier: &core.SocketAddress_PortValue{
+						PortSpecifier: &xdsapi.SocketAddress_PortValue{
 							PortValue: port,
 						},
 					},
@@ -915,7 +914,7 @@ func (ep *Endpoint) setMultiValuedAttrs(attrName string, attrValues []string) {
 func (ep *Endpoint) createIstioMetadata() map[string]*types.Value {
 	metadata := ep.Metadata
 	if metadata == nil {
-		metadata = &core.Metadata{}
+		metadata = &xdsapi.Metadata{}
 		ep.Metadata = metadata
 	}
 	filterMap := metadata.FilterMetadata

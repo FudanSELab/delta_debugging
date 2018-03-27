@@ -20,30 +20,30 @@ import (
 	"strings"
 	"testing"
 
-	networking "istio.io/api/networking/v1alpha3"
+	routing "istio.io/api/routing/v1alpha2"
 )
 
 var (
-	tlsOne = &networking.Server_TLSOptions{
+	tlsOne = &routing.Server_TLSOptions{
 		HttpsRedirect: false,
 	}
-	tlsTwo = &networking.Server_TLSOptions{
+	tlsTwo = &routing.Server_TLSOptions{
 		HttpsRedirect:     true,
-		Mode:              networking.Server_TLSOptions_SIMPLE,
+		Mode:              routing.Server_TLSOptions_SIMPLE,
 		ServerCertificate: "server.pem",
 		PrivateKey:        "key.pem",
 	}
-	port80 = &networking.Port{
+	port80 = &routing.Port{
 		Number:   80,
 		Name:     "http-foo",
 		Protocol: "HTTP",
 	}
-	port80DifferentName = &networking.Port{
+	port80DifferentName = &routing.Port{
 		Number:   80,
 		Name:     "http-FOO",
 		Protocol: "HTTP",
 	}
-	port443 = &networking.Port{
+	port443 = &routing.Port{
 		Number:   443,
 		Name:     "https-foo",
 		Protocol: "HTTPS",
@@ -53,21 +53,21 @@ var (
 func TestMergeGateways(t *testing.T) {
 	tests := []struct {
 		name              string
-		b                 *networking.Gateway
-		a                 *networking.Gateway
-		expectedOut       *networking.Gateway
+		b                 *routing.Gateway
+		a                 *routing.Gateway
+		expectedOut       *routing.Gateway
 		expectedErrPrefix error
 	}{
 		{"idempotent",
-			&networking.Gateway{Servers: []*networking.Server{}},
-			&networking.Gateway{Servers: []*networking.Server{
+			&routing.Gateway{Servers: []*routing.Server{}},
+			&routing.Gateway{Servers: []*routing.Server{
 				{
 					Port:  port443,
 					Tls:   tlsOne,
 					Hosts: []string{"example.com"},
 				},
 			}},
-			&networking.Gateway{Servers: []*networking.Server{
+			&routing.Gateway{Servers: []*routing.Server{
 				{
 					Port:  port443,
 					Tls:   tlsOne,
@@ -77,21 +77,21 @@ func TestMergeGateways(t *testing.T) {
 			nil,
 		},
 		{"different ports",
-			&networking.Gateway{Servers: []*networking.Server{
+			&routing.Gateway{Servers: []*routing.Server{
 				{
 					Port:  port80,
 					Tls:   tlsOne,
 					Hosts: []string{"example.com"},
 				},
 			}},
-			&networking.Gateway{Servers: []*networking.Server{
+			&routing.Gateway{Servers: []*routing.Server{
 				{
 					Port:  port443,
 					Tls:   tlsTwo,
 					Hosts: []string{"example.com"},
 				},
 			}},
-			&networking.Gateway{Servers: []*networking.Server{
+			&routing.Gateway{Servers: []*routing.Server{
 				{
 					Port:  port80,
 					Tls:   tlsOne,
@@ -104,21 +104,21 @@ func TestMergeGateways(t *testing.T) {
 			nil,
 		},
 		{"same ports different domains (Multiple Hosts)",
-			&networking.Gateway{Servers: []*networking.Server{
+			&routing.Gateway{Servers: []*routing.Server{
 				{
 					Port:  port80,
 					Tls:   tlsOne,
 					Hosts: []string{"foo.com"},
 				},
 			}},
-			&networking.Gateway{Servers: []*networking.Server{
+			&routing.Gateway{Servers: []*routing.Server{
 				{
 					Port:  port80,
 					Tls:   tlsOne,
 					Hosts: []string{"bar.com"},
 				},
 			}},
-			&networking.Gateway{Servers: []*networking.Server{
+			&routing.Gateway{Servers: []*routing.Server{
 				{
 					Port:  port80,
 					Tls:   tlsOne,
@@ -128,21 +128,21 @@ func TestMergeGateways(t *testing.T) {
 			nil,
 		},
 		{"different domains, different ports",
-			&networking.Gateway{Servers: []*networking.Server{
+			&routing.Gateway{Servers: []*routing.Server{
 				{
 					Port:  port80,
 					Tls:   tlsOne,
 					Hosts: []string{"foo.com"},
 				},
 			}},
-			&networking.Gateway{Servers: []*networking.Server{
+			&routing.Gateway{Servers: []*routing.Server{
 				{
 					Port:  port443,
 					Tls:   tlsTwo,
 					Hosts: []string{"bar.com"},
 				},
 			}},
-			&networking.Gateway{Servers: []*networking.Server{
+			&routing.Gateway{Servers: []*routing.Server{
 				{
 					Port:  port80,
 					Tls:   tlsOne,
@@ -155,14 +155,14 @@ func TestMergeGateways(t *testing.T) {
 			nil,
 		},
 		{"conflicting port names",
-			&networking.Gateway{Servers: []*networking.Server{
+			&routing.Gateway{Servers: []*routing.Server{
 				{
 					Port:  port80,
 					Tls:   tlsOne,
 					Hosts: []string{"foo.com"},
 				},
 			}},
-			&networking.Gateway{Servers: []*networking.Server{
+			&routing.Gateway{Servers: []*routing.Server{
 				{
 					Port:  port80DifferentName,
 					Tls:   tlsOne,
@@ -173,15 +173,15 @@ func TestMergeGateways(t *testing.T) {
 			errors.New(`unable to merge gateways: conflicting ports`),
 		},
 		{"wildcard hosts",
-			&networking.Gateway{},
-			&networking.Gateway{Servers: []*networking.Server{
+			&routing.Gateway{},
+			&routing.Gateway{Servers: []*routing.Server{
 				{
 					Port:  port80,
 					Tls:   tlsOne,
 					Hosts: []string{"*"},
 				},
 			}},
-			&networking.Gateway{Servers: []*networking.Server{
+			&routing.Gateway{Servers: []*routing.Server{
 				{
 					Port:  port80,
 					Tls:   tlsOne,
@@ -194,7 +194,7 @@ func TestMergeGateways(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// we want to save the original state of tt.a for printing if we fail the test, so we'll merge into a new gateway struct.
-			actual := &networking.Gateway{}
+			actual := &routing.Gateway{}
 			MergeGateways(actual, tt.a) // nolint: errcheck
 			err := MergeGateways(actual, tt.b)
 			if err != tt.expectedErrPrefix && !strings.HasPrefix(err.Error(), tt.expectedErrPrefix.Error()) {
@@ -212,35 +212,35 @@ func TestMergeGateways(t *testing.T) {
 func TestPortsEqualAndDistinct(t *testing.T) {
 	tests := []struct {
 		name             string
-		b                *networking.Port
-		a                *networking.Port
+		b                *routing.Port
+		a                *routing.Port
 		expectedEqual    bool
 		expectedDistinct bool
 	}{
-		{"empty", &networking.Port{}, &networking.Port{}, true, false},
+		{"empty", &routing.Port{}, &routing.Port{}, true, false},
 		{"happy",
-			&networking.Port{Number: 1, Name: "Bill", Protocol: "HTTP"},
-			&networking.Port{Number: 1, Name: "Bill", Protocol: "HTTP"},
+			&routing.Port{Number: 1, Name: "Bill", Protocol: "HTTP"},
+			&routing.Port{Number: 1, Name: "Bill", Protocol: "HTTP"},
 			true, false},
 		{"same numbers but different names (case sensitive)",
-			&networking.Port{Number: 1, Name: "Bill", Protocol: "HTTP"},
-			&networking.Port{Number: 1, Name: "bill", Protocol: "HTTP"},
+			&routing.Port{Number: 1, Name: "Bill", Protocol: "HTTP"},
+			&routing.Port{Number: 1, Name: "bill", Protocol: "HTTP"},
 			false, false},
 		{"case insensitive",
-			&networking.Port{Number: 1, Name: "potato", Protocol: "GRPC"},
-			&networking.Port{Number: 1, Name: "potato", Protocol: "grpc"},
+			&routing.Port{Number: 1, Name: "potato", Protocol: "GRPC"},
+			&routing.Port{Number: 1, Name: "potato", Protocol: "grpc"},
 			true, false},
 		{"different numbers but same names",
-			&networking.Port{Number: 1, Name: "potato", Protocol: "tcp"},
-			&networking.Port{Number: 2, Name: "potato", Protocol: "tcp"},
+			&routing.Port{Number: 1, Name: "potato", Protocol: "tcp"},
+			&routing.Port{Number: 2, Name: "potato", Protocol: "tcp"},
 			false, false},
 		{"different protocols but same names",
-			&networking.Port{Number: 1, Name: "potato", Protocol: "http2"},
-			&networking.Port{Number: 1, Name: "potato", Protocol: "http"},
+			&routing.Port{Number: 1, Name: "potato", Protocol: "http2"},
+			&routing.Port{Number: 1, Name: "potato", Protocol: "http"},
 			false, false},
 		{"different numbers and different names",
-			&networking.Port{Number: 1, Name: "potato", Protocol: "tcp"},
-			&networking.Port{Number: 2, Name: "banana", Protocol: "tcp"},
+			&routing.Port{Number: 1, Name: "potato", Protocol: "tcp"},
+			&routing.Port{Number: 2, Name: "banana", Protocol: "tcp"},
 			false, true},
 	}
 	for _, tt := range tests {
@@ -260,18 +260,18 @@ func TestPortsEqualAndDistinct(t *testing.T) {
 func TestTlsEqual(t *testing.T) {
 	tests := []struct {
 		name  string
-		b     *networking.Server_TLSOptions
-		a     *networking.Server_TLSOptions
+		b     *routing.Server_TLSOptions
+		a     *routing.Server_TLSOptions
 		equal bool
 	}{
-		{"empty", &networking.Server_TLSOptions{}, &networking.Server_TLSOptions{}, true},
+		{"empty", &routing.Server_TLSOptions{}, &routing.Server_TLSOptions{}, true},
 		{"happy",
-			&networking.Server_TLSOptions{HttpsRedirect: true, Mode: networking.Server_TLSOptions_SIMPLE, ServerCertificate: "server.pem", PrivateKey: "key.pem"},
-			&networking.Server_TLSOptions{HttpsRedirect: true, Mode: networking.Server_TLSOptions_SIMPLE, ServerCertificate: "server.pem", PrivateKey: "key.pem"},
+			&routing.Server_TLSOptions{HttpsRedirect: true, Mode: routing.Server_TLSOptions_SIMPLE, ServerCertificate: "server.pem", PrivateKey: "key.pem"},
+			&routing.Server_TLSOptions{HttpsRedirect: true, Mode: routing.Server_TLSOptions_SIMPLE, ServerCertificate: "server.pem", PrivateKey: "key.pem"},
 			true},
 		{"different",
-			&networking.Server_TLSOptions{HttpsRedirect: true, Mode: networking.Server_TLSOptions_SIMPLE, ServerCertificate: "server.pem", PrivateKey: "key.pem"},
-			&networking.Server_TLSOptions{HttpsRedirect: false},
+			&routing.Server_TLSOptions{HttpsRedirect: true, Mode: routing.Server_TLSOptions_SIMPLE, ServerCertificate: "server.pem", PrivateKey: "key.pem"},
+			&routing.Server_TLSOptions{HttpsRedirect: false},
 			false},
 	}
 	for _, tt := range tests {

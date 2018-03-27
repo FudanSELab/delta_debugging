@@ -21,6 +21,8 @@ import (
 	"encoding/base64"
 	"net"
 	"net/url"
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 
 	meshconfig "istio.io/api/mesh/v1alpha1"
 	mpb "istio.io/api/mixer/v1"
@@ -152,8 +154,8 @@ func buildMixerCluster(mesh *meshconfig.MeshConfig, mixerSAN []string, server, c
 	return cluster
 }
 
-// BuildMixerClusters builds an outbound mixer cluster with configured check/report clusters
-func BuildMixerClusters(mesh *meshconfig.MeshConfig, role model.Proxy, mixerSAN []string) []*Cluster {
+// buildMixerClusters builds an outbound mixer cluster with configured check/report clusters
+func buildMixerClusters(mesh *meshconfig.MeshConfig, role model.Proxy, mixerSAN []string) []*Cluster {
 	mixerClusters := make([]*Cluster, 0)
 
 	if mesh.MixerCheckServer != "" {
@@ -167,9 +169,9 @@ func BuildMixerClusters(mesh *meshconfig.MeshConfig, role model.Proxy, mixerSAN 
 	return mixerClusters
 }
 
-// BuildMixerConfig build per route mixer config to be deployed at the `model.Proxy` workload
+// buildMixerConfig build per route mixer config to be deployed at the `model.Proxy` workload
 // with destination of Service `dest` and `destName` as the service name
-func BuildMixerConfig(source model.Proxy, destName string, dest *model.Service, instances []*model.ServiceInstance, config model.IstioConfigStore,
+func buildMixerConfig(source model.Proxy, destName string, dest *model.Service, instances []*model.ServiceInstance, config model.IstioConfigStore,
 	disableCheck bool, disableReport bool) map[string]string {
 	sc := serviceConfig(destName, &model.ServiceInstance{Service: dest}, config, disableCheck, disableReport)
 	var labels map[string]string
@@ -198,8 +200,7 @@ func BuildMixerConfig(source model.Proxy, destName string, dest *model.Service, 
 	return oc
 }
 
-// BuildMixerOpaqueConfig builds a mixer opaque config.
-func BuildMixerOpaqueConfig(check, forward bool, destinationService string) map[string]string {
+func buildMixerOpaqueConfig(check, forward bool, destinationService string) map[string]string {
 	keys := map[bool]string{true: "on", false: "off"}
 	m := map[string]string{
 		MixerReport:  "on",
@@ -212,9 +213,9 @@ func BuildMixerOpaqueConfig(check, forward bool, destinationService string) map[
 	return m
 }
 
-// BuildHTTPMixerFilterConfig builds a mixer HTTP filter config. Mixer filter uses outbound configuration by default
-// (forward attributes, but not invoke check calls)  ServiceInstances belong to the Node.
-func BuildHTTPMixerFilterConfig(mesh *meshconfig.MeshConfig, role model.Proxy, nodeInstances []*model.ServiceInstance, outboundRoute bool, config model.IstioConfigStore) *FilterMixerConfig { // nolint: lll
+// Mixer filter uses outbound configuration by default (forward attributes,
+// but not invoke check calls)  ServiceInstances belong to the Node.
+func buildHTTPMixerFilterConfig(mesh *meshconfig.MeshConfig, role model.Proxy, nodeInstances []*model.ServiceInstance, outboundRoute bool, config model.IstioConfigStore) *FilterMixerConfig { // nolint: lll
 	transport := &mccpb.TransportConfig{
 		CheckCluster:  MixerCheckClusterName,
 		ReportCluster: MixerReportClusterName,
@@ -287,12 +288,6 @@ func addStandardNodeAttributes(attr map[string]*mpb.Attributes_AttributeValue, p
 	}
 }
 
-func standardNodeAttributes(prefix string, IPAddress string, ID string, labels map[string]string) map[string]*mpb.Attributes_AttributeValue {
-	attrs := make(map[string]*mpb.Attributes_AttributeValue)
-	addStandardNodeAttributes(attrs, prefix, IPAddress, ID, labels)
-	return attrs
-}
-
 // generate serviceConfig for a given instance
 func serviceConfig(serviceName string, dest *model.ServiceInstance, config model.IstioConfigStore, disableCheck, disableReport bool) *mccpb.ServiceConfig {
 	sc := &mccpb.ServiceConfig{
@@ -355,8 +350,8 @@ func serviceConfig(serviceName string, dest *model.ServiceInstance, config model
 	return sc
 }
 
-// BuildTCPMixerFilterConfig builds a TCP filter config for inbound requests.
-func BuildTCPMixerFilterConfig(mesh *meshconfig.MeshConfig, role model.Proxy, instance *model.ServiceInstance) *FilterMixerConfig {
+// Mixer TCP filter config for inbound requests.
+func buildTCPMixerFilterConfig(mesh *meshconfig.MeshConfig, role model.Proxy, instance *model.ServiceInstance) *FilterMixerConfig {
 	filter := &FilterMixerConfig{
 		MixerAttributes: map[string]string{
 			AttrDestinationIP:  role.IPAddress,
@@ -364,19 +359,24 @@ func BuildTCPMixerFilterConfig(mesh *meshconfig.MeshConfig, role model.Proxy, in
 		},
 	}
 
-	attrs := standardNodeAttributes(AttrDestinationPrefix, role.IPAddress, role.ID, nil)
-	attrs[AttrDestinationService] = &mpb.Attributes_AttributeValue{Value: &mpb.Attributes_AttributeValue_StringValue{instance.Service.Hostname}}
+	transport := &mccpb.TransportConfig{
+		CheckCluster:  MixerCheckClusterName,
+		ReportCluster: MixerReportClusterName,
+	}
 
 	v2 := &mccpb.TcpClientConfig{
+
 		MixerAttributes: &mpb.Attributes{
-			Attributes: attrs,
+			Attributes: map[string]*mpb.Attributes_AttributeValue{
+				AttrDestinationIP:      {Value: &mpb.Attributes_AttributeValue_StringValue{role.IPAddress}},
+				AttrDestinationUID:     {Value: &mpb.Attributes_AttributeValue_StringValue{"kubernetes://" + role.ID}},
+				AttrDestinationService: {Value: &mpb.Attributes_AttributeValue_StringValue{instance.Service.Hostname}},
+			},
 		},
-		Transport: &mccpb.TransportConfig{
-			CheckCluster:  MixerCheckClusterName,
-			ReportCluster: MixerReportClusterName,
-		},
-		DisableCheckCalls: mesh.DisablePolicyChecks,
+		Transport: transport,
 	}
+
+	v2.DisableCheckCalls = mesh.DisablePolicyChecks
 
 	if v2JSONMap, err := model.ToJSONMap(v2); err != nil {
 		log.Warnf("Could not encode v2 TCP mixerclient filter for node %q: %v", role, err)
@@ -423,12 +423,12 @@ func buildJWKSURIClusterNameAndAddress(raw string) (string, string, bool, error)
 		useSSL = true
 	}
 
-	return TruncateClusterName(OutboundJWTURIClusterPrefix + name), address, useSSL, nil
+	return truncateClusterName(OutboundJWTURIClusterPrefix + name), address, useSSL, nil
 }
 
-// BuildMixerAuthFilterClusters builds the necessary clusters for the
+// buildMixerAuthFilterClusters builds the necessary clusters for the
 // JWT auth filter to fetch public keys from the specified jwks_uri.
-func BuildMixerAuthFilterClusters(config model.IstioConfigStore, mesh *meshconfig.MeshConfig, proxyInstances []*model.ServiceInstance) Clusters {
+func buildMixerAuthFilterClusters(config model.IstioConfigStore, mesh *meshconfig.MeshConfig, proxyInstances []*model.ServiceInstance) Clusters {
 	type authCluster struct {
 		name   string
 		useSSL bool

@@ -15,7 +15,7 @@
 package routing
 
 import (
-	tpb "istio.io/api/mixer/adapter/model/v1beta1"
+	tpb "istio.io/api/mixer/v1/template"
 	"istio.io/istio/mixer/pkg/adapter"
 	"istio.io/istio/mixer/pkg/attribute"
 	"istio.io/istio/mixer/pkg/il/compiled"

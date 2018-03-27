@@ -19,7 +19,8 @@ import (
 	"fmt"
 	"reflect"
 	"time"
-
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,8 +39,6 @@ const (
 	NodeZoneLabel = "failure-domain.beta.kubernetes.io/zone"
 	// IstioNamespace used by default for Istio cluster-wide installation
 	IstioNamespace = "istio-system"
-	// IstioConfigMap is used by default
-	IstioConfigMap = "istio"
 )
 
 // ControllerOptions stores the configurable attributes of a Controller.
@@ -71,9 +70,6 @@ type cacheHandler struct {
 
 // NewController creates a new Kubernetes controller
 func NewController(client kubernetes.Interface, options ControllerOptions) *Controller {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - controller.go - NewController")
-
 	log.Infof("Service controller watching namespace %q", options.WatchedNamespace)
 
 	// Queue requires a time duration for a retry delay after a handler error
@@ -121,9 +117,6 @@ func NewController(client kubernetes.Interface, options ControllerOptions) *Cont
 // notify is the first handler in the handler chain.
 // Returning an error causes repeated execution of the entire chain.
 func (c *Controller) notify(obj interface{}, event model.Event) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - controller.go - notify")
-
 	if !c.HasSynced() {
 		return errors.New("waiting till full synchronization")
 	}
@@ -136,20 +129,12 @@ func (c *Controller) notify(obj interface{}, event model.Event) error {
 	return nil
 }
 
-// createInformer registers handers for a specific event.
-// Current implementation queues the events in queue.go, and the handler is run with
-// some throttling.
-// Used for Service, Endpoint, Node and Pod.
-// See config/kube for CRD events.
-// See config/ingress for Ingress objects
 func (c *Controller) createInformer(
 	o runtime.Object,
 	resyncPeriod time.Duration,
 	lf cache.ListFunc,
 	wf cache.WatchFunc) cacheHandler {
 	handler := &ChainHandler{funcs: []Handler{c.notify}}
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - controller.go - createInformer")
 
 	// TODO: finer-grained index (perf)
 	informer := cache.NewSharedIndexInformer(
@@ -177,9 +162,6 @@ func (c *Controller) createInformer(
 
 // HasSynced returns true after the initial state synchronization
 func (c *Controller) HasSynced() bool {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - controller.go - HasSynced")
-
 	if !c.services.informer.HasSynced() ||
 		!c.endpoints.informer.HasSynced() ||
 		!c.pods.informer.HasSynced() ||
@@ -191,9 +173,6 @@ func (c *Controller) HasSynced() bool {
 
 // Run all controllers until a signal is received
 func (c *Controller) Run(stop <-chan struct{}) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - controller.go - Run")
-
 	go c.queue.Run(stop)
 	go c.services.informer.Run(stop)
 	go c.endpoints.informer.Run(stop)
@@ -206,9 +185,6 @@ func (c *Controller) Run(stop <-chan struct{}) {
 
 // Services implements a service catalog operation
 func (c *Controller) Services() ([]*model.Service, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - controller.go - Services")
-
 	list := c.services.informer.GetStore().List()
 	out := make([]*model.Service, 0, len(list))
 
@@ -222,9 +198,6 @@ func (c *Controller) Services() ([]*model.Service, error) {
 
 // GetService implements a service catalog operation
 func (c *Controller) GetService(hostname string) (*model.Service, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - controller.go - GetService")
-
 	name, namespace, err := parseHostname(hostname)
 	if err != nil {
 		log.Infof("GetService(%s) => error %v", hostname, err)
@@ -241,9 +214,6 @@ func (c *Controller) GetService(hostname string) (*model.Service, error) {
 
 // serviceByKey retrieves a service by name and namespace
 func (c *Controller) serviceByKey(name, namespace string) (*v1.Service, bool) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - controller.go - serviceByKey")
-
 	item, exists, err := c.services.informer.GetStore().GetByKey(KeyFunc(name, namespace))
 	if err != nil {
 		log.Infof("serviceByKey(%s, %s) => error %v", name, namespace, err)
@@ -257,9 +227,6 @@ func (c *Controller) serviceByKey(name, namespace string) (*v1.Service, bool) {
 
 // GetPodAZ retrieves the AZ for a pod.
 func (c *Controller) GetPodAZ(pod *v1.Pod) (string, bool) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - controller.go - GetPodAZ")
-
 	// NodeName is set by the scheduler after the pod is created
 	// https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#late-initialization
 	node, exists, err := c.nodes.informer.GetStore().GetByKey(pod.Spec.NodeName)
@@ -282,9 +249,6 @@ func (c *Controller) GetPodAZ(pod *v1.Pod) (string, bool) {
 
 // ManagementPorts implements a service catalog operation
 func (c *Controller) ManagementPorts(addr string) model.PortList {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - controller.go - ManagementPorts")
-
 	pod, exists := c.pods.getPodByIP(addr)
 	if !exists {
 		return nil
@@ -304,9 +268,6 @@ func (c *Controller) ManagementPorts(addr string) model.PortList {
 // Instances implements a service catalog operation
 func (c *Controller) Instances(hostname string, ports []string,
 	labelsList model.LabelsCollection) ([]*model.ServiceInstance, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - controller.go - Instances")
-
 	// Get actual service by name
 	name, namespace, err := parseHostname(hostname)
 	if err != nil {
@@ -377,9 +338,6 @@ func (c *Controller) Instances(hostname string, ports []string,
 
 // GetProxyServiceInstances returns service instances co-located with a given proxy
 func (c *Controller) GetProxyServiceInstances(proxy model.Proxy) ([]*model.ServiceInstance, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - controller.go - GetProxyServiceInstances")
-
 	var out []*model.ServiceInstance
 	kubeNodes := make(map[string]*kubeServiceNode)
 	for _, item := range c.endpoints.informer.GetStore().List() {
@@ -444,9 +402,6 @@ func (c *Controller) GetProxyServiceInstances(proxy model.Proxy) ([]*model.Servi
 // For example, a service account named "bar" in namespace "foo" is encoded as
 // "spiffe://cluster.local/ns/foo/sa/bar".
 func (c *Controller) GetIstioServiceAccounts(hostname string, ports []string) []string {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - controller.go - GetIstioServiceAccounts")
-
 	saSet := make(map[string]bool)
 
 	// Get the service accounts running service within Kubernetes. This is reflected by the pods that
@@ -488,9 +443,6 @@ func (c *Controller) GetIstioServiceAccounts(hostname string, ports []string) []
 
 // AppendServiceHandler implements a service catalog operation
 func (c *Controller) AppendServiceHandler(f func(*model.Service, model.Event)) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - controller.go - AppendServiceHandler")
-
 	c.services.handler.Append(func(obj interface{}, event model.Event) error {
 		svc := *obj.(*v1.Service)
 
@@ -511,9 +463,6 @@ func (c *Controller) AppendServiceHandler(f func(*model.Service, model.Event)) e
 
 // AppendInstanceHandler implements a service catalog operation
 func (c *Controller) AppendInstanceHandler(f func(*model.ServiceInstance, model.Event)) error {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - controller.go - AppendInstanceHandler")
-
 	c.endpoints.handler.Append(func(obj interface{}, event model.Event) error {
 		ep := *obj.(*v1.Endpoints)
 
@@ -522,7 +471,7 @@ func (c *Controller) AppendInstanceHandler(f func(*model.ServiceInstance, model.
 			return nil
 		}
 
-		log.Infof("Handle endpoint %s in namespace %s -> %v", ep.Name, ep.Namespace, ep.Subsets)
+		log.Infof("Handle endpoint %s in namespace %s", ep.Name, ep.Namespace)
 		if item, exists := c.serviceByKey(ep.Name, ep.Namespace); exists {
 			if svc := convertService(*item, c.domainSuffix); svc != nil {
 				// TODO: we're passing an incomplete instance to the

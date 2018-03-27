@@ -15,10 +15,18 @@
 package e2e
 
 import (
+	"context"
+	"fmt"
+	"reflect"
 	"testing"
 
-	"istio.io/api/mixer/adapter/model/v1beta1"
-	"istio.io/istio/mixer/test/spyAdapter"
+	"github.com/davecgh/go-spew/spew"
+	"google.golang.org/grpc"
+
+	istio_mixer_v1 "istio.io/api/mixer/v1"
+	"istio.io/istio/mixer/pkg/config/storetest"
+	testEnv "istio.io/istio/mixer/pkg/server"
+	spyAdapter "istio.io/istio/mixer/test/spyAdapter"
 	e2eTmpl "istio.io/istio/mixer/test/spyAdapter/template"
 	apaTmpl "istio.io/istio/mixer/test/spyAdapter/template/apa"
 	reportTmpl "istio.io/istio/mixer/test/spyAdapter/template/report"
@@ -144,6 +152,7 @@ func TestApa(t *testing.T) {
 	tests := []testData{
 		{
 			name: "Apa",
+			cfg:  apaSvcCfg,
 			behaviors: []spyAdapter.AdapterBehavior{
 				{
 					Name: "fakeHandler",
@@ -152,25 +161,32 @@ func TestApa(t *testing.T) {
 					},
 				},
 			},
-			attrs: map[string]interface{}{"target.name": "somesrvcname"},
-			expectCalls: []spyAdapter.CapturedCall{
-				{
-					Name: "HandleSampleApaAttributes",
-					Instances: []interface{}{
-						&apaTmpl.Instance{
-							Name:            "apaInstance.sampleapa.istio-system",
-							BoolPrimitive:   true,
-							DoublePrimitive: float64(2.2),
-							Int64Primitive:  int64(2),
-							StringPrimitive: "mysrc",
-						},
-					},
-				},
+			templates: e2eTmpl.SupportedTmplInfo,
+			attrs:     map[string]interface{}{"target.name": "somesrvcname"},
+			validate: func(t *testing.T, err error, spyAdpts []*spyAdapter.Adapter) {
 
-				{
-					Name: "HandleSampleReport",
-					Instances: []interface{}{
-						&reportTmpl.Instance{
+				adptr := spyAdpts[0]
+
+				// check if apa was called with right values
+				want := &apaTmpl.Instance{
+					Name:            "apaInstance.sampleapa.istio-system",
+					BoolPrimitive:   true,
+					DoublePrimitive: float64(2.2),
+					Int64Primitive:  int64(2),
+					StringPrimitive: "mysrc",
+				}
+				if !reflect.DeepEqual(adptr.HandlerData.GenerateSampleApaInstance, want) {
+					t.Errorf(fmt.Sprintf("Not equal -> %s.\nActual :\n%s\n\nExpected :\n%s",
+						"GenerateSampleApaAttributes",
+						spew.Sdump(adptr.HandlerData.GenerateSampleApaInstance), spew.Sdump(want)))
+					return
+				}
+
+				// The labes in report instance config use the values of attributes generated from APA. Validate
+				// the values.
+				CmpSliceAndErr(t, "HandleSampleReport input", adptr.HandlerData.HandleSampleReportInstances,
+					[]*reportTmpl.Instance{
+						{
 							Name:  "reportInstance.samplereport.istio-system",
 							Value: int64(2),
 							Dimensions: map[string]interface{}{
@@ -182,22 +198,53 @@ func TestApa(t *testing.T) {
 							},
 						},
 					},
-				},
+				)
 			},
 		},
 	}
 	for _, tt := range tests {
-		// Set the defaults for the test.
-		if tt.cfg == "" {
-			tt.cfg = apaSvcCfg
-		}
-
-		if tt.templates == nil {
-			tt.templates = e2eTmpl.SupportedTmplInfo
-		}
-
 		t.Run(tt.name, func(t *testing.T) {
-			tt.run(t, v1beta1.TEMPLATE_VARIETY_REPORT, apaGlobalCfg)
+			adapterInfos, spyAdapters := ConstructAdapterInfos(tt.behaviors)
+
+			args := testEnv.NewArgs()
+			args.APIPort = 0
+			args.MonitoringPort = 0
+			args.Templates = tt.templates
+			args.Adapters = adapterInfos
+			var cerr error
+			if args.ConfigStore, cerr = storetest.SetupStoreForTest(apaGlobalCfg, tt.cfg); cerr != nil {
+				t.Fatal(cerr)
+			}
+
+			env, err := testEnv.New(args)
+			if err != nil {
+				t.Fatalf("fail to create mixer: %v", err)
+			}
+
+			env.Run()
+
+			defer closeHelper(env)
+
+			conn, err := grpc.Dial(env.Addr().String(), grpc.WithInsecure())
+			if err != nil {
+				t.Fatalf("Unable to connect to gRPC server: %v", err)
+			}
+
+			client := istio_mixer_v1.NewMixerClient(conn)
+			defer closeHelper(conn)
+
+			req := istio_mixer_v1.ReportRequest{
+				Attributes: []istio_mixer_v1.CompressedAttributes{
+					getAttrBag(tt.attrs,
+						args.ConfigIdentityAttribute,
+						args.ConfigIdentityAttributeDomain)},
+			}
+			_, err = client.Report(context.Background(), &req)
+			if err == nil {
+				tt.validate(t, err, spyAdapters)
+			} else {
+				t.Errorf("Got error '%v', want success", err)
+			}
 		})
 	}
 }

@@ -20,7 +20,7 @@ import (
 	"google.golang.org/genproto/googleapis/api/distribution"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 
-	descriptor "istio.io/api/policy/v1beta1"
+	descriptor "istio.io/api/mixer/v1/config/descriptor"
 	"istio.io/istio/mixer/adapter/stackdriver/config"
 )
 

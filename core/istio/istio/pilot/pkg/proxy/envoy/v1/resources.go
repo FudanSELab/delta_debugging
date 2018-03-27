@@ -15,15 +15,11 @@
 package v1
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"reflect"
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/gogo/protobuf/types"
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
 
@@ -130,14 +126,10 @@ const (
 	// MaxClusterNameLength is the maximum cluster name length
 	MaxClusterNameLength = 189 // TODO: use MeshConfig.StatNameLength instead
 
-	// Headers with special meaning in Envoy
-
-	// HeaderMethod is the method header.
-	HeaderMethod = ":method"
-	// HeaderAuthority is the authority header.
-	HeaderAuthority = ":authority"
-	// HeaderScheme is the scheme header.
-	HeaderScheme = ":scheme"
+	// headers with special meaning in Envoy
+	headerMethod    = ":method"
+	headerAuthority = ":authority"
+	headerScheme    = ":scheme"
 
 	router  = "router"
 	auto    = "auto"
@@ -162,22 +154,8 @@ func convertDuration(d *duration.Duration) time.Duration {
 	return dur
 }
 
-func convertDurationGogo(d *types.Duration) time.Duration {
-	if d == nil {
-		return 0
-	}
-	dur, err := types.DurationFromProto(d)
-	if err != nil {
-		log.Warnf("error converting duration %#v, using 0: %v", d, err)
-	}
-	return dur
-}
 func protoDurationToMS(dur *duration.Duration) int64 {
 	return int64(convertDuration(dur) / time.Millisecond)
-}
-
-func protoDurationToMSGogo(dur *types.Duration) int64 {
-	return int64(convertDurationGogo(dur) / time.Millisecond)
 }
 
 // Config defines the schema for Envoy JSON configuration format
@@ -317,7 +295,7 @@ type HTTPRoute struct {
 
 	// clusters contains the set of referenced clusters in the route; the field is special
 	// and used only to aggregate cluster information after composing routes
-	Clusters Clusters `json:"-"`
+	clusters Clusters
 
 	// faults contains the set of referenced faults in the route; the field is special
 	// and used only to aggregate fault filter information after composing routes
@@ -414,15 +392,14 @@ type VirtualHost struct {
 func (host *VirtualHost) clusters() Clusters {
 	out := make(Clusters, 0)
 	for _, route := range host.Routes {
-		out = append(out, route.Clusters...)
+		out = append(out, route.clusters...)
 	}
 	return out
 }
 
 // HTTPRouteConfig definition
 type HTTPRouteConfig struct {
-	ValidateClusters bool           `json:"validate_clusters"`
-	VirtualHosts     []*VirtualHost `json:"virtual_hosts"`
+	VirtualHosts []*VirtualHost `json:"virtual_hosts"`
 }
 
 // HTTPRouteConfigs is a map from the port number to the route config
@@ -432,38 +409,36 @@ type HTTPRouteConfigs map[int]*HTTPRouteConfig
 func (routes HTTPRouteConfigs) EnsurePort(port int) *HTTPRouteConfig {
 	config, ok := routes[port]
 	if !ok {
-		config = &HTTPRouteConfig{ValidateClusters: ValidateClusters}
+		config = &HTTPRouteConfig{}
 		routes[port] = config
 	}
 	return config
 }
 
-// Clusters returns the clusters corresponding to the given routes.
-func (routes HTTPRouteConfigs) Clusters() Clusters {
+func (routes HTTPRouteConfigs) clusters() Clusters {
 	out := make(Clusters, 0)
 	for _, config := range routes {
-		out = append(out, config.Clusters()...)
+		out = append(out, config.clusters()...)
 	}
 	return out
 }
 
-// Normalize normalizes the route configs.
-func (routes HTTPRouteConfigs) Normalize() HTTPRouteConfigs {
+func (routes HTTPRouteConfigs) normalize() HTTPRouteConfigs {
 	out := make(HTTPRouteConfigs)
 
 	// sort HTTP routes by virtual hosts, rest should be deterministic
 	for port, routeConfig := range routes {
-		out[port] = routeConfig.Normalize()
+		out[port] = routeConfig.normalize()
 	}
 
 	return out
 }
 
-// Combine creates a new route config that is the union of all HTTP routes.
+// combine creates a new route config that is the union of all HTTP routes.
 // note that the virtual hosts without an explicit port suffix (IP:PORT) are stripped
 // for all routes except the route for port 80.
-func (routes HTTPRouteConfigs) Combine() *HTTPRouteConfig {
-	out := &HTTPRouteConfig{ValidateClusters: ValidateClusters}
+func (routes HTTPRouteConfigs) combine() *HTTPRouteConfig {
+	out := &HTTPRouteConfig{}
 	for port, config := range routes {
 		for _, host := range config.VirtualHosts {
 			vhost := &VirtualHost{
@@ -481,7 +456,7 @@ func (routes HTTPRouteConfigs) Combine() *HTTPRouteConfig {
 			}
 		}
 	}
-	return out.Normalize()
+	return out.normalize()
 }
 
 // faults aggregates fault filters across virtual hosts in single http_conn_man
@@ -495,8 +470,7 @@ func (rc *HTTPRouteConfig) faults() []*HTTPFilter {
 	return out
 }
 
-// Clusters returns the clusters for the given route config.
-func (rc *HTTPRouteConfig) Clusters() Clusters {
+func (rc *HTTPRouteConfig) clusters() Clusters {
 	out := make(Clusters, 0)
 	for _, host := range rc.VirtualHosts {
 		out = append(out, host.clusters()...)
@@ -504,12 +478,11 @@ func (rc *HTTPRouteConfig) Clusters() Clusters {
 	return out
 }
 
-// Normalize normalizes the route config.
-func (rc *HTTPRouteConfig) Normalize() *HTTPRouteConfig {
+func (rc *HTTPRouteConfig) normalize() *HTTPRouteConfig {
 	hosts := make([]*VirtualHost, len(rc.VirtualHosts))
 	copy(hosts, rc.VirtualHosts)
 	sort.Slice(hosts, func(i, j int) bool { return hosts[i].Name < hosts[j].Name })
-	return &HTTPRouteConfig{ValidateClusters: ValidateClusters, VirtualHosts: hosts}
+	return &HTTPRouteConfig{VirtualHosts: hosts}
 }
 
 // AccessLog definition.
@@ -653,57 +626,6 @@ type NetworkFilterConfig interface {
 	IsNetworkFilterConfig()
 }
 
-// NetworkFilterTypes maps filter names to types of structs that implement them. It is used when unmarshaling JSON data.
-// To add your own NetworkFilter types, add additional entries to this map prior to calling json.Unmarshal.
-var NetworkFilterTypes = map[string]reflect.Type{
-	RedisProxyFilter:      reflect.TypeOf(RedisProxyFilterConfig{}),
-	CORSFilter:            reflect.TypeOf(CORSFilterConfig{}),
-	MongoProxyFilter:      reflect.TypeOf(MongoProxyFilterConfig{}),
-	TCPProxyFilter:        reflect.TypeOf(TCPProxyFilterConfig{}),
-	HTTPConnectionManager: reflect.TypeOf(HTTPFilterConfig{}),
-	MixerFilter:           reflect.TypeOf(FilterMixerConfig{}),
-}
-
-// UnmarshalJSON handles custom unmarshal logic for the NetworkFilter struct. This is needed because the config field
-// depends on the filter name.
-func (nf *NetworkFilter) UnmarshalJSON(b []byte) error {
-
-	// First, unmarshal to a generic data structure so we can get the name.
-	var j interface{}
-	err := json.Unmarshal(b, &j)
-	if err != nil {
-		return err
-	}
-	m := j.(map[string]interface{})
-	n, ok := m["name"].(string)
-	if !ok {
-		return errors.New("filter missing name field")
-	}
-
-	// Once we have the name, we can look up the concrete type of the config field.
-	t, ok := NetworkFilterTypes[n]
-	if !ok {
-		return fmt.Errorf("unknown filter name: %s", n)
-	}
-	v := reflect.New(t)
-
-	// Since Unmarshal takes a []byte, we re-marshall the config and then call Unmarshal on it.
-	cfgBytes, err := json.Marshal(m["config"])
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(cfgBytes, v.Interface())
-	if err != nil {
-		return err
-	}
-
-	// Fill in the NetworkFilter
-	nf.Name = n
-	nf.Type = m["type"].(string)
-	nf.Config = v.Interface().(NetworkFilterConfig)
-	return nil
-}
-
 // Listener definition
 type Listener struct {
 	Address        string           `json:"address"`
@@ -717,7 +639,7 @@ type Listener struct {
 // Listeners is a collection of listeners
 type Listeners []*Listener
 
-// Normalize sorts and de-duplicates listeners by address
+// normalize sorts and de-duplicates listeners by address
 func (listeners Listeners) normalize() Listeners {
 	out := make(Listeners, 0, len(listeners))
 	set := make(map[string]bool)
@@ -790,8 +712,8 @@ type Cluster struct {
 
 	// special values used by the post-processing passes for outbound mesh-local clusters
 	outbound bool
-	Hostname string      `json:"-"`
-	Port     *model.Port `json:"-"`
+	hostname string
+	port     *model.Port
 	labels   model.Labels
 }
 
@@ -821,8 +743,8 @@ type OutlierDetection struct {
 // Clusters is a collection of clusters
 type Clusters []*Cluster
 
-// Normalize deduplicates and sorts clusters by name
-func (clusters Clusters) Normalize() Clusters {
+// normalize deduplicates and sorts clusters by name
+func (clusters Clusters) normalize() Clusters {
 	out := make(Clusters, 0, len(clusters))
 	set := make(map[string]bool)
 	for _, cluster := range clusters {
@@ -912,8 +834,7 @@ type RDS struct {
 
 // ClusterManager definition
 type ClusterManager struct {
-	Clusters         Clusters          `json:"clusters"`
-	SDS              *DiscoveryCluster `json:"sds,omitempty"`
-	CDS              *DiscoveryCluster `json:"cds,omitempty"`
-	LocalClusterName string            `json:"local_cluster_name,omitempty"`
+	Clusters Clusters          `json:"clusters"`
+	SDS      *DiscoveryCluster `json:"sds,omitempty"`
+	CDS      *DiscoveryCluster `json:"cds,omitempty"`
 }

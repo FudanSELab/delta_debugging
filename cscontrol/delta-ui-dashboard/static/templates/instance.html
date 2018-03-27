@@ -14,25 +14,17 @@
         <div id="case-names"  style="width:49%; float:right">
             <h4 style="font-weight: bold; margin-bottom: 30px">TestCases</h4>
             <div ng-repeat="(key, names) in testCases" style="margin-bottom: 8px">
-                <div style="border: solid #aeb2b7 1px;padding-left: 10px;border-radius: 5px;padding-bottom: 10px">
-                    <h5 style="font-weight: bold">{{key}}</h5>
+                <fieldset>
+                    <legend style="font-size:18px;margin-bottom: 5px">{{key}}</legend>
                     <p ng-repeat="name in names">
                         <input type="checkbox" icheck value="{{name}}" name="testcase">
                         <span style="font-size: 16px;margin-left: 10px">{{name}}</span>
                     </p>
-                </div>
+                </fieldset>
             </div>
             <!--<button ng-click="test()">2333</button>-->
         </div>
 
-        <!--<div id="case-names"  style="width:45%; float:right">-->
-            <!--<h4 style="font-weight: bold; margin-bottom: 30px">TestCases</h4>-->
-            <!--<div ng-repeat="testcase in testCases" style="margin-bottom: 8px">-->
-                <!--<input type="checkbox" icheck ng-model="testcase.checked" value="{{testcase.title}}" name="testcase">-->
-                <!--<span style="font-size: 16px;margin-left: 10px">{{testcase.title}}</span>-->
-            <!--</div>-->
-            <!--&lt;!&ndash;<button  ng-click="extractService()"  class="btn btn-primary">Service Delta</button>&ndash;&gt;-->
-        <!--</div>-->
 
     </div>
 
@@ -74,11 +66,12 @@
             </tbody>
         </table>
 
+        <div style="border: 2px #a2abb6 dashed; margin-top: 20px;"></div>
 
         <div style="margin-top: 50px;margin-bottom: 10px">
             <button  class="btn btn-primary " id="refreshPodButton" style="float:right;margin-right: 20px" ng-click="refreshPod()">Refresh Pods List
             </button>
-            <button  class="btn btn-danger" id="suspectPodButton" style="float:right; margin-right: 20px;" ng-click="getPodLogs()">Suspect Pod Logs
+            <button  class="btn btn-danger" id="inspectPodButton" style="float:right; margin-right: 20px;" ng-click="getPodLogs()">Inspect Pod Logs
             </button>
             <div style="clear: both"></div>
         </div>

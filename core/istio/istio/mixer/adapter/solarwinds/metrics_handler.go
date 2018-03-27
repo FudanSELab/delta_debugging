@@ -41,6 +41,7 @@ type metricsHandler struct {
 	prepChan    chan []*appoptics.Measurement
 	stopChan    chan struct{}
 	pushChan    chan []*appoptics.Measurement
+	loopFactor  *bool
 	lc          *appoptics.Client
 	batchWait   chan struct{}
 	persistWait chan struct{}
@@ -48,6 +49,8 @@ type metricsHandler struct {
 
 func newMetricsHandler(ctx context.Context, env adapter.Env, cfg *config.Params) (metricsHandlerInterface, error) {
 	buffChanSize := runtime.NumCPU() * 10
+
+	loopFactor := true
 
 	// prepChan holds groups of Measurements to be batched
 	prepChan := make(chan []*appoptics.Measurement, buffChanSize)
@@ -70,11 +73,11 @@ func newMetricsHandler(ctx context.Context, env adapter.Env, cfg *config.Params)
 		}
 
 		env.ScheduleDaemon(func() {
-			appoptics.BatchMeasurements(prepChan, pushChan, stopChan, int(batchSize), env.Logger())
+			appoptics.BatchMeasurements(&loopFactor, prepChan, pushChan, stopChan, int(batchSize), env.Logger())
 			batchWait <- struct{}{}
 		})
 		env.ScheduleDaemon(func() {
-			appoptics.PersistBatches(lc, pushChan, stopChan, env.Logger())
+			appoptics.PersistBatches(&loopFactor, lc, pushChan, stopChan, env.Logger())
 			persistWait <- struct{}{}
 		})
 	}
@@ -83,6 +86,7 @@ func newMetricsHandler(ctx context.Context, env adapter.Env, cfg *config.Params)
 		prepChan:    prepChan,
 		stopChan:    stopChan,
 		pushChan:    pushChan,
+		loopFactor:  &loopFactor,
 		lc:          lc,
 		persistWait: persistWait,
 		batchWait:   batchWait,
@@ -122,6 +126,7 @@ func (h *metricsHandler) close() error {
 	close(h.stopChan)
 	defer close(h.batchWait)
 	defer close(h.persistWait)
+	*h.loopFactor = false
 	if h.lc != nil {
 		<-h.batchWait
 		<-h.persistWait

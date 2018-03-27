@@ -62,9 +62,6 @@ const (
 )
 
 func convertLabels(obj meta_v1.ObjectMeta) model.Labels {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - conversation.go - convertLabels")
-
 	out := make(model.Labels, len(obj.Labels))
 	for k, v := range obj.Labels {
 		out[k] = v
@@ -76,9 +73,6 @@ func convertLabels(obj meta_v1.ObjectMeta) model.Labels {
 // annotation, or the annotation value is not recognized, returns
 // meshconfig.AuthenticationPolicy_INHERIT
 func extractAuthenticationPolicy(port v1.ServicePort, obj meta_v1.ObjectMeta) meshconfig.AuthenticationPolicy {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - conversation.go - extractAuthenticationPolicy")
-
 	if obj.Annotations == nil {
 		return meshconfig.AuthenticationPolicy_INHERIT
 	}
@@ -89,9 +83,6 @@ func extractAuthenticationPolicy(port v1.ServicePort, obj meta_v1.ObjectMeta) me
 }
 
 func convertPort(port v1.ServicePort, obj meta_v1.ObjectMeta) *model.Port {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - conversation.go - convertPort")
-
 	return &model.Port{
 		Name:                 port.Name,
 		Port:                 int(port.Port),
@@ -101,9 +92,6 @@ func convertPort(port v1.ServicePort, obj meta_v1.ObjectMeta) *model.Port {
 }
 
 func convertService(svc v1.Service, domainSuffix string) *model.Service {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - conversation.go - convertService")
-
 	addr, external := "", ""
 	if svc.Spec.ClusterIP != "" && svc.Spec.ClusterIP != v1.ClusterIPNone {
 		addr = svc.Spec.ClusterIP
@@ -147,41 +135,26 @@ func convertService(svc v1.Service, domainSuffix string) *model.Service {
 
 // serviceHostname produces FQDN for a k8s service
 func serviceHostname(name, namespace, domainSuffix string) string {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - conversation.go - serviceHostname")
-
 	return fmt.Sprintf("%s.%s.svc.%s", name, namespace, domainSuffix)
 }
 
 // canonicalToIstioServiceAccount converts a Canonical service account to an Istio service account
 func canonicalToIstioServiceAccount(saname string) string {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - conversation.go - canonicalToIstioServiceAccount")
-
 	return fmt.Sprintf("%v://%v", IstioURIPrefix, saname)
 }
 
 func portAuthenticationAnnotationKey(port int) string {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - conversation.go - portAuthenticationAnnotationKey")
-
 	return fmt.Sprintf("%s/%d", PortAuthenticationAnnotationKeyPrefix, port)
 }
 
 // kubeToIstioServiceAccount converts a K8s service account to an Istio service account
 func kubeToIstioServiceAccount(saname string, ns string, domain string) string {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - conversation.go - kubeToIstioServiceAccount")
-
 	return fmt.Sprintf("%v://%v/ns/%v/sa/%v", IstioURIPrefix, domain, ns, saname)
 }
 
 // KeyFunc is the internal API key function that returns "namespace"/"name" or
 // "name" if "namespace" is empty
 func KeyFunc(name, namespace string) string {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - conversation.go - KeyFunc")
-
 	if len(namespace) == 0 {
 		return name
 	}
@@ -190,9 +163,6 @@ func KeyFunc(name, namespace string) string {
 
 // parseHostname extracts service name and namespace from the service hostname
 func parseHostname(hostname string) (name string, namespace string, err error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - conversation.go - parseHostname")
-
 	parts := strings.Split(hostname, ".")
 	if len(parts) < 2 {
 		err = fmt.Errorf("missing service name and namespace from the service hostname %q", hostname)
@@ -205,9 +175,6 @@ func parseHostname(hostname string) (name string, namespace string, err error) {
 
 // parsePodID extracts POD name and namespace from the service node ID
 func parsePodID(nodeID string) (podname string, namespace string, err error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - conversation.go - parsePodID")
-
 	parts := strings.Split(nodeID, ".")
 	if len(parts) != 2 {
 		err = fmt.Errorf("invalid ID %q. Should be <pod name>.<namespace>", nodeID)
@@ -220,9 +187,6 @@ func parsePodID(nodeID string) (podname string, namespace string, err error) {
 
 // parseDomain extracts the service node's domain
 func parseDomain(nodeDomain string) (namespace string, err error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - conversation.go - parseDomain")
-
 	parts := strings.Split(nodeDomain, ".")
 	if len(parts) != 4 {
 		err = fmt.Errorf("invalid node domain format %q. Should be <namespace>.svc.cluster.local", nodeDomain)
@@ -237,9 +201,6 @@ func parseDomain(nodeDomain string) (namespace string, err error) {
 }
 
 func parseKubeServiceNode(IPAddress string, node *model.Proxy, kubeNodes map[string]*kubeServiceNode) (err error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - conversation.go - parseKubeServiceNode")
-
 	podname, namespace, err := parsePodID(node.ID)
 	if err != nil {
 		return
@@ -260,9 +221,6 @@ func parseKubeServiceNode(IPAddress string, node *model.Proxy, kubeNodes map[str
 
 // ConvertProtocol from k8s protocol and port name
 func ConvertProtocol(name string, proto v1.Protocol) model.Protocol {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - conversation.go - ConvertProtocol")
-
 	out := model.ProtocolTCP
 	switch proto {
 	case v1.ProtocolUDP:
@@ -282,9 +240,6 @@ func ConvertProtocol(name string, proto v1.Protocol) model.Protocol {
 }
 
 func convertProbePort(c v1.Container, handler *v1.Handler) (*model.Port, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - conversation.go - convertProbePort")
-
 	if handler == nil {
 		return nil, nil
 	}
@@ -332,9 +287,6 @@ func convertProbePort(c v1.Container, handler *v1.Handler) (*model.Port, error) 
 // convertProbesToPorts returns a PortList consisting of the ports where the
 // pod is configured to do Liveness and Readiness probes
 func convertProbesToPorts(t *v1.PodSpec) (model.PortList, error) {
-
-	fmt.Println("[调试标记] Pilot - pkg - serviceregistry - kube - conversation.go - convertProbesToPorts")
-
 	set := make(map[string]*model.Port)
 	var errs error
 	for _, container := range t.Containers {

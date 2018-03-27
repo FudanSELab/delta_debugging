@@ -21,7 +21,8 @@ package crd
 import (
 	"fmt"
 	"time"
-
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 	multierror "github.com/hashicorp/go-multierror"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -31,6 +32,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/wait"
+
+	"istio.io/istio/pkg/log"
 	// import GKE cluster authentication plugin
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	// import OIDC cluster authentication plugin, e.g. for Tectonic
@@ -40,8 +43,16 @@ import (
 
 	"istio.io/istio/pilot/pkg/model"
 	"istio.io/istio/pilot/pkg/serviceregistry/kube"
-	"istio.io/istio/pkg/log"
 )
+
+// IstioAPIGroupVersion defines schema.GroupVersion for Istio configuration
+// resources.
+// TODO(xiaolanz) Client can only write to one apiVersion until https://github.com/istio/istio/issues/3586
+// is fully completed.
+var IstioAPIGroupVersion = schema.GroupVersion{
+	Group:   "config.istio.io",
+	Version: "v1alpha2",
+}
 
 // IstioObject is a k8s wrapper interface for config objects
 type IstioObject interface {
@@ -60,80 +71,20 @@ type IstioObjectList interface {
 
 // Client is a basic REST client for CRDs implementing config store
 type Client struct {
-	// Map of apiVersion to restClient.
-	clientset map[string]*restClient
-
-	// domainSuffix for the config metadata
-	domainSuffix string
-}
-
-type restClient struct {
-	apiVersion schema.GroupVersion
-
-	// descriptor from the same apiVerion.
 	descriptor model.ConfigDescriptor
-
-	// types of the schema and objects in the descriptor.
-	types []*schemaType
 
 	// restconfig for REST type descriptors
 	restconfig *rest.Config
 
 	// dynamic REST client for accessing config CRDs
 	dynamic *rest.RESTClient
+
+	// domainSuffix for the config metadata
+	domainSuffix string
 }
 
-func apiVersion(schema *model.ProtoSchema) string {
-	return ResourceGroup(schema) + "/" + schema.Version
-}
-
-func apiVersionFromConfig(config *model.Config) string {
-	return config.Group + "/" + config.Version
-}
-
-func newClientSet(descriptor model.ConfigDescriptor) (map[string]*restClient, error) {
-	cs := make(map[string]*restClient)
-	for _, typ := range descriptor {
-		s, exists := knownTypes[typ.Type]
-		if !exists {
-			return nil, fmt.Errorf("missing known type for %q", typ.Type)
-		}
-
-		rc, ok := cs[apiVersion(&typ)]
-		if !ok {
-			// create a new client if one doesn't already exist
-			rc = &restClient{
-				apiVersion: schema.GroupVersion{
-					ResourceGroup(&typ),
-					typ.Version,
-				},
-			}
-			cs[apiVersion(&typ)] = rc
-		}
-		rc.descriptor = append(rc.descriptor, typ)
-		rc.types = append(rc.types, &s)
-	}
-	return cs, nil
-}
-
-func (rc *restClient) init(kubeconfig string) error {
-	cfg, err := rc.createRESTConfig(kubeconfig)
-	if err != nil {
-		return err
-	}
-
-	dynamic, err := rest.RESTClientFor(cfg)
-	if err != nil {
-		return err
-	}
-
-	rc.restconfig = cfg
-	rc.dynamic = dynamic
-	return nil
-}
-
-// createRESTConfig for cluster API server, pass empty config file for in-cluster
-func (rc *restClient) createRESTConfig(kubeconfig string) (config *rest.Config, err error) {
+// CreateRESTConfig for cluster API server, pass empty config file for in-cluster
+func CreateRESTConfig(kubeconfig string) (config *rest.Config, err error) {
 	if kubeconfig == "" {
 		config, err = rest.InClusterConfig()
 	} else {
@@ -144,17 +95,17 @@ func (rc *restClient) createRESTConfig(kubeconfig string) (config *rest.Config, 
 		return
 	}
 
-	config.GroupVersion = &rc.apiVersion
+	config.GroupVersion = &IstioAPIGroupVersion
 	config.APIPath = "/apis"
 	config.ContentType = runtime.ContentTypeJSON
 
 	types := runtime.NewScheme()
 	schemeBuilder := runtime.NewSchemeBuilder(
 		func(scheme *runtime.Scheme) error {
-			for _, kind := range rc.types {
-				scheme.AddKnownTypes(rc.apiVersion, kind.object, kind.collection)
+			for _, kind := range knownTypes {
+				scheme.AddKnownTypes(IstioAPIGroupVersion, kind.object, kind.collection)
 			}
-			meta_v1.AddToGroupVersion(scheme, rc.apiVersion)
+			meta_v1.AddToGroupVersion(scheme, IstioAPIGroupVersion)
 			return nil
 		})
 	err = schemeBuilder.AddToScheme(types)
@@ -167,25 +118,32 @@ func (rc *restClient) createRESTConfig(kubeconfig string) (config *rest.Config, 
 // Use an empty value for `kubeconfig` to use the in-cluster config.
 // If the kubeconfig file is empty, defaults to in-cluster config as well.
 func NewClient(config string, descriptor model.ConfigDescriptor, domainSuffix string) (*Client, error) {
+	for _, typ := range descriptor {
+		if _, exists := knownTypes[typ.Type]; !exists {
+			return nil, fmt.Errorf("missing known type for %q", typ.Type)
+		}
+	}
+
 	kubeconfig, err := kube.ResolveConfig(config)
 	if err != nil {
 		return nil, err
 	}
 
-	cs, err := newClientSet(descriptor)
+	restconfig, err := CreateRESTConfig(kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	dynamic, err := rest.RESTClientFor(restconfig)
 	if err != nil {
 		return nil, err
 	}
 
 	out := &Client{
-		clientset:    cs,
+		descriptor:   descriptor,
+		restconfig:   restconfig,
+		dynamic:      dynamic,
 		domainSuffix: domainSuffix,
-	}
-
-	for _, v := range out.clientset {
-		if err := v.init(kubeconfig); err != nil {
-			return nil, err
-		}
 	}
 
 	return out, nil
@@ -193,22 +151,12 @@ func NewClient(config string, descriptor model.ConfigDescriptor, domainSuffix st
 
 // RegisterResources sends a request to create CRDs and waits for them to initialize
 func (cl *Client) RegisterResources() error {
-	for k, rc := range cl.clientset {
-		log.Infof("registering for apiVersion %v", k)
-		if err := rc.registerResources(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (rc *restClient) registerResources() error {
-	cs, err := apiextensionsclient.NewForConfig(rc.restconfig)
+	clientset, err := apiextensionsclient.NewForConfig(cl.restconfig)
 	if err != nil {
 		return err
 	}
 
-	for _, schema := range rc.descriptor {
+	for _, schema := range cl.descriptor {
 		g := ResourceGroup(&schema)
 		name := ResourceName(schema.Plural) + "." + g
 		crd := &apiextensionsv1beta1.CustomResourceDefinition{
@@ -226,7 +174,7 @@ func (rc *restClient) registerResources() error {
 			},
 		}
 		log.Infof("registering CRD %q", name)
-		_, err = cs.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
+		_, err = clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
 		if err != nil && !apierrors.IsAlreadyExists(err) {
 			return err
 		}
@@ -235,9 +183,9 @@ func (rc *restClient) registerResources() error {
 	// wait for CRD being established
 	errPoll := wait.Poll(500*time.Millisecond, 60*time.Second, func() (bool, error) {
 	descriptor:
-		for _, schema := range rc.descriptor {
+		for _, schema := range cl.descriptor {
 			name := ResourceName(schema.Plural) + "." + ResourceGroup(&schema)
-			crd, errGet := cs.ApiextensionsV1beta1().CustomResourceDefinitions().Get(name, meta_v1.GetOptions{})
+			crd, errGet := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(name, meta_v1.GetOptions{})
 			if errGet != nil {
 				return false, errGet
 			}
@@ -261,7 +209,7 @@ func (rc *restClient) registerResources() error {
 	})
 
 	if errPoll != nil {
-		deleteErr := rc.deregisterResources()
+		deleteErr := cl.DeregisterResources()
 		if deleteErr != nil {
 			return multierror.Append(errPoll, deleteErr)
 		}
@@ -273,25 +221,15 @@ func (rc *restClient) registerResources() error {
 
 // DeregisterResources removes third party resources
 func (cl *Client) DeregisterResources() error {
-	for k, rc := range cl.clientset {
-		log.Infof("deregistering for apiVersion ", k)
-		if err := rc.deregisterResources(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (rc *restClient) deregisterResources() error {
-	cs, err := apiextensionsclient.NewForConfig(rc.restconfig)
+	clientset, err := apiextensionsclient.NewForConfig(cl.restconfig)
 	if err != nil {
 		return err
 	}
 
 	var errs error
-	for _, schema := range rc.descriptor {
+	for _, schema := range cl.descriptor {
 		name := ResourceName(schema.Plural) + "." + ResourceGroup(&schema)
-		err := cs.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(name, nil)
+		err := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(name, nil)
 		errs = multierror.Append(errs, err)
 	}
 	return errs
@@ -299,34 +237,18 @@ func (rc *restClient) deregisterResources() error {
 
 // ConfigDescriptor for the store
 func (cl *Client) ConfigDescriptor() model.ConfigDescriptor {
-	d := make(model.ConfigDescriptor, 0, len(cl.clientset))
-	for _, rc := range cl.clientset {
-		d = append(d, rc.descriptor...)
-	}
-	return d
+	return cl.descriptor
 }
 
 // Get implements store interface
 func (cl *Client) Get(typ, name, namespace string) (*model.Config, bool) {
-	s, ok := knownTypes[typ]
-	if !ok {
-		log.Warn("unknown type " + typ)
-		return nil, false
-	}
-	rc, ok := cl.clientset[apiVersion(&s.schema)]
-	if !ok {
-		log.Warn("cannot find client for type " + typ)
-		return nil, false
-	}
-
-	schema, exists := rc.descriptor.GetByType(typ)
+	schema, exists := cl.descriptor.GetByType(typ)
 	if !exists {
-		log.Warn("cannot find proto schema for type " + typ)
 		return nil, false
 	}
 
-	config := s.object.DeepCopyObject().(IstioObject)
-	err := rc.dynamic.Get().
+	config := knownTypes[typ].object.DeepCopyObject().(IstioObject)
+	err := cl.dynamic.Get().
 		Namespace(namespace).
 		Resource(ResourceName(schema.Plural)).
 		Name(name).
@@ -347,12 +269,7 @@ func (cl *Client) Get(typ, name, namespace string) (*model.Config, bool) {
 
 // Create implements store interface
 func (cl *Client) Create(config model.Config) (string, error) {
-	rc, ok := cl.clientset[apiVersionFromConfig(&config)]
-	if !ok {
-		return "", fmt.Errorf("unrecognized apiVersion %q", config)
-	}
-
-	schema, exists := rc.descriptor.GetByType(config.Type)
+	schema, exists := cl.descriptor.GetByType(config.Type)
 	if !exists {
 		return "", fmt.Errorf("unrecognized type %q", config.Type)
 	}
@@ -367,7 +284,7 @@ func (cl *Client) Create(config model.Config) (string, error) {
 	}
 
 	obj := knownTypes[schema.Type].object.DeepCopyObject().(IstioObject)
-	err = rc.dynamic.Post().
+	err = cl.dynamic.Post().
 		Namespace(out.GetObjectMeta().Namespace).
 		Resource(ResourceName(schema.Plural)).
 		Body(out).
@@ -381,11 +298,7 @@ func (cl *Client) Create(config model.Config) (string, error) {
 
 // Update implements store interface
 func (cl *Client) Update(config model.Config) (string, error) {
-	rc, ok := cl.clientset[apiVersionFromConfig(&config)]
-	if !ok {
-		return "", fmt.Errorf("unrecognized apiVersion %q", config)
-	}
-	schema, exists := rc.descriptor.GetByType(config.Type)
+	schema, exists := cl.descriptor.GetByType(config.Type)
 	if !exists {
 		return "", fmt.Errorf("unrecognized type %q", config.Type)
 	}
@@ -404,7 +317,7 @@ func (cl *Client) Update(config model.Config) (string, error) {
 	}
 
 	obj := knownTypes[schema.Type].object.DeepCopyObject().(IstioObject)
-	err = rc.dynamic.Put().
+	err = cl.dynamic.Put().
 		Namespace(out.GetObjectMeta().Namespace).
 		Resource(ResourceName(schema.Plural)).
 		Name(out.GetObjectMeta().Name).
@@ -419,20 +332,12 @@ func (cl *Client) Update(config model.Config) (string, error) {
 
 // Delete implements store interface
 func (cl *Client) Delete(typ, name, namespace string) error {
-	s, ok := knownTypes[typ]
-	if !ok {
-		return fmt.Errorf("unrecognized type %q", typ)
-	}
-	rc, ok := cl.clientset[apiVersion(&s.schema)]
-	if !ok {
-		return fmt.Errorf("unrecognized apiVersion %v", s.schema)
-	}
-	schema, exists := rc.descriptor.GetByType(typ)
+	schema, exists := cl.descriptor.GetByType(typ)
 	if !exists {
 		return fmt.Errorf("missing type %q", typ)
 	}
 
-	return rc.dynamic.Delete().
+	return cl.dynamic.Delete().
 		Namespace(namespace).
 		Resource(ResourceName(schema.Plural)).
 		Name(name).
@@ -441,21 +346,13 @@ func (cl *Client) Delete(typ, name, namespace string) error {
 
 // List implements store interface
 func (cl *Client) List(typ, namespace string) ([]model.Config, error) {
-	s, ok := knownTypes[typ]
-	if !ok {
-		return nil, fmt.Errorf("unrecognized type %q", typ)
-	}
-	rc, ok := cl.clientset[apiVersion(&s.schema)]
-	if !ok {
-		return nil, fmt.Errorf("unrecognized apiVersion %v", s.schema)
-	}
-	schema, exists := rc.descriptor.GetByType(typ)
+	schema, exists := cl.descriptor.GetByType(typ)
 	if !exists {
 		return nil, fmt.Errorf("missing type %q", typ)
 	}
 
 	list := knownTypes[schema.Type].collection.DeepCopyObject().(IstioObjectList)
-	errs := rc.dynamic.Get().
+	errs := cl.dynamic.Get().
 		Namespace(namespace).
 		Resource(ResourceName(schema.Plural)).
 		Do().Into(list)

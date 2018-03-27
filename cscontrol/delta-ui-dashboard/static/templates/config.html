@@ -1,0 +1,94 @@
+<div class="admin">
+
+    <div class="admin-biaoge" style="float:left;padding-left: 10px;margin-top: 20px;width:46%;">
+
+
+        <div id="serviceTable" style="width:50%;float:left">
+            <h4 style="font-weight: bold;">Cluster</h4>
+            <div ng-repeat="cluster in clusterConfig" >
+                <fieldset>
+                    <legend style="font-size:18px;margin-bottom: 5px">{{cluster.system}}</legend>
+                    <p ng-repeat="config in cluster.configs" >
+                        <input type="checkbox" icheck  value="{{cluster.system}}:{{config.configName}}" name="config">
+                        <span style="font-size: 16px;margin-left: 10px; word-break: break-all">{{config.configName}} : {{config.value}}</span>
+                    </p>
+                </fieldset>
+            </div>
+            <!--<button  ng-click="test()"  class="btn btn-primary">test</button>-->
+        </div>
+
+        <div id="case-names"  style="width:49%; float:right">
+            <h4 style="font-weight: bold; ">Services</h4>
+            <div ng-repeat="service in serviceConfig" style="margin-bottom: 8px">
+                <fieldset>
+                    <legend style="font-size: 18px;margin-bottom: 5px">{{service.serviceName}}</legend>
+                    <p ng-repeat="config in service.configs">
+                        <input type="checkbox" icheck value="{{service.serviceName}}:{{config.configName}}" name="config">
+                        <span style="font-size: 16px;margin-left: 10px">{{config.configName}} : {{config.value}}</span>
+                    </p>
+                </fieldset>
+            </div>
+            <!--<button ng-click="test()">2333</button>-->
+        </div>
+
+    </div>
+
+
+    <div style="padding-right: 10px;margin-top: 50px;width:53%; float: right">
+
+        <div>
+            <!--<span style="font-size: medium;font-weight: bold">{{resultCount}}</span>-->
+            <button  class="btn btn-primary " style="float: right;margin-right: 30px" ng-click="showDelta()">Connect
+            </button>
+            <button  class="btn btn-primary" style="float: right;margin-right: 20px;display: none" id="test-button" ng-click="sendDeltaData()">Start Delta
+            </button>
+            <div style="clear: both"></div>
+        </div>
+
+        <div style="margin-top:30px;margin-left: 20px;padding:10px;border:2px #a2abb6 solid;border-radius: 4px;background-color: #FFFFFF; min-height:80px">
+            <span ng-model="configDeltaResult">{{configDeltaResult}}</span>
+        </div>
+
+        <div style="border: 2px #a2abb6 dashed; margin-top: 20px;"></div>
+
+        <div style="margin-top: 50px;margin-bottom: 10px">
+            <button  class="btn btn-primary " id="refreshPodButton" style="float:right;margin-right: 20px" ng-click="refreshPod()">Refresh Pods List
+            </button>
+            <button  class="btn btn-danger" id="inspectPodButton" style="float:right; margin-right: 20px;" ng-click="getPodLogs()">Inspect Pod Logs
+            </button>
+            <div style="clear: both"></div>
+        </div>
+        <table class="table table-hover table-bordered" style="margin-top: 10px;width:650px;margin-left: 20px">
+            <thead style="table-layout: fixed;display: table;width: 100%; ">
+            <tr style="background-color: #aeb2b7;color:#fff;">
+                <th></th>
+                <th style="text-align: center;width: 350px"><span style="font-size:16px;font-weight: bold">Pod Name</span></th>
+                <th style="text-align: center;width: 100px"><span style="font-size:16px;font-weight: bold">Status</span></th>
+                <th style="text-align: center;width: 150px"><span style="font-size:16px;font-weight: bold">Node Name</span></th>
+            </tr>
+            </thead>
+            <tbody style="height:350px;overflow-y: scroll;display: block;width: 650px">
+            <tr  ng-repeat=" pod in podList" style="display:table;width:650px;table-layout:fixed;min-width: 650px;">
+                <td><input type="radio" icheck name="pod" value="{{pod.name}}"></td>
+                <td style="width: 350px">{{pod.name}}</td>
+                <td style="width: 100px">{{pod.status}}</td>
+                <td style="width: 150px">{{pod.nodeName}}</td>
+            </tr>
+            </tbody>
+        </table>
+
+
+        <div class="panel panel-primary" style="margin-left:10px;margin-top: 30px;height:550px">
+            <div class="panel-heading">
+                Logs
+            </div>
+            <div class="panel-body" id="config-logs" style="height:90%; overflow-x: scroll;overflow-y: scroll;" >
+                <article ng-bind-html="configlogs | trustHtml">
+                </article>
+            </div>
+        </div>
+
+    </div>
+
+
+</div>

@@ -27,8 +27,8 @@ import (
 	"time"
 
 	"github.com/ghodss/yaml"
-	rpc "github.com/gogo/googleapis/google/rpc"
 
+	rpc "istio.io/gogo-genproto/googleapis/google/rpc"
 	"istio.io/istio/mixer/adapter/list/config"
 	"istio.io/istio/mixer/pkg/adapter/test"
 	"istio.io/istio/mixer/template/listentry"
@@ -44,66 +44,19 @@ func TestBasic(t *testing.T) {
 	cfg := info.DefaultConfig
 	b := info.NewBuilder().(*builder)
 	b.SetAdapterConfig(cfg)
-	b.SetListEntryTypes(nil)
 
 	if err := b.Validate(); err != nil {
 		t.Errorf("Got error %v, expecting success", err)
 	}
 
-	h, err := b.Build(context.Background(), test.NewEnv(t))
+	handler, err := b.Build(context.Background(), test.NewEnv(t))
 	if err != nil {
 		t.Errorf("Got error %v, expecting success", err)
 	}
 
-	if err = h.Close(); err != nil {
+	if err = handler.Close(); err != nil {
 		t.Errorf("Got error %v, expecting success", err)
 	}
-}
-
-// A test case for the list checker.
-type listTestCase struct {
-	addr   string
-	result rpc.Code
-	fail   bool
-}
-
-// Build a list handler with the given config.
-func buildHandler(t *testing.T, cfg *config.Params) (*handler, error) {
-	info := GetInfo()
-	b := info.NewBuilder().(*builder)
-	b.SetAdapterConfig(cfg)
-	h, err := b.Build(context.Background(), test.NewEnv(t))
-	if err != nil {
-		return nil, err
-	}
-	return h.(*handler), nil
-}
-
-// Checks that the given test cases are executed as expected by the handler.
-func checkCases(t *testing.T, cases []listTestCase, h *handler) {
-	for _, c := range cases {
-		t.Run(c.addr, func(t *testing.T) {
-			result, err := h.HandleListEntry(context.Background(), &listentry.Instance{Value: c.addr})
-			if (err != nil) != c.fail {
-				t.Errorf("Did not expect err '%v'", err)
-			}
-
-			if err != nil {
-				if result.Status.Code != int32(c.result) {
-					t.Errorf("Got '%v', expecting '%v'", result.Status.Code, c.result)
-				}
-			}
-		})
-	}
-}
-
-// Create a server that will serve the given data as the response on each request.
-func setupServer(t *testing.T, data string) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if _, err := w.Write([]byte(data)); err != nil {
-			t.Errorf("w.Write failed: %v", err)
-		}
-	}))
 }
 
 func containsListEntryTemplate(s []string) bool {
@@ -138,12 +91,22 @@ func TestIPList(t *testing.T) {
 		Overrides:       []string{"11.11.11.11"},
 		EntryType:       config.IP_ADDRESSES,
 	}
-	h, err := buildHandler(t, &cfg)
+	info := GetInfo()
+	b := info.NewBuilder().(*builder)
+	b.SetAdapterConfig(&cfg)
+
+	h, err := b.Build(context.Background(), test.NewEnv(t))
 	if err != nil {
 		t.Fatalf("Got error %v, expecting success", err)
 	}
 
-	cases := []listTestCase{
+	leh := h.(*handler)
+
+	cases := []struct {
+		addr   string
+		result rpc.Code
+		fail   bool
+	}{
 		{"10.10.11.2", rpc.OK, false},
 		{"9.9.9.1", rpc.OK, false},
 		{"120.10.11.2", rpc.NOT_FOUND, false},
@@ -154,44 +117,63 @@ func TestIPList(t *testing.T) {
 	listToServe = listPayload{
 		WhiteList: []string{"10.10.11.2", "10.10.11.3", "9.9.9.9/28"},
 	}
-	h.fetchList()
+	leh.fetchList()
 
 	// exercise the NOP code
-	h.fetchList()
+	leh.fetchList()
 
-	checkCases(t, cases, h)
+	for _, c := range cases {
+		t.Run(c.addr, func(t *testing.T) {
+			result, err := leh.HandleListEntry(context.Background(), &listentry.Instance{Value: c.addr})
+			if (err != nil) != c.fail {
+				t.Errorf("Did not expect err '%v'", err)
+			}
+
+			if err == nil {
+				if result.Status.Code != int32(c.result) {
+					t.Errorf("Got '%v', expecting '%v'", result.Status.Code, c.result)
+				}
+			}
+		})
+	}
 
 	// now try to parse a list with errors
-	entryCnt := h.list.numEntries()
+	entryCnt := leh.list.numEntries()
 	listToServe = listPayload{
 		WhiteList: []string{"10.10.11.2", "X", "10.10.11.3"},
 	}
-	h.fetchList()
-	if h.lastFetchError == nil {
+	leh.fetchList()
+	if leh.lastFetchError == nil {
 		t.Errorf("Got success, expected error")
 	}
 
-	if h.list.numEntries() != entryCnt {
-		t.Errorf("Got %d entries, expected %d", h.list.numEntries(), entryCnt)
+	if leh.list.numEntries() != entryCnt {
+		t.Errorf("Got %d entries, expected %d", leh.list.numEntries(), entryCnt)
 	}
 
 	// now try to parse a list in the wrong format
 	listToServe = []string{"JUNK"}
-	h.fetchList()
-	if h.lastFetchError == nil {
+	leh.fetchList()
+	if leh.lastFetchError == nil {
 		t.Error("Got success, expected error")
 	}
-	if h.list.numEntries() != entryCnt {
-		t.Errorf("Got %d entries, expected %d", h.list.numEntries(), entryCnt)
+	if leh.list.numEntries() != entryCnt {
+		t.Errorf("Got %d entries, expected %d", leh.list.numEntries(), entryCnt)
 	}
 
-	if err := h.Close(); err != nil {
+	if err := leh.Close(); err != nil {
 		t.Errorf("Unable to close adapter: %v", err)
 	}
 }
 
 func TestStringList(t *testing.T) {
-	ts := setupServer(t, "ABC\nDEF")
+	listToServe := "ABC\nDEF"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, err := w.Write([]byte(listToServe)); err != nil {
+			t.Errorf("w.Write failed: %v", err)
+		}
+	}))
 	defer ts.Close()
 
 	cfg := config.Params{
@@ -201,13 +183,22 @@ func TestStringList(t *testing.T) {
 		Overrides:       []string{"OVERRIDE"},
 		EntryType:       config.STRINGS,
 	}
+	info := GetInfo()
+	b := info.NewBuilder().(*builder)
+	b.SetAdapterConfig(&cfg)
 
-	h, err := buildHandler(t, &cfg)
+	h, err := b.Build(context.Background(), test.NewEnv(t))
 	if err != nil {
 		t.Fatalf("Got error %v, expecting success", err)
 	}
 
-	cases := []listTestCase{
+	leh := h.(*handler)
+
+	cases := []struct {
+		addr   string
+		result rpc.Code
+		fail   bool
+	}{
 		{"ABC", rpc.OK, false},
 		{"DEF", rpc.OK, false},
 		{"GHI", rpc.NOT_FOUND, false},
@@ -217,11 +208,30 @@ func TestStringList(t *testing.T) {
 		{"override", rpc.NOT_FOUND, false},
 	}
 
-	checkCases(t, cases, h)
+	for _, c := range cases {
+		t.Run(c.addr, func(t *testing.T) {
+			result, err := leh.HandleListEntry(context.Background(), &listentry.Instance{Value: c.addr})
+			if (err != nil) != c.fail {
+				t.Errorf("Did not expect err '%v'", err)
+			}
+
+			if err == nil {
+				if result.Status.Code != int32(c.result) {
+					t.Errorf("Got '%v', expecting '%v'", result.Status.Code, c.result)
+				}
+			}
+		})
+	}
 }
 
 func TestBlackStringList(t *testing.T) {
-	ts := setupServer(t, "ABC\nDEF")
+	listToServe := "ABC\nDEF"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, err := w.Write([]byte(listToServe)); err != nil {
+			t.Errorf("w.Write failed: %v", err)
+		}
+	}))
 	defer ts.Close()
 
 	cfg := config.Params{
@@ -232,13 +242,22 @@ func TestBlackStringList(t *testing.T) {
 		EntryType:       config.STRINGS,
 		Blacklist:       true,
 	}
+	info := GetInfo()
+	b := info.NewBuilder().(*builder)
+	b.SetAdapterConfig(&cfg)
 
-	h, err := buildHandler(t, &cfg)
+	h, err := b.Build(context.Background(), test.NewEnv(t))
 	if err != nil {
 		t.Fatalf("Got error %v, expecting success", err)
 	}
 
-	cases := []listTestCase{
+	leh := h.(*handler)
+
+	cases := []struct {
+		addr   string
+		result rpc.Code
+		fail   bool
+	}{
 		{"ABC", rpc.PERMISSION_DENIED, false},
 		{"DEF", rpc.PERMISSION_DENIED, false},
 		{"GHI", rpc.OK, false},
@@ -248,69 +267,27 @@ func TestBlackStringList(t *testing.T) {
 		{"override", rpc.OK, false},
 	}
 
-	checkCases(t, cases, h)
+	for _, c := range cases {
+		t.Run(c.addr, func(t *testing.T) {
+			result, err := leh.HandleListEntry(context.Background(), &listentry.Instance{Value: c.addr})
+			if (err != nil) != c.fail {
+				t.Errorf("Did not expect err '%v'", err)
+			}
+
+			if err == nil {
+				if result.Status.Code != int32(c.result) {
+					t.Errorf("Got '%v', expecting '%v'", result.Status.Code, c.result)
+				}
+			}
+		})
+	}
 }
 
 func TestCaseInsensitiveStringList(t *testing.T) {
-	ts := setupServer(t, "AbC\nDeF")
-	defer ts.Close()
-
-	cfg := config.Params{
-		ProviderUrl:     ts.URL,
-		RefreshInterval: 1 * time.Second,
-		Ttl:             10 * time.Second,
-		Overrides:       []string{"Override"},
-		EntryType:       config.CASE_INSENSITIVE_STRINGS,
-	}
-	h, err := buildHandler(t, &cfg)
-	if err != nil {
-		t.Fatalf("Got error %v, expecting success", err)
-	}
-
-	cases := []listTestCase{
-		{"ABC", rpc.OK, false},
-		{"DEF", rpc.OK, false},
-		{"GHI", rpc.NOT_FOUND, false},
-		{"OVERRIDE", rpc.OK, false},
-
-		{"abc", rpc.OK, false},
-		{"override", rpc.OK, false},
-	}
-
-	checkCases(t, cases, h)
-}
-
-func TestNoUrlStringList(t *testing.T) {
-	cfg := config.Params{
-		Overrides: []string{"OVERRIDE"},
-		EntryType: config.STRINGS,
-	}
-	h, err := buildHandler(t, &cfg)
-	if err != nil {
-		t.Fatalf("Got error %v, expecting success", err)
-	}
-
-	cases := []listTestCase{
-		{"ABC", rpc.NOT_FOUND, false},
-		{"OVERRIDE", rpc.OK, false},
-		{"abc", rpc.NOT_FOUND, false},
-		{"override", rpc.NOT_FOUND, false},
-	}
-
-	checkCases(t, cases, h)
-}
-
-func TestRegexList(t *testing.T) {
-	var listToServe interface{}
+	listToServe := "AbC\nDeF"
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		out, err := yaml.Marshal(listToServe)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if _, err := w.Write(out); err != nil {
+		if _, err := w.Write([]byte(listToServe)); err != nil {
 			t.Errorf("w.Write failed: %v", err)
 		}
 	}))
@@ -320,62 +297,98 @@ func TestRegexList(t *testing.T) {
 		ProviderUrl:     ts.URL,
 		RefreshInterval: 1 * time.Second,
 		Ttl:             10 * time.Second,
-		Overrides:       []string{"a*b"},
-		EntryType:       config.REGEX,
+		Overrides:       []string{"Override"},
+		EntryType:       config.CASE_INSENSITIVE_STRINGS,
 	}
-	h, err := buildHandler(t, &cfg)
+	info := GetInfo()
+	b := info.NewBuilder().(*builder)
+	b.SetAdapterConfig(&cfg)
+
+	h, err := b.Build(context.Background(), test.NewEnv(t))
 	if err != nil {
 		t.Fatalf("Got error %v, expecting success", err)
 	}
 
-	cases := []listTestCase{
+	leh := h.(*handler)
+
+	cases := []struct {
+		addr   string
+		result rpc.Code
+		fail   bool
+	}{
+		{"ABC", rpc.OK, false},
+		{"DEF", rpc.OK, false},
+		{"GHI", rpc.NOT_FOUND, false},
+		{"OVERRIDE", rpc.OK, false},
+
 		{"abc", rpc.OK, false},
-		{"B", rpc.NOT_FOUND, false},
+		{"override", rpc.OK, false},
 	}
 
-	listToServe = listPayload{
-		WhiteList: []string{"a+.*", "efg"},
-	}
-	h.fetchList()
+	for _, c := range cases {
+		t.Run(c.addr, func(t *testing.T) {
+			result, err := leh.HandleListEntry(context.Background(), &listentry.Instance{Value: c.addr})
+			if (err != nil) != c.fail {
+				t.Errorf("Did not expect err '%v'", err)
+			}
 
-	// exercise the NOP code
-	h.fetchList()
-
-	checkCases(t, cases, h)
-
-	// now try to parse a list with errors
-	entryCnt := h.list.numEntries()
-	listToServe = listPayload{
-		WhiteList: []string{"10.10.11.2", "(", "10.10.11.3"},
-	}
-	h.fetchList()
-	if h.lastFetchError == nil {
-		t.Errorf("Got success, expected error")
-	}
-
-	if h.list.numEntries() != entryCnt {
-		t.Errorf("Got %d entries, expected %d", h.list.numEntries(), entryCnt)
-	}
-
-	// now try to parse a list in the wrong format
-	listToServe = []string{"("}
-	h.fetchList()
-	if h.lastFetchError == nil {
-		t.Error("Got success, expected error")
-	}
-	if h.list.numEntries() != entryCnt {
-		t.Errorf("Got %d entries, expected %d", h.list.numEntries(), entryCnt)
-	}
-
-	if err := h.Close(); err != nil {
-		t.Errorf("Unable to close adapter: %v", err)
+			if err == nil {
+				if result.Status.Code != int32(c.result) {
+					t.Errorf("Got '%v', expecting '%v'", result.Status.Code, c.result)
+				}
+			}
+		})
 	}
 }
 
-func TestBadRegexOverride(t *testing.T) {
+func TestNoUrlStringList(t *testing.T) {
+	cfg := &config.Params{
+		Overrides: []string{"OVERRIDE"},
+		EntryType: config.STRINGS,
+	}
+	info := GetInfo()
+	b := info.NewBuilder().(*builder)
+	b.SetAdapterConfig(cfg)
+
+	h, err := b.Build(context.Background(), test.NewEnv(t))
+	if err != nil {
+		t.Fatalf("Got error %v, expecting success", err)
+	}
+
+	leh := h.(*handler)
+
+	cases := []struct {
+		addr   string
+		result rpc.Code
+		fail   bool
+	}{
+		{"ABC", rpc.NOT_FOUND, false},
+		{"OVERRIDE", rpc.OK, false},
+		{"abc", rpc.NOT_FOUND, false},
+		{"override", rpc.NOT_FOUND, false},
+	}
+
+	for _, c := range cases {
+		t.Run(c.addr, func(t *testing.T) {
+			result, err := leh.HandleListEntry(context.Background(), &listentry.Instance{Value: c.addr})
+			if (err != nil) != c.fail {
+				t.Errorf("Did not expect err '%v'", err)
+			}
+
+			if err == nil {
+				if result.Status.Code != int32(c.result) {
+					t.Errorf("Got '%v', expecting '%v'", result.Status.Code, c.result)
+				}
+			}
+		})
+	}
+}
+
+func TestRegexList(t *testing.T) {
 	cfg := &config.Params{
 		Overrides: []string{
-			"(", // invalid regex
+			"a+.*",
+			"efg",
 		},
 		EntryType: config.REGEX,
 	}
@@ -383,8 +396,29 @@ func TestBadRegexOverride(t *testing.T) {
 	b := info.NewBuilder().(*builder)
 	b.SetAdapterConfig(cfg)
 
-	if err := b.Validate(); err == nil {
-		t.Error("Expected validation error")
+	h, err := b.Build(context.Background(), test.NewEnv(t))
+	if err != nil {
+		t.Fatalf("Got error %v, expecting success", err)
+	}
+
+	cases := []struct {
+		symbol string
+		result rpc.Code
+	}{
+		{"abc", rpc.OK},
+		{"B", rpc.NOT_FOUND},
+	}
+
+	rlh := h.(*handler)
+	for _, c := range cases {
+		result, err := rlh.HandleListEntry(context.Background(), &listentry.Instance{Value: c.symbol})
+		if err != nil {
+			t.Fatalf(`unexpected failure %v`, err)
+		}
+
+		if result.Status.Code != int32(c.result) {
+			t.Errorf(`Got '%v', expecting '%v'`, result.Status.Code, c.result)
+		}
 	}
 }
 
@@ -394,16 +428,21 @@ func TestBadUrl(t *testing.T) {
 		RefreshInterval: 1 * time.Second,
 		Ttl:             2 * time.Second,
 	}
-	h, err := buildHandler(t, &cfg)
+	info := GetInfo()
+	b := info.NewBuilder().(*builder)
+	b.SetAdapterConfig(&cfg)
+
+	handler, err := b.Build(context.Background(), test.NewEnv(t))
 	if err != nil {
 		t.Fatalf("Got error %v, expecting success", err)
 	}
 
-	if _, err := h.HandleListEntry(context.Background(), &listentry.Instance{Value: "JUNK"}); err == nil {
+	listEntryHandler := handler.(listentry.Handler)
+	if _, err := listEntryHandler.HandleListEntry(context.Background(), &listentry.Instance{Value: "JUNK"}); err == nil {
 		t.Error("Got success, expected failure")
 	}
 
-	if err := h.Close(); err != nil {
+	if err := handler.Close(); err != nil {
 		t.Errorf("Unable to close handler: %v", err)
 	}
 }
@@ -423,58 +462,38 @@ func TestIOErrors(t *testing.T) {
 		RefreshInterval: 10000 * time.Second,
 		Ttl:             20000 * time.Second,
 	}
-	h, err := buildHandler(t, &cfg)
+	info := GetInfo()
+	b := info.NewBuilder().(*builder)
+	b.SetAdapterConfig(&cfg)
+
+	h, err := b.Build(context.Background(), test.NewEnv(t))
 	if err != nil {
 		t.Fatalf("Got error %v, expecting success", err)
 	}
 
-	if _, err := h.HandleListEntry(context.Background(), &listentry.Instance{Value: "JUNK"}); err == nil {
+	leh := h.(*handler)
+	if _, err := leh.HandleListEntry(context.Background(), &listentry.Instance{Value: "JUNK"}); err == nil {
 		t.Error("Got success, expected failure")
 	}
 
 	// now try to process an uncooperative body
 	serveError = false
-	h.lastFetchError = nil
-	h.readAll = func(r io.Reader) ([]byte, error) { return nil, errors.New("nothing good ever happens to me") }
-	h.fetchList()
+	leh.lastFetchError = nil
+	leh.readAll = func(r io.Reader) ([]byte, error) { return nil, errors.New("nothing good ever happens to me") }
+	leh.fetchList()
 
-	if h.lastFetchError == nil {
+	if leh.lastFetchError == nil {
 		t.Errorf("Got success, expected failure")
 	}
 
-	if err := h.Close(); err != nil {
-		t.Errorf("Unable to close handler: %v", err)
-	}
-}
-
-func TestRegexErrors(t *testing.T) {
-	ts := setupServer(t, "ABC\n[(\n])")
-	defer ts.Close()
-
-	cfg := config.Params{
-		ProviderUrl:     ts.URL,
-		RefreshInterval: 1 * time.Second,
-		Ttl:             10 * time.Second,
-		EntryType:       config.REGEX,
-	}
-	h, err := buildHandler(t, &cfg)
-	if err != nil {
-		t.Fatalf("Got error %v, expecting success", err)
-	}
-
-	if h.lastFetchError == nil {
-		t.Errorf("Got success, expected failure")
-	}
-
-	if err := h.Close(); err != nil {
+	if err := leh.Close(); err != nil {
 		t.Errorf("Unable to close handler: %v", err)
 	}
 }
 
 func TestRefreshAndPurge(t *testing.T) {
 	listToServe := "ABC"
-	var h *handler
-	var err error
+	var leh *handler
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -486,7 +505,7 @@ func TestRefreshAndPurge(t *testing.T) {
 		if atomic.LoadInt32(&failServe) > 0 {
 			w.WriteHeader(http.StatusMovedPermanently)
 
-			if h.list == nil {
+			if leh.list == nil {
 				// the list was purged
 				if !purgeDetected {
 					purgeDetected = true
@@ -497,7 +516,7 @@ func TestRefreshAndPurge(t *testing.T) {
 			return
 		}
 
-		if _, err = w.Write([]byte(listToServe)); err != nil {
+		if _, err := w.Write([]byte(listToServe)); err != nil {
 			t.Errorf("w.Write failed: %v", err)
 		}
 	}))
@@ -509,12 +528,18 @@ func TestRefreshAndPurge(t *testing.T) {
 		Ttl:             2 * time.Millisecond,
 		EntryType:       config.STRINGS,
 	}
-	h, err = buildHandler(t, &cfg)
+	info := GetInfo()
+	b := info.NewBuilder().(*builder)
+	b.SetAdapterConfig(&cfg)
+
+	h, err := b.Build(context.Background(), test.NewEnv(t))
 	if err != nil {
 		t.Fatalf("Got error %v, expecting success", err)
 	}
 
-	_, err = h.HandleListEntry(context.Background(), &listentry.Instance{Value: "ABC"})
+	leh = h.(*handler)
+
+	_, err = leh.HandleListEntry(context.Background(), &listentry.Instance{Value: "ABC"})
 	if err != nil {
 		t.Errorf("Got error %v, expecting success", err)
 	}
@@ -525,7 +550,7 @@ func TestRefreshAndPurge(t *testing.T) {
 	// wait for the list to have been purged
 	wg.Wait()
 
-	_, err = h.HandleListEntry(context.Background(), &listentry.Instance{Value: "ABC"})
+	_, err = leh.HandleListEntry(context.Background(), &listentry.Instance{Value: "ABC"})
 	if err == nil {
 		t.Error("Got success, expected error")
 	}
@@ -594,11 +619,6 @@ func TestValidateConfig(t *testing.T) {
 		{
 			cfg:   config.Params{EntryType: config.IP_ADDRESSES, Overrides: []string{"1.2.3.4"}},
 			field: "",
-		},
-
-		{
-			cfg:   config.Params{EntryType: config.REGEX, Overrides: []string{"(["}},
-			field: "overrides",
 		},
 	}
 

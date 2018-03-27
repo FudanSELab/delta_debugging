@@ -15,11 +15,8 @@
 package routing
 
 import (
-	"context"
 	"strings"
 	"testing"
-
-	"github.com/gogo/protobuf/types"
 
 	"istio.io/istio/mixer/pkg/adapter"
 	"istio.io/istio/mixer/pkg/il/compiled"
@@ -70,7 +67,7 @@ ID: 1
 	},
 
 	{
-		Name:          "multiple-instances-check",
+		Name:          "multiple-instances",
 		ServiceConfig: data.ServiceConfig,
 		Configs: []string{
 			data.HandlerACheck1,
@@ -92,29 +89,7 @@ ID: 1
 	},
 
 	{
-		Name:          "multiple-instances-report",
-		ServiceConfig: data.ServiceConfig,
-		Configs: []string{
-			data.HandlerAReport1,
-			data.InstanceReport1,
-			data.InstanceReport2,
-			data.RuleReport1And2,
-		},
-		ExpectedTable: `
-[Routing ExpectedTable]
-ID: 1
-[#0] TEMPLATE_VARIETY_REPORT {V}
-  [#0] istio-system {NS}
-    [#0] hreport1.areport.istio-system {H}
-      [#0]
-        Condition: <NONE>
-        [#0] ireport1.treport.istio-system {I}
-        [#1] ireport2.treport.istio-system {I}
-`,
-	},
-
-	{
-		Name:          "check-instance-with-conditional",
+		Name:          "instance-with-conditional",
 		ServiceConfig: data.ServiceConfig,
 		Configs: []string{
 			data.HandlerACheck1,
@@ -128,7 +103,7 @@ ID: 1
   [#0] istio-system {NS}
     [#0] hcheck1.acheck.istio-system {H}
       [#0]
-        Condition: match(destination.name, "foo*")
+        Condition: match(target.name, "foo*")
         [#0] icheck1.tcheck.istio-system {I}
 `,
 	},
@@ -169,7 +144,7 @@ ID: 1
   [#0] istio-system {NS}
     [#0] hcheck1.acheck.istio-system {H}
       [#0]
-        Condition: match(destination.name, "foo*")
+        Condition: match(target.name, "foo*")
         [#0] icheck1.tcheck.istio-system {I}
         [#1] icheck2.tcheck.istio-system {I}
 `,
@@ -193,13 +168,13 @@ ID: 1
   [#0] istio-system {NS}
     [#0] hcheck1.acheck.istio-system {H}
       [#0]
-        Condition: destination.name.startsWith("foo")
-        [#0] icheck2.tcheck.istio-system {I}
-		[#1] icheck3.tcheck.istio-system {I}
-      [#1]
-        Condition: match(destination.name, "foo*")
+        Condition: match(target.name, "foo*")
         [#0] icheck1.tcheck.istio-system {I}
         [#1] icheck2.tcheck.istio-system {I}
+      [#1]
+        Condition: target.name.startsWith("foo")
+        [#0] icheck2.tcheck.istio-system {I}
+		[#1] icheck3.tcheck.istio-system {I}
 `,
 	},
 
@@ -251,7 +226,7 @@ ID: 1
         Condition: <NONE>
         [#0] icheck1.tcheck.istio-system {I}
       [#1]
-        Condition: destination.name.startsWith("foo")
+        Condition: target.name.startsWith("foo")
         [#0] icheck2.tcheck.istio-system {I}
         [#1] icheck3.tcheck.istio-system {I}
 `,
@@ -566,74 +541,4 @@ func buildTableWithTemplatesAndAdapters(templates map[string]*template.Info, ada
 	expb := compiled.NewBuilder(s.Attributes)
 
 	return BuildTable(ht, s, expb, "istio-system", debugInfo), s
-}
-
-func TestNonPointerAdapter(t *testing.T) {
-
-	templates := data.BuildTemplates(nil)
-
-	adapters := map[string]*adapter.Info{
-		"acheck": {
-			Name:               "acheck",
-			SupportedTemplates: []string{"tcheck", "thalt"},
-			DefaultConfig:      &types.Struct{},
-			NewBuilder: func() adapter.HandlerBuilder {
-				return nonPointerBuilder{}
-			},
-		},
-	}
-
-	globalConfigs := []string{
-		data.HandlerACheck1,
-		data.InstanceCheck1,
-		data.InstanceCheck2,
-		data.RuleCheck1WithInstance1And2,
-	}
-
-	expected := `
-[Routing ExpectedTable]
-ID: 1
-[#0] TEMPLATE_VARIETY_CHECK {V}
-  [#0] istio-system {NS}
-    [#0] hcheck1.acheck.istio-system {H}
-      [#0]
-        Condition: <NONE>
-        [#0] icheck1.tcheck.istio-system {I}
-        [#1] icheck2.tcheck.istio-system {I}
-`
-
-	table, _ := buildTableWithTemplatesAndAdapters(templates, adapters, data.ServiceConfig, globalConfigs, true)
-
-	actual := table.String()
-
-	if normalize(actual) != normalize(expected) {
-		t.Fatalf("got:\n%v\nwant:\n%v\n", actual, expected)
-	}
-}
-
-type nonPointerBuilder struct{}
-
-var _ adapter.HandlerBuilder = nonPointerBuilder{}
-
-func (n nonPointerBuilder) SetAdapterConfig(adapter.Config) {
-}
-
-func (n nonPointerBuilder) Validate() *adapter.ConfigErrors {
-	return nil
-}
-
-func (n nonPointerBuilder) Build(context.Context, adapter.Env) (adapter.Handler, error) {
-	return nonPointerHandler{fn: func() {}}, nil
-}
-
-type nonPointerHandler struct {
-	// Make handler non-comparable.
-	fn func()
-}
-
-var _ adapter.Handler = nonPointerHandler{}
-
-func (h nonPointerHandler) Close() error {
-	h.fn()
-	return nil
 }

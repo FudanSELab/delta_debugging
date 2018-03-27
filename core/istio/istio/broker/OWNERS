@@ -1,3 +1,6 @@
-approvers:
-  - geeknoid
+reviewers:
   - xiaolanz
+  - geeknoid
+approvers:
+  - xiaolanz
+  - geeknoid

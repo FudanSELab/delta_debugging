@@ -23,12 +23,12 @@ import (
 	proto "github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 
-	tmpl "istio.io/api/mixer/adapter/model/v1beta1"
+	tmpl "istio.io/api/mixer/v1/template"
 )
 
-const fullProtoNameOfValueTypeEnum = "istio.policy.v1beta1.ValueType"
-const fullGoNameOfValueTypeEnum = "istio_policy_v1beta1.ValueType"
-const fullProtoNameOfValueMsg = "istio.mixer.adapter.model.v1beta1.Value"
+const fullProtoNameOfValueTypeEnum = "istio.mixer.v1.config.descriptor.ValueType"
+const fullGoNameOfValueTypeEnum = "istio_mixer_v1_config_descriptor.ValueType"
+const fullProtoNameOfValueMsg = "istio.mixer.v1.template.Value"
 
 type typeMetadata struct {
 	goName   string
@@ -38,24 +38,24 @@ type typeMetadata struct {
 // Hardcoded proto->go type mapping along with imports for the
 // generated code.
 var customMessageTypeMetadata = map[string]typeMetadata{
-	".istio.mixer.adapter.model.v1beta1.Duration": {
+	".istio.mixer.v1.template.Duration": {
 		goName:   "time.Duration",
 		goImport: "time",
 	},
-	".istio.mixer.adapter.model.v1beta1.TimeStamp": {
+	".istio.mixer.v1.template.TimeStamp": {
 		goName:   "time.Time",
 		goImport: "time",
 	},
-	".istio.mixer.adapter.model.v1beta1.IPAddress": {
+	".istio.mixer.v1.template.IPAddress": {
 		goName: "net.IP",
 	},
-	".istio.mixer.adapter.model.v1beta1.DNSName": {
+	".istio.mixer.v1.template.DNSName": {
 		goName: "adapter.DNSName",
 	},
-	".istio.mixer.adapter.model.v1beta1.EmailAddress": {
+	".istio.mixer.v1.template.EmailAddress": {
 		goName: "adapter.EmailAddress",
 	},
-	".istio.mixer.adapter.model.v1beta1.Uri": {
+	".istio.mixer.v1.template.Uri": {
 		goName: "adapter.URI",
 	},
 }
@@ -362,7 +362,7 @@ func getMsg(fdp *FileDescriptor, msgName string) (*Descriptor, bool) {
 func createInvalidTypeError(field string, valueTypeAllowed bool, extraErr error) error {
 	var supTypes []string
 	if valueTypeAllowed {
-		supTypes = append([]string{fullProtoNameOfValueMsg}, simpleTypes...)
+		supTypes = append([]string{fullProtoNameOfValueTypeEnum}, simpleTypes...)
 	} else {
 		supTypes = simpleTypes
 	}
@@ -417,11 +417,8 @@ func getTypeNameRec(g *FileDescriptorSetParser, field *descriptor.FieldDescripto
 	case descriptor.FieldDescriptorProto_TYPE_BOOL:
 		return TypeInfo{Name: "bool"}, TypeInfo{Name: sBOOL}, nil
 	case descriptor.FieldDescriptorProto_TYPE_MESSAGE:
-		if field.GetTypeName()[1:] == fullProtoNameOfValueMsg {
-			if valueTypeAllowed {
-				return TypeInfo{Name: fullProtoNameOfValueTypeEnum, IsValueType: true}, TypeInfo{Name: fullGoNameOfValueTypeEnum, IsValueType: true}, nil
-			}
-			return TypeInfo{}, TypeInfo{}, createInvalidTypeError(field.GetName(), valueTypeAllowed, nil)
+		if valueTypeAllowed && field.GetTypeName()[1:] == fullProtoNameOfValueMsg {
+			return TypeInfo{Name: fullProtoNameOfValueTypeEnum, IsValueType: true}, TypeInfo{Name: fullGoNameOfValueTypeEnum, IsValueType: true}, nil
 		}
 		if v, ok := customMessageTypeMetadata[field.GetTypeName()]; ok {
 			return TypeInfo{Name: field.GetTypeName()[1:]},

@@ -1,7 +1,7 @@
 var service = angular.module('app.service-controller', []);
 
-service.controller('ServiceCtrl',['$scope', '$http','$window','loadTestCases', '$interval', 'serviceLogService', 'refreshPodsService','getPodLogService',
-    function($scope, $http,$window,loadTestCases, $interval, serviceLogService, refreshPodsService, getPodLogService) {
+service.controller('ServiceCtrl',['$scope', '$http','$window','loadTestCases',  'serviceLogService', 'refreshPodsService','getPodLogService',
+    function($scope, $http,$window,loadTestCases,  serviceLogService, refreshPodsService, getPodLogService) {
 
     // 加载testcase列表
     loadTestCases.loadTestList().then(function (result) {
@@ -18,7 +18,6 @@ service.controller('ServiceCtrl',['$scope', '$http','$window','loadTestCases', '
 
     $scope.refreshPod = function(){
         refreshPodsService.load().then(function(result){
-            // alert("23333");
             if(result.status){
                 $scope.podList = result.pods;
             } else {
@@ -31,7 +30,6 @@ service.controller('ServiceCtrl',['$scope', '$http','$window','loadTestCases', '
     var stompClient = null;
     //传递用户key值
     var loginId = new UUID().id;
-    // $scope.deltaResults = [];
 
     function setConnected(connected) {
         if(connected){
@@ -94,7 +92,6 @@ service.controller('ServiceCtrl',['$scope', '$http','$window','loadTestCases', '
     };
 
     $window.onbeforeunload = function(){
-        $interval.cancel(timer);
         disconnect();
     };
 
@@ -106,13 +103,13 @@ service.controller('ServiceCtrl',['$scope', '$http','$window','loadTestCases', '
             pods.push($(this).val());
         });
         if(pods.length > 0){
-            $('#suspectPodButton').addClass('disabled');
+            $('#inspectPodButton').addClass('disabled');
             getPodLogService.load(pods[0]).then(function(result){
                 if(result.status){
                     $scope.servicelogs += result.podLog.podName +  ":</br>" + result.podLog.logs + "</br>";
                     var height = $('#service-logs').prop('scrollHeight');
                     $('#service-logs').scrollTop(height);
-                    $('#suspectPodButton').removeClass('disabled');
+                    $('#inspectPodButton').removeClass('disabled');
                 } else {
                     alert(result.message);
                 }
@@ -121,22 +118,7 @@ service.controller('ServiceCtrl',['$scope', '$http','$window','loadTestCases', '
             alert("Please check at least one pod to show the logs!");
         }
     };
-    // var i = 0;
-    // var timer = $interval(function () {
-    //     serviceLogService.loadLogs().then(function(result){
-    //         $scope.servicelogs += (++i) + ": " + result + "</br>";
-    //         var height = $('#service-logs').prop('scrollHeight');
-    //         $('#service-logs').scrollTop(height);
-    //     });
-    // }, 100, 30);
-    //
-    // timer.then(endNotify);
-    //
-    // function endNotify(){
-    //     $scope.servicelogs += "Logs end!";
-    //     var height = $('#service-logs').prop('scrollHeight');
-    //     $('#service-logs').scrollTop(height);
-    // }
+
 
 }]);
 
@@ -196,28 +178,28 @@ service.factory('serviceLogService', function ($http, $q) {
 
 
 
-service.factory('loadTestCases', function ($http, $q) {
-    var service = {};
-    //获取并返回数据
-    service.loadTestList = function () {
-        var deferred = $q.defer();
-        var promise = deferred.promise;
-
-        $http({
-            method: "get",
-            url: "/testBackend/getFileTree",
-            contentType: "application/json",
-            dataType: "json",
-            withCredentials: true,
-        }).success(function (data, status, headers, config) {
-            if (data) {
-                deferred.resolve(data);
-            }
-            else{
-                alert("Request the order list fail!" + data.message);
-            }
-        });
-        return promise;
-    };
-    return service;
-});
+// service.factory('loadTestCases', function ($http, $q) {
+//     var service = {};
+//     //获取并返回数据
+//     service.loadTestList = function () {
+//         var deferred = $q.defer();
+//         var promise = deferred.promise;
+//
+//         $http({
+//             method: "get",
+//             url: "/testBackend/getFileTree",
+//             contentType: "application/json",
+//             dataType: "json",
+//             withCredentials: true,
+//         }).success(function (data, status, headers, config) {
+//             if (data) {
+//                 deferred.resolve(data);
+//             }
+//             else{
+//                 alert("Request the order list fail!" + data.message);
+//             }
+//         });
+//         return promise;
+//     };
+//     return service;
+// });

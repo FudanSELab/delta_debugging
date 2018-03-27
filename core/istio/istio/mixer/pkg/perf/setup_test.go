@@ -123,13 +123,13 @@ load:
   iterations: 100
   requests:
   - attributes:
-      destination.name: somesrvcname
+      target.name: somesrvcname
     type: basicReport
   - attributes:
-      destination.name: cvd
+      target.name: cvd
     type: basicReport
   - attributes:
-      destination.name: somesrvcname
+      target.name: somesrvcname
     type: basicCheck
 `,
 		setup: Setup{
@@ -144,14 +144,14 @@ load:
 				Multiplier: 100,
 				Requests: []Request{
 					BasicReport{
-						Attributes: map[string]interface{}{"destination.name": "somesrvcname"},
+						Attributes: map[string]interface{}{"target.name": "somesrvcname"},
 					},
 					BasicReport{
-						Attributes: map[string]interface{}{"destination.name": "cvd"},
+						Attributes: map[string]interface{}{"target.name": "cvd"},
 					},
 					BasicCheck{
 						Attributes: map[string]interface{}{
-							"destination.name": "somesrvcname",
+							"target.name": "somesrvcname",
 						},
 					},
 				},

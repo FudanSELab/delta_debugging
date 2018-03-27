@@ -19,7 +19,8 @@ import (
 	"strings"
 	"testing"
 	"time"
-
+	// TODO(nmittler): Remove this
+	_ "github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -212,8 +213,7 @@ func FetchLogs(cl kubernetes.Interface, name, namespace string, container string
 }
 
 // Eventually retries until f() returns true, or it times out in error
-func Eventually(name string, f func() bool, t *testing.T) {
-	t.Helper()
+func Eventually(f func() bool, t *testing.T) {
 	interval := 64 * time.Millisecond
 	for i := 0; i < 10; i++ {
 		if f() {
@@ -223,5 +223,5 @@ func Eventually(name string, f func() bool, t *testing.T) {
 		time.Sleep(interval)
 		interval = 2 * interval
 	}
-	t.Errorf("Failed to satisfy function %q", name)
+	t.Errorf("Failed to satisfy function")
 }

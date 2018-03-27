@@ -72,10 +72,13 @@ const (
 	namespace = "istio"
 )
 
-// getInfo returns the Info associated with this adapter.
-func getInfo(addr string) (adapter.Info, server) {
+// GetInfo returns the Info associated with this adapter.
+func GetInfo() adapter.Info {
+	// prometheus uses a singleton http port, so we make the
+	// builder itself a singleton, when defaultAddr become configurable
+	// srv will be a map[string]server
 	singletonBuilder := &builder{
-		srv: newServer(addr),
+		srv: newServer(defaultAddr),
 	}
 	singletonBuilder.clearState()
 	return adapter.Info{
@@ -87,16 +90,7 @@ func getInfo(addr string) (adapter.Info, server) {
 		},
 		NewBuilder:    func() adapter.HandlerBuilder { return singletonBuilder },
 		DefaultConfig: &config.Params{},
-	}, singletonBuilder.srv
-}
-
-// GetInfo returns the Info associated with this adapter.
-func GetInfo() adapter.Info {
-	// prometheus uses a singleton http port, so we make the
-	// builder itself a singleton, when defaultAddr become configurable
-	// srv will be a map[string]server
-	ii, _ := getInfo(defaultAddr)
-	return ii
+	}
 }
 
 func (b *builder) clearState() {

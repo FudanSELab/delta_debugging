@@ -1,7 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: istio-mixer
+  name: {{ template "mixer.fullname" . }}
   labels:
     app: {{ template "mixer.name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
@@ -15,11 +15,13 @@ spec:
   template:
     metadata:
       labels:
+        app: {{ template "mixer.name" . }}
+        release: {{ .Release.Name }}
         istio: mixer
       annotations:
         sidecar.istio.io/inject: "false"
     spec:
-      serviceAccountName: istio-mixer-service-account
+      serviceAccountName: {{ template "mixer.serviceAccountName" . }}
       containers:
         - name: statsd-to-prometheus
           image: "{{ .Values.prometheusStatsdExporter.repository }}:{{ .Values.prometheusStatsdExporter.tag}}"
@@ -36,7 +38,7 @@ spec:
           - name: config-volume
             mountPath: /etc/statsd
         - name: {{ template "mixer.name" . }}
-          image: "{{ .Values.global.hub }}/mixer:{{ .Values.global.tag }}"
+          image: "{{ .Values.global.mixer.repository }}:{{ .Values.global.mixer.tag }}"
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           ports:
           - containerPort: 9091
@@ -44,20 +46,25 @@ spec:
           - containerPort: 9094
           - containerPort: 42422
           args:
-            - --configStoreURL=k8s://
+            - --configStoreURL=fs:///etc/opt/mixer/configroot
+            - --configStore2URL=k8s://
             - --configDefaultNamespace={{ .Release.Namespace }}
-            - --trace_zipkin_url=http://zipkin:9411/api/v1/spans
+            - --zipkinURL=http://zipkin:9411/api/v1/spans
             - --logtostderr
+            - -v
+            - "2"
           resources:
 {{ toYaml .Values.resources | indent 12 }}
         - name: {{ template "mixer.name" . }}-proxy
-          image: "{{ .Values.global.hub }}/{{ .Values.global.proxy.image }}:{{ .Values.global.tag }}"
+          image: "{{ .Values.global.proxy.repository }}:{{ .Values.global.proxy.tag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           ports:
           - containerPort: 15004
           args:
           - proxy
           - mixer
+          - -v
+          - "2"
           - --controlPlaneAuthPolicy
         {{- if .Values.global.securityEnabled }}
           - MUTUAL_TLS
@@ -77,11 +84,11 @@ spec:
       volumes:
       - name: istio-certs
         secret:
-          secretName: istio.istio-mixer-service-account
+          secretName: istio.{{ template "mixer.serviceAccountName" . }}
           optional: true
       - name: config-volume
         configMap:
-          name: istio-mixer
+          name: {{ template "mixer.fullname" . }}
     {{- if .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml .Values.nodeSelector | indent 8 }}

@@ -1,6 +1,19 @@
+reviewers:
+  - ayj
+  - Douglas-reid
+  - geeknoid
+  - guptasu
+  - jmuk
+  - mandarjog
+  - ozevren
+  - sebastienvas
+  - ZackButcher
+  - apicl
 approvers:
-  - douglas-reid
+  - Douglas-reid
   - geeknoid
   - guptasu
   - mandarjog
   - ozevren
+  - ZackButcher
+  - apicl
