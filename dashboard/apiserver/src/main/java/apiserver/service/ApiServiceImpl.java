@@ -8,8 +8,6 @@ import com.alibaba.fastjson.JSON;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.print.attribute.standard.MediaSize;
-import javax.xml.soap.Node;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -83,7 +81,7 @@ public class ApiServiceImpl implements ApiService {
     public GetServicesListResponse getServicesList() {
         GetServicesListResponse response = new GetServicesListResponse();
         //Get the current deployments information
-        QueryDeploymentsListResponse deploymentsList = getDeploymentList();
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE);
         //Iterate the list and return the result
         List<ServiceWithReplicas> services = new ArrayList<ServiceWithReplicas>();
         for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
@@ -110,7 +108,7 @@ public class ApiServiceImpl implements ApiService {
     public GetServiceReplicasResponse getServicesReplicas(GetServiceReplicasRequest getServiceReplicasRequest) {
         GetServiceReplicasResponse response = new GetServiceReplicasResponse();
         //Get the current deployments information
-        QueryDeploymentsListResponse deploymentsList = getDeploymentList();
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE);
         //Iterate the list and return the result
         List<ServiceWithReplicas> services = new ArrayList<ServiceWithReplicas>();
         for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
@@ -144,7 +142,7 @@ public class ApiServiceImpl implements ApiService {
         response.setStatus(true);
         response.setMessage("Succeed to delete all of the services not contained in the list");
         //Get the current deployments information
-        QueryDeploymentsListResponse deploymentsList = getDeploymentList();
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE);
 
         for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
             //Delete the services not contained in the list
@@ -203,7 +201,7 @@ public class ApiServiceImpl implements ApiService {
                 e.printStackTrace();
             }
             //Check whether all of the services are available again in certain internals
-            while(!isAllReady()){
+            while(!isAllReady(NAMESPACE)){
                 try{
                     //Check every 10 seconds
                     Thread.sleep(10000);
@@ -304,7 +302,7 @@ public class ApiServiceImpl implements ApiService {
             e.printStackTrace();
         }
         //Check whether all of the services are available again in certain internals
-        while(!isAllReady()){
+        while(!isAllReady(NAMESPACE)){
             try{
                 //Check every 10 seconds
                 Thread.sleep(10000);
@@ -348,7 +346,7 @@ public class ApiServiceImpl implements ApiService {
             e.printStackTrace();
         }
         //Check whether all of the services are available again in certain internals
-        while(!isAllReady()){
+        while(!isAllReady(NAMESPACE)){
             try{
                 //Check every 10 seconds
                 Thread.sleep(10000);
@@ -363,7 +361,7 @@ public class ApiServiceImpl implements ApiService {
     @Override
     public GetPodsListResponse getPodsList() {
         GetPodsListResponse response = new GetPodsListResponse();
-        V1PodList podList = getPodList();
+        V1PodList podList = getPodList("");
         System.out.println(String.format("There are now %d pods in the cluster now", podList.getItems().size()));
         if(podList.getItems().size() < 1){
             response.setStatus(true);
@@ -392,7 +390,7 @@ public class ApiServiceImpl implements ApiService {
     @Override
     public GetPodsLogResponse getPodsLog() {
         GetPodsLogResponse response = new GetPodsLogResponse();
-        V1PodList podList = getPodList();
+        V1PodList podList = getPodList("");
         System.out.println(String.format("There are now %d pods in the cluster now", podList.getItems().size()));
         if(podList.getItems().size() < 1){
             response.setStatus(true);
@@ -472,6 +470,73 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
+    //Restart the service: current zipkin only
+    @Override
+    public RestartServiceResponse restartService() {
+        RestartServiceResponse response = new RestartServiceResponse();
+        V1PodList podList = getPodList("istio-system");
+        //Delete the zipkin pod
+        for(V1Pod pod : podList.getItems()) {
+            String podName = pod.getMetadata().getName();
+            if(podName.contains("zipkin")){
+                boolean deleteResult = deletePod("istio-system",podName);
+                if(!deleteResult){
+                    response.setStatus(false);
+                    response.setMessage("Fail to restart zipkin!");
+                    return response;
+                }
+                break;
+            }
+        }
+        //Wait for the zipkin restart
+        try{
+            Thread.sleep(10000);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        //Check whether all of the services are available again in certain internals
+        while(!isAllReady("istio-system")){
+            try{
+                //Check every 10 seconds
+                Thread.sleep(10000);
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+        response.setStatus(true);
+        response.setMessage("The zipkin has been restarted successfully!");
+
+        return response;
+    }
+
+    //Delete the specified pod
+    private boolean deletePod(String namespace, String podName){
+        boolean isSuccess = true;
+        V1Pod result;
+        String filePath = "/app/delete_pod_result.json";
+        String apiUrl = String.format("%s/api/v1/namespaces/%s/pods/%s",myConfig.getApiServer(),namespace, podName);
+        System.out.println(String.format("The constructed api url for deleting node is %s", apiUrl));
+        String[] cmds ={
+                "/bin/sh","-c",String.format("curl -X DELETE %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+        };
+        ProcessBuilder pb = new ProcessBuilder(cmds);
+        pb.redirectErrorStream(true);
+        Process p;
+        try {
+            p = pb.start();
+            p.waitFor();
+
+            String json = readWholeFile(filePath);
+            //Parse the response to the SetServicesReplicasResponseFromAPI Bean
+//            System.out.println(json);
+            result = JSON.parseObject(json,V1Pod.class);
+        } catch (Exception e) {
+            isSuccess = false;
+            e.printStackTrace();
+        }
+        return isSuccess;
+    }
+
     //Get the logs of a named pod
     private String getPodLog(String podName,String containerName){
         String log = "";
@@ -499,7 +564,7 @@ public class ApiServiceImpl implements ApiService {
 
     //To determine if the service need to be deleted: filter the redis and mongo
     private boolean isDeleted(String deploymentName,List<String> serviceNames){
-        return (deploymentName.contains("service") || deploymentName.contains("ui-dashboard")) && !existInTheList(deploymentName,serviceNames);
+        return (deploymentName.contains("service")) && !existInTheList(deploymentName,serviceNames);
     }
 
     //Judge if the node name is in the reserved node name list
@@ -629,9 +694,9 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Check if all the services are available again after deleting the node
-    private boolean isAllReady(){
+    private boolean isAllReady(String namespace){
         boolean isAllReady = true;
-        QueryDeploymentsListResponse deploymentsList = getDeploymentList();
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(namespace);
         for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
             if(singleDeploymentInfo.getStatus().getReplicas() != singleDeploymentInfo.getStatus().getReadyReplicas()){
                 isAllReady = false;
@@ -645,7 +710,7 @@ public class ApiServiceImpl implements ApiService {
     private boolean isAllReady(SetServiceReplicasRequest setServiceReplicasRequest){
         boolean isAllReady = true;
 
-        QueryDeploymentsListResponse deploymentsList = getDeploymentList();
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE);
 
         for(ServiceReplicasSetting setting : setServiceReplicasRequest.getServiceReplicasSettings()){
             if(!isSingleReady(deploymentsList.getItems(),setting)){
@@ -657,11 +722,11 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Get the deployment list
-    private QueryDeploymentsListResponse getDeploymentList(){
+    private QueryDeploymentsListResponse getDeploymentList(String namespace){
         //Get the current deployments information and echo to the file
         String filePath = "/app/get_deployment_list_result.json";
         QueryDeploymentsListResponse deploymentsList = new QueryDeploymentsListResponse();
-        String apiUrl = String.format("%s/apis/apps/v1beta1/namespaces/%s/deployments",myConfig.getApiServer() ,NAMESPACE);
+        String apiUrl = String.format("%s/apis/apps/v1beta1/namespaces/%s/deployments",myConfig.getApiServer() ,namespace);
         System.out.println(String.format("The constructed api url for getting the deploymentlist is %s", apiUrl));
         String[] cmds ={
                 "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
@@ -715,11 +780,13 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Get the pods list
-    private V1PodList getPodList(){
+    private V1PodList getPodList(String namespace){
+        if(namespace.equals(""))
+            namespace = NAMESPACE;
         //Get the current pods information and echo to the file
         String filePath = "/app/get_pod_list_result.json";
         V1PodList podList = new V1PodList();
-        String apiUrl = String.format("%s/api/v1/namespaces/%s/pods",myConfig.getApiServer(),NAMESPACE);
+        String apiUrl = String.format("%s/api/v1/namespaces/%s/pods",myConfig.getApiServer(),namespace);
         System.out.println(String.format("The constructed api url for getting the pod list is %s", apiUrl));
         String[] cmds ={
                 "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)

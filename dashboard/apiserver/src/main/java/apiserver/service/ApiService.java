@@ -15,4 +15,5 @@ public interface ApiService {
     GetPodsListResponse getPodsList();
     GetPodsLogResponse getPodsLog();
     GetSinglePodLogResponse getSinglePodLog(GetSinglePodLogRequest getSinglePodLogRequest);
+    RestartServiceResponse restartService();
 }
