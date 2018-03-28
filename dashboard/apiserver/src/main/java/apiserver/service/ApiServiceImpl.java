@@ -473,12 +473,15 @@ public class ApiServiceImpl implements ApiService {
     //Restart the service: current zipkin only
     @Override
     public RestartServiceResponse restartService() {
+        boolean isExist = false;
         RestartServiceResponse response = new RestartServiceResponse();
         V1PodList podList = getPodList("istio-system");
         //Delete the zipkin pod
         for(V1Pod pod : podList.getItems()) {
             String podName = pod.getMetadata().getName();
             if(podName.contains("zipkin")){
+                isExist = true;
+                //Delete the pod corresponding to the service
                 boolean deleteResult = deletePod("istio-system",podName);
                 if(!deleteResult){
                     response.setStatus(false);
@@ -488,24 +491,28 @@ public class ApiServiceImpl implements ApiService {
                 break;
             }
         }
-        //Wait for the zipkin restart
-        try{
-            Thread.sleep(10000);
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-        //Check whether all of the services are available again in certain internals
-        while(!isAllReady("istio-system")){
+        if(isExist){
+            //Wait for the zipkin restart
             try{
-                //Check every 10 seconds
-                Thread.sleep(10000);
+                Thread.sleep(6000);
             }catch(Exception e){
                 e.printStackTrace();
             }
+            //Check whether all of the services are available again in certain internals
+            while(!isAllReady("istio-system")){
+                try{
+                    //Check every 10 seconds
+                    Thread.sleep(3000);
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
+            }
+            response.setStatus(true);
+            response.setMessage("The zipkin has been restarted successfully!");
+        }else{
+            response.setStatus(false);
+            response.setMessage("The zipkin service doesn't exist!");
         }
-        response.setStatus(true);
-        response.setMessage("The zipkin has been restarted successfully!");
-
         return response;
     }
 
