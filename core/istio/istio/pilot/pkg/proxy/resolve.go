@@ -28,6 +28,12 @@ import (
 
 // ResolveAddr resolves an authority address to an IP address
 func ResolveAddr(addr string) (string, error) {
+
+	log.Infof("===================================================")
+	log.Infof("[调试标记 - pilot - pkg - proxy - resolve.go - ResolveAddr()")
+	log.Infof("addr:" + addr)
+	log.Infof("===================================================")
+
 	if addr == "" {
 		return "", nil
 	}

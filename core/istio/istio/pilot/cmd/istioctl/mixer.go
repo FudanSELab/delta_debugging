@@ -18,6 +18,7 @@ import (
 	"errors"
 
 	"github.com/spf13/cobra"
+	"fmt"
 )
 
 var (
@@ -37,6 +38,9 @@ This method of configuring Mixer is removed in favor of kubectl
 )
 
 func init() {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - mixer.go - init()")
+
 	// flag is maintained so that the user gets the correct error message.
 	mixerCmd.PersistentFlags().StringVarP(&mixerFile, "file", "f", "",
 		"Input file with contents of the Mixer rule")

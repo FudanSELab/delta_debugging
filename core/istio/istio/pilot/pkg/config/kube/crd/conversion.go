@@ -32,6 +32,9 @@ import (
 // ConvertObject converts an IstioObject k8s-style object to the
 // internal configuration model.
 func ConvertObject(schema model.ProtoSchema, object IstioObject, domain string) (*model.Config, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - crd - conversion.go - ConvertObject()")
+
 	data, err := schema.FromJSONMap(object.GetSpec())
 	if err != nil {
 		return nil, err
@@ -55,6 +58,9 @@ func ConvertObject(schema model.ProtoSchema, object IstioObject, domain string) 
 
 // ConvertConfig translates Istio config to k8s config JSON
 func ConvertConfig(schema model.ProtoSchema, config model.Config) (IstioObject, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - crd - conversion.go - ConvertConfig()")
+
 	spec, err := model.ToJSONMap(config.Spec)
 	if err != nil {
 		return nil, err
@@ -79,11 +85,17 @@ func ConvertConfig(schema model.ProtoSchema, config model.Config) (IstioObject, 
 // ResourceName converts "my-name" to "myname".
 // This is needed by k8s API server as dashes prevent kubectl from accessing CRDs
 func ResourceName(s string) string {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - crd - conversion.go - ResourceName()")
+
 	return strings.Replace(s, "-", "", -1)
 }
 
 // ResourceGroup generates the k8s API group for each schema.
 func ResourceGroup(schema *model.ProtoSchema) string {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - crd - conversion.go - ResourceGroup()")
+
 	return schema.Group + model.IstioAPIGroupDomain
 }
 
@@ -94,6 +106,9 @@ func ResourceGroup(schema *model.ProtoSchema) string {
 
 // KabobCaseToCamelCase converts "my-name" to "MyName"
 func KabobCaseToCamelCase(s string) string {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - crd - conversion.go - KabobCaseToCamelCase()")
+
 	switch s {
 	case "http-api-spec":
 		return "HTTPAPISpec"
@@ -111,6 +126,9 @@ func KabobCaseToCamelCase(s string) string {
 
 // CamelCaseToKabobCase converts "MyName" to "my-name"
 func CamelCaseToKabobCase(s string) string {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - crd - conversion.go - CamelCaseToKabobCase()")
+
 	switch s {
 	case "HTTPAPISpec":
 		return "http-api-spec"
@@ -141,6 +159,9 @@ func CamelCaseToKabobCase(s string) string {
 // would typically only be a problem if a user dumps an configuration
 // object with kubectl and then re-ingests it.
 func ParseInputs(inputs string) ([]model.Config, []IstioKind, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - crd - conversion.go - ParseInputs()")
+
 	var varr []model.Config
 	var others []IstioKind
 	reader := bytes.NewReader([]byte(inputs))

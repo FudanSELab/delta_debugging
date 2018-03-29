@@ -19,6 +19,7 @@ import (
 
 	"istio.io/istio/pilot/pkg/serviceregistry/kube"
 	"istio.io/istio/pkg/log"
+	"fmt"
 )
 
 var (
@@ -42,5 +43,8 @@ var (
 )
 
 func init() {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - deregister.go - init()")
+
 	rootCmd.AddCommand(deregisterCmd)
 }

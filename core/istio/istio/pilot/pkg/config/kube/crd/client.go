@@ -85,6 +85,12 @@ type Client struct {
 
 // CreateRESTConfig for cluster API server, pass empty config file for in-cluster
 func CreateRESTConfig(kubeconfig string) (config *rest.Config, err error) {
+
+	log.Infof("===================================================")
+	log.Infof("[调试标记 - pilot - pkg - config - kube - crd - client.go - CreateRESTConfig()")
+	log.Infof("kubeconfig string:" + kubeconfig)
+	log.Infof("===================================================")
+
 	if kubeconfig == "" {
 		config, err = rest.InClusterConfig()
 	} else {
@@ -118,6 +124,11 @@ func CreateRESTConfig(kubeconfig string) (config *rest.Config, err error) {
 // Use an empty value for `kubeconfig` to use the in-cluster config.
 // If the kubeconfig file is empty, defaults to in-cluster config as well.
 func NewClient(config string, descriptor model.ConfigDescriptor, domainSuffix string) (*Client, error) {
+
+	log.Infof("===================================================")
+	log.Infof("[调试标记 - pilot - pkg - config - kube - crd - client.go - NewClient()")
+	log.Infof("===================================================")
+
 	for _, typ := range descriptor {
 		if _, exists := knownTypes[typ.Type]; !exists {
 			return nil, fmt.Errorf("missing known type for %q", typ.Type)
@@ -151,6 +162,11 @@ func NewClient(config string, descriptor model.ConfigDescriptor, domainSuffix st
 
 // RegisterResources sends a request to create CRDs and waits for them to initialize
 func (cl *Client) RegisterResources() error {
+
+	log.Infof("===================================================")
+	log.Infof("[调试标记 - pilot - pkg - config - kube - crd - client.go - RegisterResources()")
+	log.Infof("===================================================")
+
 	clientset, err := apiextensionsclient.NewForConfig(cl.restconfig)
 	if err != nil {
 		return err

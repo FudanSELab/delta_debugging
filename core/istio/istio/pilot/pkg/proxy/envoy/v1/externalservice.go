@@ -22,9 +22,13 @@ import (
 	meshconfig "istio.io/api/mesh/v1alpha1"
 	routingv2 "istio.io/api/routing/v1alpha2"
 	"istio.io/istio/pilot/pkg/model"
+	"istio.io/istio/pkg/log"
 )
 
 func buildExternalServicePort(port *routingv2.Port) *model.Port {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - externalservice.go - buildExternalServicePort()")
+
 	protocol := model.ConvertCaseInsensitiveStringToProtocol(port.Protocol)
 	return &model.Port{
 		Name:     fmt.Sprintf("external-%v-%d", protocol, port.Number), // TODO: use external service port name in building model port name?
@@ -36,6 +40,8 @@ func buildExternalServicePort(port *routingv2.Port) *model.Port {
 func buildExternalServiceHTTPRoutes(mesh *meshconfig.MeshConfig, node model.Proxy,
 	proxyInstances []*model.ServiceInstance, config model.IstioConfigStore,
 	httpConfigs HTTPRouteConfigs) HTTPRouteConfigs {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - externalservice.go - buildExternalServiceHTTPRoutes()")
 
 	externalServiceConfigs := config.ExternalServices()
 	for _, externalServiceConfig := range externalServiceConfigs {
@@ -62,6 +68,9 @@ func buildExternalServiceHTTPRoutes(mesh *meshconfig.MeshConfig, node model.Prox
 }
 
 func buildExternalServiceTCPListeners(mesh *meshconfig.MeshConfig, config model.IstioConfigStore) (Listeners, Clusters) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - externalservice.go - buildExternalServiceTCPListeners()")
+
 	listeners := make(Listeners, 0)
 	clusters := make(Clusters, 0)
 
@@ -98,6 +107,8 @@ func buildExternalServiceTCPListeners(mesh *meshconfig.MeshConfig, config model.
 func buildExternalServiceCluster(mesh *meshconfig.MeshConfig,
 	address, endpointPortName string, port *model.Port, labels model.Labels,
 	discovery routingv2.ExternalService_Discovery, endpoints []*routingv2.ExternalService_Endpoint) *Cluster {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - externalservice.go - buildExternalServiceCluster()")
 
 	service := model.Service{Hostname: address}
 	key := service.Key(port, labels)
@@ -172,6 +183,8 @@ func buildExternalServiceCluster(mesh *meshconfig.MeshConfig,
 func buildExternalServiceVirtualHost(serviceName string, externalService *routingv2.ExternalService, portName, destination string,
 	mesh *meshconfig.MeshConfig, node model.Proxy, port *model.Port, proxyInstances []*model.ServiceInstance,
 	config model.IstioConfigStore) *VirtualHost {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - externalservice.go - buildExternalServiceVirtualHost()")
 
 	service := &model.Service{Hostname: destination}
 	buildClusterFunc := func(hostname string, port *model.Port, labels model.Labels, isExternal bool) *Cluster {

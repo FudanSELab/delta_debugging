@@ -59,6 +59,9 @@ func NewStatusSyncer(mesh *meshconfig.MeshConfig,
 	client kubernetes.Interface,
 	ingressNamespace string,
 	options kube.ControllerOptions) (*StatusSyncer, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - ingress - status.go - NewStatusSyncer()")
+
 	if _, exists := os.LookupEnv("POD_NAME"); !exists {
 		return nil, errors.New("POD_NAME environment variable must be defined")
 	}
@@ -110,6 +113,9 @@ func NewStatusSyncer(mesh *meshconfig.MeshConfig,
 // update the IP of a ingress resource.
 func convertIngressControllerMode(mode meshconfig.MeshConfig_IngressControllerMode,
 	class string) (string, string) {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - ingress - status.go - convertIngressControllerMode()")
+
 	var ingressClass, defaultIngressClass string
 	switch mode {
 	case meshconfig.MeshConfig_DEFAULT:

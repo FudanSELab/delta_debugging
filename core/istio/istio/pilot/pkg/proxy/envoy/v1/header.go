@@ -22,9 +22,14 @@ import (
 	routing "istio.io/api/routing/v1alpha1"
 	routingv2 "istio.io/api/routing/v1alpha2"
 	"istio.io/istio/pilot/pkg/model"
+
+	"istio.io/istio/pkg/log"
 )
 
 func buildHTTPRouteMatch(matches *routing.MatchCondition) *HTTPRoute {
+
+	log.Infof("proxy-envoy-v1-header.go-buildHTTPRouteMatch")
+
 	path := ""
 	prefix := "/"
 	var headers Headers
@@ -60,6 +65,9 @@ func buildHTTPRouteMatch(matches *routing.MatchCondition) *HTTPRoute {
 }
 
 func buildHTTPRouteMatchV2(match *routingv2.HTTPMatchRequest) *HTTPRoute {
+
+	log.Infof("proxy-envoy-v1-header.go-buildHTTPRouteMatch")
+
 	if match == nil {
 		return &HTTPRoute{Prefix: "/"}
 	}
@@ -108,6 +116,9 @@ func buildHTTPRouteMatchV2(match *routingv2.HTTPMatchRequest) *HTTPRoute {
 }
 
 func buildHeader(name string, match *routing.StringMatch) Header {
+
+	log.Infof("proxy-envoy-v1-header.go-buildHeader")
+
 	header := Header{Name: name}
 
 	switch m := match.MatchType.(type) {
@@ -117,16 +128,22 @@ func buildHeader(name string, match *routing.StringMatch) Header {
 		// Envoy regex grammar is ECMA-262 (http://en.cppreference.com/w/cpp/regex/ecmascript)
 		// Golang has a slightly different regex grammar
 		header.Value = fmt.Sprintf("^%s.*", regexp.QuoteMeta(m.Prefix))
+		fmt.Println(header.Value)
 		header.Regex = true
 	case *routing.StringMatch_Regex:
 		header.Value = m.Regex
 		header.Regex = true
 	}
-
+	fmt.Println("=======================================")
 	return header
 }
 
 func buildHeaderV2(name string, match *routingv2.StringMatch) Header {
+
+
+	log.Infof("proxy-envoy-v1-header.go-buildHeaderV2")
+
+
 	header := Header{Name: name}
 
 	switch m := match.MatchType.(type) {

@@ -40,6 +40,9 @@ type Controller struct {
 
 // NewController creates a new Aggregate controller
 func NewController() *Controller {
+
+	log.Infof("[调试标记 - pilot - pkg - serviceregistry - kube - controller.go - NewController()")
+
 	return &Controller{
 		registries: make([]Registry, 0),
 	}
@@ -47,11 +50,17 @@ func NewController() *Controller {
 
 // AddRegistry adds registries into the aggregated controller
 func (c *Controller) AddRegistry(registry Registry) {
+
+	log.Infof("[调试标记 - pilot - pkg - serviceregistry - kube - controller.go - AddRegistry()")
+
 	c.registries = append(c.registries, registry)
 }
 
 // Services lists services from all platforms
 func (c *Controller) Services() ([]*model.Service, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - serviceregistry - kube - controller.go - Services()")
+
 	smap := make(map[string]*model.Service)
 	services := make([]*model.Service, 0)
 	var errs error
@@ -73,6 +82,9 @@ func (c *Controller) Services() ([]*model.Service, error) {
 
 // GetService retrieves a service by hostname if exists
 func (c *Controller) GetService(hostname string) (*model.Service, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - serviceregistry - kube - controller.go - GetService()")
+
 	var errs error
 	for _, r := range c.registries {
 		service, err := r.GetService(hostname)
@@ -92,6 +104,9 @@ func (c *Controller) GetService(hostname string) (*model.Service, error) {
 // ManagementPorts retrieves set of health check ports by instance IP
 // Return on the first hit.
 func (c *Controller) ManagementPorts(addr string) model.PortList {
+
+	log.Infof("[调试标记 - pilot - pkg - serviceregistry - kube - controller.go - ManagementPorts()")
+
 	for _, r := range c.registries {
 		if portList := r.ManagementPorts(addr); portList != nil {
 			return portList
@@ -104,6 +119,9 @@ func (c *Controller) ManagementPorts(addr string) model.PortList {
 // any of the supplied labels. All instances match an empty label list.
 func (c *Controller) Instances(hostname string, ports []string,
 	labels model.LabelsCollection) ([]*model.ServiceInstance, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - serviceregistry - kube - controller.go - Instances()")
+
 	var instances, tmpInstances []*model.ServiceInstance
 	var errs error
 	for _, r := range c.registries {
@@ -126,6 +144,9 @@ func (c *Controller) Instances(hostname string, ports []string,
 
 // GetProxyServiceInstances lists service instances co-located with a given proxy
 func (c *Controller) GetProxyServiceInstances(node model.Proxy) ([]*model.ServiceInstance, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - serviceregistry - kube - controller.go - GetProxyServiceInstances()")
+
 	out := make([]*model.ServiceInstance, 0)
 	var errs error
 	for _, r := range c.registries {
@@ -150,6 +171,8 @@ func (c *Controller) GetProxyServiceInstances(node model.Proxy) ([]*model.Servic
 // Run starts all the controllers
 func (c *Controller) Run(stop <-chan struct{}) {
 
+	log.Infof("[调试标记 - pilot - pkg - serviceregistry - kube - controller.go - Run()")
+
 	for _, r := range c.registries {
 		go r.Run(stop)
 	}
@@ -160,6 +183,9 @@ func (c *Controller) Run(stop <-chan struct{}) {
 
 // AppendServiceHandler implements a service catalog operation
 func (c *Controller) AppendServiceHandler(f func(*model.Service, model.Event)) error {
+
+	log.Infof("[调试标记 - pilot - pkg - serviceregistry - kube - controller.go - AppendServiceHandler()")
+
 	for _, r := range c.registries {
 		if err := r.AppendServiceHandler(f); err != nil {
 			log.Infof("Fail to append service handler to adapter %s", r.Name)
@@ -171,6 +197,9 @@ func (c *Controller) AppendServiceHandler(f func(*model.Service, model.Event)) e
 
 // AppendInstanceHandler implements a service instance catalog operation
 func (c *Controller) AppendInstanceHandler(f func(*model.ServiceInstance, model.Event)) error {
+
+	log.Infof("[调试标记 - pilot - pkg - serviceregistry - kube - controller.go - AppendInstanceHandler()")
+
 	for _, r := range c.registries {
 		if err := r.AppendInstanceHandler(f); err != nil {
 			log.Infof("Fail to append instance handler to adapter %s", r.Name)
@@ -182,6 +211,9 @@ func (c *Controller) AppendInstanceHandler(f func(*model.ServiceInstance, model.
 
 // GetIstioServiceAccounts implements model.ServiceAccounts operation
 func (c *Controller) GetIstioServiceAccounts(hostname string, ports []string) []string {
+
+	log.Infof("[调试标记 - pilot - pkg - serviceregistry - kube - controller.go - GetIstioServiceAccounts()")
+
 	for _, r := range c.registries {
 		if svcAccounts := r.GetIstioServiceAccounts(hostname, ports); svcAccounts != nil {
 			return svcAccounts

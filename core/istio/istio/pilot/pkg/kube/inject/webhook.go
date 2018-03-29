@@ -55,6 +55,9 @@ const (
 )
 
 func init() {
+
+	log.Info("[调试标记 - pilot - pkg - kube - model - webhook.go - init()")
+
 	_ = corev1.AddToScheme(runtimeScheme)
 	_ = admissionregistrationv1beta1.AddToScheme(runtimeScheme)
 
@@ -84,6 +87,9 @@ type Webhook struct {
 }
 
 func loadConfig(injectFile, meshFile string) (*Config, *meshconfig.MeshConfig, error) {
+
+	log.Info("[调试标记 - pilot - pkg - kube - model - webhook.go - loadConfig()")
+
 	data, err := ioutil.ReadFile(injectFile)
 	if err != nil {
 		return nil, nil, err
@@ -134,6 +140,9 @@ type WebhookParameters struct {
 
 // NewWebhook creates a new instance of a mutating webhook for automatic sidecar injection.
 func NewWebhook(p WebhookParameters) (*Webhook, error) {
+
+	log.Info("[调试标记 - pilot - pkg - kube - model - webhook.go - NewWebhook()")
+
 	sidecarConfig, meshConfig, err := loadConfig(p.ConfigFile, p.MeshFile)
 	if err != nil {
 		return nil, err
@@ -180,6 +189,9 @@ func NewWebhook(p WebhookParameters) (*Webhook, error) {
 
 // Run implements the webhook server
 func (wh *Webhook) Run(stop <-chan struct{}) {
+
+	log.Info("[调试标记 - pilot - pkg - kube - model - webhook.go - Run()")
+
 	go func() {
 		if err := wh.server.ListenAndServeTLS("", ""); err != nil {
 			log.Errorf("ListenAndServeTLS for admission webhook returned error: %v", err)
@@ -233,6 +245,9 @@ func (wh *Webhook) Run(stop <-chan struct{}) {
 // TODO(https://github.com/kubernetes/kubernetes/issues/57982)
 // remove this workaround once server-side defaulting is fixed.
 func applyDefaultsWorkaround(initContainers, containers []corev1.Container, volumes []corev1.Volume) {
+
+	log.Info("[调试标记 - pilot - pkg - kube - model - webhook.go - applyDefaultsWorkaround()")
+
 	// runtime.ObjectDefaulter only accepts top-level resources. Construct
 	// a dummy pod with fields we needed defaulted.
 	defaulter.Default(&corev1.Pod{
@@ -257,6 +272,9 @@ type rfc6902PatchOperation struct {
 // JSONPatch `remove` is applied sequentially. Remove items in reverse
 // order to avoid renumbering indices.
 func removeContainers(containers []corev1.Container, removed []string, path string) (patch []rfc6902PatchOperation) {
+
+	log.Info("[调试标记 - pilot - pkg - kube - model - webhook.go - removeContainers()")
+
 	names := map[string]bool{}
 	for _, name := range removed {
 		names[name] = true
@@ -272,6 +290,9 @@ func removeContainers(containers []corev1.Container, removed []string, path stri
 	return patch
 }
 func removeVolumes(volumes []corev1.Volume, removed []string, path string) (patch []rfc6902PatchOperation) {
+
+	log.Info("[调试标记 - pilot - pkg - kube - model - webhook.go - removeVolumes()")
+
 	names := map[string]bool{}
 	for _, name := range removed {
 		names[name] = true
@@ -288,6 +309,9 @@ func removeVolumes(volumes []corev1.Volume, removed []string, path string) (patc
 }
 
 func addContainer(target, added []corev1.Container, basePath string) (patch []rfc6902PatchOperation) {
+
+	log.Info("[调试标记 - pilot - pkg - kube - model - webhook.go - addContainer()")
+
 	first := len(target) == 0
 	var value interface{}
 	for _, add := range added {
@@ -309,6 +333,9 @@ func addContainer(target, added []corev1.Container, basePath string) (patch []rf
 }
 
 func addVolume(target, added []corev1.Volume, basePath string) (patch []rfc6902PatchOperation) {
+
+	log.Info("[调试标记 - pilot - pkg - kube - model - webhook.go - addVolume()")
+
 	first := len(target) == 0
 	var value interface{}
 	for _, add := range added {
@@ -331,11 +358,17 @@ func addVolume(target, added []corev1.Volume, basePath string) (patch []rfc6902P
 
 // escape JSON Pointer value per https://tools.ietf.org/html/rfc6901
 func escapeJSONPointerValue(in string) string {
+
+	log.Info("[调试标记 - pilot - pkg - kube - model - webhook.go - escapeJSONPointerValue()")
+
 	step := strings.Replace(in, "~", "~0", -1)
 	return strings.Replace(step, "/", "~1", -1)
 }
 
 func updateAnnotation(target map[string]string, added map[string]string) (patch []rfc6902PatchOperation) {
+
+	log.Info("[调试标记 - pilot - pkg - kube - model - webhook.go - updateAnnotation()")
+
 	for key, value := range added {
 		if target == nil {
 			target = map[string]string{}
@@ -362,6 +395,9 @@ func updateAnnotation(target map[string]string, added map[string]string) (patch 
 }
 
 func createPatch(pod *corev1.Pod, prevStatus *SidecarInjectionStatus, annotations map[string]string, sic *SidecarInjectionSpec) ([]byte, error) {
+
+	log.Info("[调试标记 - pilot - pkg - kube - model - webhook.go - createPatch()")
+
 	var patch []rfc6902PatchOperation
 
 	// Remove any containers previously injected by kube-inject using
@@ -388,6 +424,9 @@ var (
 )
 
 func injectionStatus(pod *corev1.Pod) *SidecarInjectionStatus {
+
+	log.Info("[调试标记 - pilot - pkg - kube - model - webhook.go - injectionStatus()")
+
 	var statusBytes []byte
 	if pod.ObjectMeta.Annotations != nil {
 		if value, ok := pod.ObjectMeta.Annotations[istioSidecarAnnotationStatusKey]; ok {
@@ -418,11 +457,17 @@ func injectionStatus(pod *corev1.Pod) *SidecarInjectionStatus {
 }
 
 func toAdmissionResponse(err error) *v1beta1.AdmissionResponse {
+
+	log.Info("[调试标记 - pilot - pkg - kube - model - webhook.go - toAdmissionResponse()")
+
 	return &v1beta1.AdmissionResponse{Result: &metav1.Status{Message: err.Error()}}
 }
 
 func (wh *Webhook) inject(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	req := ar.Request
+
+	log.Info("[调试标记 - pilot - pkg - kube - model - webhook.go - inject()")
+
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
 		log.Errorf("Could not unmarshal raw object: %v", err)
@@ -468,6 +513,9 @@ func (wh *Webhook) inject(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespons
 }
 
 func (wh *Webhook) serveInject(w http.ResponseWriter, r *http.Request) {
+
+	log.Info("[调试标记 - pilot - pkg - kube - model - webhook.go - serveInject()")
+
 	var body []byte
 	if r.Body != nil {
 		if data, err := ioutil.ReadAll(r.Body); err == nil {

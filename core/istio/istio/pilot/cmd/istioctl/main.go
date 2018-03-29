@@ -110,6 +110,9 @@ and destination policies.
 		Example:          "istioctl create -f example-routing.yaml",
 		PersistentPreRun: getRealKubeConfig,
 		RunE: func(c *cobra.Command, args []string) error {
+
+			fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - postCmd = &cobra.Command")
+
 			if len(args) != 0 {
 				c.Println(c.UsageString())
 				return fmt.Errorf("create takes no arguments")
@@ -181,6 +184,9 @@ and destination policies.
 		Example:          "istioctl replace -f example-routing.yaml",
 		PersistentPreRun: getRealKubeConfig,
 		RunE: func(c *cobra.Command, args []string) error {
+
+			fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - putCmd = &cobra.Command")
+
 			if len(args) != 0 {
 				c.Println(c.UsageString())
 				return fmt.Errorf("replace takes no arguments")
@@ -283,6 +289,9 @@ istioctl get routerule productpage-default
 `,
 		PersistentPreRun: getRealKubeConfig,
 		RunE: func(c *cobra.Command, args []string) error {
+
+			fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - getCmd = &cobra.Command")
+
 			configClient, err := newClient()
 			if err != nil {
 				return err
@@ -344,6 +353,9 @@ istioctl delete routerule productpage-default
 `,
 		PersistentPreRun: getRealKubeConfig,
 		RunE: func(c *cobra.Command, args []string) error {
+
+			fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - deleteCmd = &cobra.Command")
+
 			configClient, errs := newClient()
 			if errs != nil {
 				return errs
@@ -437,6 +449,9 @@ istioctl context-create --api-server http://127.0.0.1:8080
 `,
 		PersistentPreRun: getRealKubeConfig,
 		RunE: func(c *cobra.Command, args []string) error {
+
+			fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - contextCmd = &cobra.Command")
+
 			if istioAPIServer == "" {
 				c.Println(c.UsageString())
 				return fmt.Errorf("specify the the Istio api server IP")
@@ -493,6 +508,9 @@ istioctl context-create --api-server http://127.0.0.1:8080
 const defaultKubeConfigText = "$KUBECONFIG else $HOME/.kube/config"
 
 func getRealKubeConfig(c *cobra.Command, args []string) {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - getRealKubeConfig()")
+
 	// if the user didn't supply a specific value for kubeconfig, derive it from the environment
 	if kubeconfig == defaultKubeConfigText {
 		kubeconfig = path.Join(homedir.HomeDir(), ".kube/config")
@@ -503,6 +521,9 @@ func getRealKubeConfig(c *cobra.Command, args []string) {
 }
 
 func init() {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - init()")
+
 	rootCmd.PersistentFlags().StringVarP(&platform, "platform", "p", kubePlatform,
 		"Istio host platform")
 
@@ -550,6 +571,9 @@ func init() {
 }
 
 func main() {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - main()")
+
 	// Needed to avoid "logging before flag.Parse" error with glog.
 	cmd.SupressGlogWarnings()
 
@@ -564,6 +588,9 @@ func main() {
 
 // The schema is based on the kind (for example "routerule" or "destinationpolicy")
 func schema(configClient *crd.Client, typ string) (model.ProtoSchema, error) {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - schema()")
+
 	for _, desc := range configClient.ConfigDescriptor() {
 		switch typ {
 		case desc.Type, desc.Plural: // legacy hyphenated resources names
@@ -579,6 +606,9 @@ func schema(configClient *crd.Client, typ string) (model.ProtoSchema, error) {
 
 // readInputs reads multiple documents from the input and checks with the schema
 func readInputs() ([]model.Config, []crd.IstioKind, error) {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - readInputs()")
+
 	var reader io.Reader
 	switch file {
 	case "":
@@ -607,6 +637,9 @@ func readInputs() ([]model.Config, []crd.IstioKind, error) {
 
 // Print a simple list of names
 func printShortOutput(_ *crd.Client, configList []model.Config) {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - printShortOutput()")
+
 	var w tabwriter.Writer
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
 	fmt.Fprintf(&w, "NAME\tKIND\tNAMESPACE\n")
@@ -623,6 +656,9 @@ func printShortOutput(_ *crd.Client, configList []model.Config) {
 
 // Print as YAML
 func printYamlOutput(configClient *crd.Client, configList []model.Config) {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - printYamlOutput()")
+
 	descriptor := configClient.ConfigDescriptor()
 	for _, config := range configList {
 		schema, exists := descriptor.GetByType(config.Type)
@@ -646,6 +682,9 @@ func printYamlOutput(configClient *crd.Client, configList []model.Config) {
 }
 
 func newClient() (*crd.Client, error) {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - newClient()")
+
 	// TODO: use model.IstioConfigTypes once model.IngressRule is deprecated
 	return crd.NewClient(kubeconfig, model.ConfigDescriptor{
 		model.RouteRule,
@@ -665,6 +704,9 @@ func newClient() (*crd.Client, error) {
 }
 
 func supportedTypes(configClient *crd.Client) []string {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - supportedTypes()")
+
 	types := configClient.ConfigDescriptor().Types()
 	for i := range types {
 		types[i] = crd.ResourceName(types[i])
@@ -673,6 +715,9 @@ func supportedTypes(configClient *crd.Client) []string {
 }
 
 func preprocMixerConfig(configs []crd.IstioKind) error {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - preprocMixerConfig()")
+
 	var err error
 	for i, config := range configs {
 		if configs[i].Namespace, err = handleNamespaces(config.Namespace); err != nil {
@@ -687,6 +732,9 @@ func preprocMixerConfig(configs []crd.IstioKind) error {
 }
 
 func apiResources(config *rest.Config, configs []crd.IstioKind) (map[string]metav1.APIResource, error) {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - apiResources()")
+
 	client, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
 		return nil, err
@@ -711,6 +759,9 @@ func apiResources(config *rest.Config, configs []crd.IstioKind) (map[string]meta
 }
 
 func restClientForOthers(config *rest.Config) (*rest.RESTClient, error) {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - restClientForOthers()")
+
 	configCopied := *config
 	configCopied.ContentConfig = dynamic.ContentConfig()
 	configCopied.GroupVersion = &crd.IstioAPIGroupVersion
@@ -718,6 +769,9 @@ func restClientForOthers(config *rest.Config) (*rest.RESTClient, error) {
 }
 
 func prepareClientForOthers(configs []crd.IstioKind) (*rest.RESTClient, map[string]metav1.APIResource, error) {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - prepareClientForOthers()")
+
 	restConfig, err := crd.CreateRESTConfig(kubeconfig)
 	if err != nil {
 		return nil, nil, err
@@ -734,6 +788,9 @@ func prepareClientForOthers(configs []crd.IstioKind) (*rest.RESTClient, map[stri
 }
 
 func getDefaultNamespace(kubeconfig string) string {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - getDefaultNamespace()")
+
 	configAccess := clientcmd.NewDefaultPathOptions()
 	// use specified kubeconfig file for the location of the config to read
 	configAccess.GlobalFile = kubeconfig
@@ -755,6 +812,9 @@ func getDefaultNamespace(kubeconfig string) string {
 }
 
 func handleNamespaces(objectNamespace string) (string, error) {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - main.go - handleNamespaces()")
+
 	if objectNamespace != "" && namespace != "" && namespace != objectNamespace {
 		return "", fmt.Errorf(`the namespace from the provided object "%s" does `+
 			`not match the namespace "%s". You must pass '--namespace=%s' to perform `+

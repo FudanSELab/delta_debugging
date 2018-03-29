@@ -33,6 +33,8 @@ func buildIngressListeners(mesh *meshconfig.MeshConfig, proxyInstances []*model.
 	config model.IstioConfigStore,
 	ingress model.Proxy) Listeners {
 
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - ingress.go - buildIngressListeners()")
+
 	opts := buildHTTPListenerOpts{
 		mesh:             mesh,
 		proxy:            ingress,
@@ -71,6 +73,9 @@ func buildIngressRoutes(mesh *meshconfig.MeshConfig, node model.Proxy,
 	proxyInstances []*model.ServiceInstance,
 	discovery model.ServiceDiscovery,
 	config model.IstioConfigStore) (HTTPRouteConfigs, string) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - ingress.go - buildIngressRoutes()")
+
 	// build vhosts
 	vhosts := make(map[string][]*HTTPRoute)
 	vhostsTLS := make(map[string][]*HTTPRoute)
@@ -139,6 +144,9 @@ func buildIngressRoutes(mesh *meshconfig.MeshConfig, node model.Proxy,
 
 // buildIngressVhostDomains returns an array of domain strings with the port attached
 func buildIngressVhostDomains(vhost string, port int) []string {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - ingress.go - buildIngressVhostDomains()")
+
 	domains := make([]string, 0)
 	domains = append(domains, vhost)
 
@@ -154,6 +162,9 @@ func buildIngressRoute(mesh *meshconfig.MeshConfig, node model.Proxy,
 	proxyInstances []*model.ServiceInstance, rule model.Config,
 	discovery model.ServiceDiscovery,
 	config model.IstioConfigStore) ([]*HTTPRoute, string, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - ingress.go - buildIngressRoute()")
+
 	ingress := rule.Spec.(*routing.IngressRule)
 	destination := model.ResolveHostname(rule.ConfigMeta, ingress.Destination)
 	service, err := discovery.GetService(destination)
@@ -211,6 +222,9 @@ func buildIngressRoute(mesh *meshconfig.MeshConfig, node model.Proxy,
 
 // extractPort extracts the destination service port from the given destination,
 func extractPort(svc *model.Service, ingress *routing.IngressRule) (*model.Port, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - ingress.go - extractPort()")
+
 	switch p := ingress.GetDestinationServicePort().(type) {
 	case *routing.IngressRule_DestinationPort:
 		num := p.DestinationPort

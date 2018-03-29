@@ -52,6 +52,9 @@ var (
 // NewController creates a new Kubernetes controller
 func NewController(client kubernetes.Interface, mesh *meshconfig.MeshConfig,
 	options kube.ControllerOptions) model.ConfigStoreCache {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - ingress - controller.go - NewController()")
+
 	handler := &kube.ChainHandler{}
 
 	// queue requires a time duration for a retry delay after a handler error
@@ -107,6 +110,9 @@ func NewController(client kubernetes.Interface, mesh *meshconfig.MeshConfig,
 }
 
 func (c *controller) RegisterEventHandler(typ string, f func(model.Config, model.Event)) {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - ingress - controller.go - RegisterEventHandler()")
+
 	c.handler.Append(func(obj interface{}, event model.Event) error {
 		ingress, ok := obj.(*v1beta1.Ingress)
 		if !ok || !shouldProcessIngress(c.mesh, ingress) {
@@ -125,10 +131,16 @@ func (c *controller) RegisterEventHandler(typ string, f func(model.Config, model
 }
 
 func (c *controller) HasSynced() bool {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - ingress - controller.go - HasSynced()")
+
 	return c.informer.HasSynced()
 }
 
 func (c *controller) Run(stop <-chan struct{}) {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - ingress - controller.go - Run()")
+
 	go c.queue.Run(stop)
 	go c.informer.Run(stop)
 	<-stop
@@ -139,6 +151,9 @@ func (c *controller) ConfigDescriptor() model.ConfigDescriptor {
 }
 
 func (c *controller) Get(typ, name, namespace string) (*model.Config, bool) {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - ingress - controller.go - Get()")
+
 	if typ != model.IngressRule.Type {
 		return nil, false
 	}
@@ -169,6 +184,9 @@ func (c *controller) Get(typ, name, namespace string) (*model.Config, bool) {
 }
 
 func (c *controller) List(typ, namespace string) ([]model.Config, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - ingress - controller.go - List()")
+
 	if typ != model.IngressRule.Type {
 		return nil, errUnsupportedOp
 	}
@@ -192,13 +210,22 @@ func (c *controller) List(typ, namespace string) ([]model.Config, error) {
 }
 
 func (c *controller) Create(_ model.Config) (string, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - ingress - controller.go - Create()")
+
 	return "", errUnsupportedOp
 }
 
 func (c *controller) Update(_ model.Config) (string, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - ingress - controller.go - Update()")
+
 	return "", errUnsupportedOp
 }
 
 func (c *controller) Delete(_, _, _ string) error {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - ingress - controller.go - Delete()")
+
 	return errUnsupportedOp
 }

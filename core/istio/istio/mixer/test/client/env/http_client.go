@@ -35,6 +35,12 @@ const maxAttempts = 30
 // Issue fast request, only care about network error.
 // Don't care about server response.
 func HTTPFastGet(url string) (err error) {
+
+	log.Printf("=================================")
+	log.Printf("mixer-test-client-env-HTTPGet")
+	log.Printf("url:" + url)
+	log.Printf("=================================")
+
 	client := &http.Client{}
 	client.Timeout = httpTimeOut * time.Second
 	_, err = client.Get(url)
@@ -43,6 +49,13 @@ func HTTPFastGet(url string) (err error) {
 
 // HTTPGet send GET
 func HTTPGet(url string) (code int, respBody string, err error) {
+
+	log.Printf("=================================")
+	log.Printf("mixer-test-client-env-HTTPGet")
+	log.Printf("l respBody:" + respBody)
+	log.Printf("=================================")
+
+
 	log.Println("HTTP GET", url)
 	client := &http.Client{}
 	client.Timeout = httpTimeOut * time.Second
@@ -117,6 +130,12 @@ func ShortLiveHTTPPost(url string, contentType string, reqBody string) (code int
 
 // HTTPGetWithHeaders send HTTP with headers
 func HTTPGetWithHeaders(l string, headers map[string]string) (code int, respBody string, err error) {
+
+	log.Printf("=================================")
+	log.Printf("mixer-test-client-env-http_client")
+	log.Printf("l string:" + l)
+	log.Printf("=================================")
+
 	log.Println("HTTP GET with headers: ", l)
 	client := &http.Client{}
 	client.Timeout = httpTimeOut * time.Second

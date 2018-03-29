@@ -74,6 +74,9 @@ func ResolveConfig(kubeconfig string) (string, error) {
 
 // CreateInterface is a helper function to create Kubernetes interface
 func CreateInterface(kubeconfig string) (*rest.Config, kubernetes.Interface, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - net.go - CreateInterface()")
+
 	kube, err := ResolveConfig(kubeconfig)
 	if err != nil {
 		return nil, nil, err

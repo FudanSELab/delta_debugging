@@ -29,6 +29,9 @@ import (
 // Today they spit out multiple auth deployments, we need to fix that then we can build golden outputs.
 
 func yamlFromInstallation(values, namespace, helmChartDirectory string) (string, error) {
+
+	//fmt.Println("[调试标记 - pilot - cmd - istioctl - gendeployment - yaml.go - yamlFromInstallation()")
+
 	c, err := chartutil.Load(helmChartDirectory)
 	if err != nil {
 		return "", err

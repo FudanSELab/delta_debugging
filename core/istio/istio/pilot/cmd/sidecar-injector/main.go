@@ -54,6 +54,9 @@ var (
 		Use:   "sidecar-injector",
 		Short: "Kubernetes webhook for automatic Istio sidecar injection",
 		RunE: func(*cobra.Command, []string) error {
+
+			fmt.Println("[调试标记 - pilot - cmd - sidecar-injector - main.go - rootCmd = &cobra.Command")
+
 			if err := log.Configure(flags.loggingOptions); err != nil {
 				return err
 			}
@@ -85,6 +88,9 @@ var (
 		Use:   "probe",
 		Short: "Check the liveness or readiness of a locally-running server",
 		RunE: func(cmd *cobra.Command, args []string) error {
+
+			fmt.Println("[调试标记 - pilot - cmd - sidecar-injector - main.go - probeCmd = &cobra.Command")
+
 			if !flags.probeOptions.IsValid() {
 				return errors.New("some options are not valid")
 			}
@@ -98,6 +104,9 @@ var (
 )
 
 func init() {
+
+	fmt.Println("[调试标记 - pilot - cmd - sidecar-injector - main.go - init()")
+
 	rootCmd.PersistentFlags().StringVar(&flags.meshconfig, "meshConfig", "/etc/istio/config/mesh",
 		"File containing the Istio mesh configuration")
 	rootCmd.PersistentFlags().StringVar(&flags.injectConfigFile, "injectConfig", "/etc/istio/inject/config",

@@ -309,6 +309,9 @@ type EndpointLabel struct {
 
 // NewMesh creates a new empty Mesh for use by Controller implementations
 func NewMesh() *Mesh {
+
+	fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - NewMesh()")
+
 	return &Mesh{
 		allEndpoints:      map[string]*Endpoint{},
 		subsetDefinitions: map[string]*route.Subset{},
@@ -326,6 +329,9 @@ func NewMesh() *Mesh {
 // the complete set of endpoints retrieved for that environment's service registry.
 // The supplied endpoints should only have been created via NewEndpoint()
 func (m *Mesh) Reconcile(endpoints []*Endpoint) error {
+
+	fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - Reconcile()")
+
 	var errs error
 	// Start out with everything that's provided by the controller and only retain
 	// what's not currently in m.
@@ -381,12 +387,18 @@ func (m *Mesh) Reconcile(endpoints []*Endpoint) error {
 // ReconcileDeltas allows registies to update Meshes incrementally with only those Endpoints that have changed.
 // TODO: Needs implementation.
 func (m *Mesh) ReconcileDeltas(endpointChanges []EndpointChange) error {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - ReconcileDeltas()")
+
 	return errors.New("unsupported interface, use Reconcile() instead")
 }
 
 // SubsetEndpoints implements functionality required for EDS and returns a list of endpoints
 // that match one or more subsets.
 func (m *Mesh) SubsetEndpoints(subsetNames []string) []*Endpoint {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - SubsetEndpoints()")
+
 	m.mu.RLock()
 	epSet := endpointSet{}
 	for _, name := range subsetNames {
@@ -406,6 +418,9 @@ func (m *Mesh) SubsetEndpoints(subsetNames []string) []*Endpoint {
 
 // SubsetNames implements functionality required for CDS and returns a list of all subset names currently configured for this Mesh
 func (m *Mesh) SubsetNames() []string {
+
+	fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - SubsetNames()")
+
 	out := make([]string, 0, len(m.subsetEndpoints))
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -419,6 +434,9 @@ func (m *Mesh) SubsetNames() []string {
 // It updates Mesh for supplied events, adding, updating and deleting destination
 // rules from this mesh depending on the corresponding ruleChange.Type.
 func (m *Mesh) UpdateRules(ruleChanges []RuleChange) error {
+
+	fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesg.go - UpdateRules()")
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var errs error
@@ -471,6 +489,9 @@ func (m *Mesh) UpdateRules(ruleChanges []RuleChange) error {
 // The caller is expected to lock m.mu before calling this method().
 func (m *Mesh) addEndpoints(
 	epsToAdd map[string]*Endpoint) (newLabelMappings labelEndpoints, newSubsetMappings subsetEndpoints, newEndpointSubsets endpointSubsets) {
+
+	fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesg.go - addEndpoints()")
+
 	if len(epsToAdd) == 0 {
 		return labelEndpoints{}, subsetEndpoints{}, endpointSubsets{}
 	}
@@ -494,6 +515,9 @@ func (m *Mesh) addEndpoints(
 //
 // The caller is expected to lock m.mu before calling this method().
 func (m *Mesh) deleteEndpoints(endpoints map[string]*Endpoint) {
+
+	fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesg.go - deleteEndpoints()")
+
 	for uid, ep := range endpoints {
 		// Remove references from reverseAttrMap
 		for label, value := range ep.getSingleValuedAttrs() {
@@ -530,6 +554,9 @@ func (m *Mesh) deleteEndpoints(endpoints map[string]*Endpoint) {
 
 // addEndpoints maps Endpoints in epsToAdd to attributes of the ep and returns the forward and reverse DestinationService to endpoint maps.
 func (le labelEndpoints) addEndpoints(epsToAdd map[string]*Endpoint) (newSubsetMappings subsetEndpoints, newEndpointSubsets endpointSubsets) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - addEndpoints()")
+
 	newSubsetMappings = subsetEndpoints{}
 	newEndpointSubsets = endpointSubsets{}
 	for _, ep := range epsToAdd {
@@ -553,6 +580,9 @@ func (le labelEndpoints) addEndpoints(epsToAdd map[string]*Endpoint) (newSubsetM
 // It does this by fetching the Endpoint sets for for each matching label value combination then uses the shortest set for checking whether those
 // endpoints are present in the other larger endpoint sets.
 func (le labelEndpoints) getEndpointsMatching(labels map[string]string) endpointSet {
+
+	fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesg.go - getEndpointsMatching()")
+
 	countLabels := len(labels)
 	if countLabels == 0 {
 		// There must be at least one label else return nothing
@@ -597,6 +627,9 @@ func (le labelEndpoints) getEndpointsMatching(labels map[string]string) endpoint
 
 // addLabelValues adds mappings to ep for each of the multi-valued attribute with name labelName.
 func (le labelEndpoints) addLabelValues(labelName string, values []string, ep *Endpoint) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - addLabelValues()")
+
 	for _, value := range values {
 		labelKey := labelName + nameValueSeparator + value
 		epSet, found := le[labelKey]
@@ -610,6 +643,9 @@ func (le labelEndpoints) addLabelValues(labelName string, values []string, ep *E
 
 // addLabelMap adds mappings to ep for each of the label values in labelMap.
 func (le labelEndpoints) addLabelMap(labelMap map[string]string, ep *Endpoint) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - addLabelMap()")
+
 	for labelName, value := range labelMap {
 		labelKey := labelName + nameValueSeparator + value
 		epSet, found := le[labelKey]
@@ -623,6 +659,9 @@ func (le labelEndpoints) addLabelMap(labelMap map[string]string, ep *Endpoint) {
 
 // deleteLabelMapping removes the endpoint from the set of endpoints associated with the labelKey which is built from the label and value.
 func (le labelEndpoints) deleteLabelMapping(labelName, labelValue string, ep *Endpoint) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - deleteLabelMapping()")
+
 	labelKey := labelName + nameValueSeparator + labelValue
 	epSet := le[labelKey]
 	delete(epSet, ep)
@@ -633,6 +672,9 @@ func (le labelEndpoints) deleteLabelMapping(labelName, labelValue string, ep *En
 
 // mergeLabelEndpoints merges other with le.
 func (le labelEndpoints) mergeLabelEndpoints(other labelEndpoints) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - mergeLabelEndpoints()")
+
 	for labelKey, otherEps := range other {
 		if len(otherEps) == 0 {
 			continue
@@ -650,6 +692,9 @@ func (le labelEndpoints) mergeLabelEndpoints(other labelEndpoints) {
 
 // newEndpointSet creates a copy of eps that can be modified without altering eps.
 func newEndpointSet(eps endpointSet) endpointSet {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - newEndpointSet()")
+
 	out := make(endpointSet, len(eps))
 	for ep, v := range eps {
 		if v {
@@ -661,6 +706,9 @@ func newEndpointSet(eps endpointSet) endpointSet {
 
 // mergeEndpoints merges endpoints from other into this eps.
 func (eps endpointSet) mergeEndpoints(other endpointSet) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - mergeEndpoints()")
+
 	for ep, v := range other {
 		if v {
 			eps[ep] = v
@@ -673,6 +721,9 @@ func (eps endpointSet) mergeEndpoints(other endpointSet) {
 // For wildcard domains, if the domainSuffix is empty, this will match all endpoints in the set that have the domain
 // attribute set.
 func (eps endpointSet) scopeToRule(ruleType DestinationRuleType, domainSuffix string, cidrNet *net.IPNet) endpointSet {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - scopeToRule()")
+
 	out := make(endpointSet, len(eps))
 	switch ruleType {
 	case DestinationRuleWildcard:
@@ -694,6 +745,9 @@ func (eps endpointSet) scopeToRule(ruleType DestinationRuleType, domainSuffix st
 
 // addSubsetForEndpoints updates es by adding subsetName to the set of subset names associated with each of the endpoints in epSet.
 func (es endpointSubsets) addSubsetForEndpoints(eps endpointSet, subsetName string) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - addSubsetForEndpoints()")
+
 	for ep := range eps {
 		names, found := es[ep]
 		if !found {
@@ -706,6 +760,9 @@ func (es endpointSubsets) addSubsetForEndpoints(eps endpointSet, subsetName stri
 
 // mergeEndpointSubsets merges contents of other with this map.
 func (es endpointSubsets) mergeEndpointSubsets(other endpointSubsets) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - mergeEndpointSubsets()")
+
 	for ep, subsets := range other {
 		names, found := es[ep]
 		if !found {
@@ -720,6 +777,9 @@ func (es endpointSubsets) mergeEndpointSubsets(other endpointSubsets) {
 
 // deleteSubsetForEndpoints updates es by removing subsetName from the endpoint's set of subset names for each of the endpoints in epSet.
 func (es endpointSubsets) deleteSubsetForEndpoints(eps endpointSet, subsetName string) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - deleteSubsetForEndpoints()")
+
 	for ep := range eps {
 		names, found := es[ep]
 		if !found {
@@ -734,6 +794,9 @@ func (es endpointSubsets) deleteSubsetForEndpoints(eps endpointSet, subsetName s
 
 // addSubsetsToEndpoint updates se by merging subsetNames mapped to ep.
 func (se subsetEndpoints) addSubsetsToEndpoint(subsetNames []string, ep *Endpoint) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - addSubsetsToEndpoint()")
+
 	for _, subsetName := range subsetNames {
 		epUIDSet, found := se[subsetName]
 		if !found {
@@ -746,6 +809,9 @@ func (se subsetEndpoints) addSubsetsToEndpoint(subsetNames []string, ep *Endpoin
 
 // addEndpointSet udates se by adding a set of endpoints mapped to subsetName.
 func (se subsetEndpoints) addEndpointSet(subsetName string, otherEps endpointSet) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - addEndpointSet()")
+
 	if len(otherEps) == 0 {
 		return
 	}
@@ -761,6 +827,9 @@ func (se subsetEndpoints) addEndpointSet(subsetName string, otherEps endpointSet
 
 // mergeSubsetEndpoints merges others with se.
 func (se subsetEndpoints) mergeSubsetEndpoints(other subsetEndpoints) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - mergeSubsetEndpoints()")
+
 	for subsetName, epKetSet := range other {
 		se.addEndpointSet(subsetName, epKetSet)
 	}
@@ -775,6 +844,12 @@ func (se subsetEndpoints) mergeSubsetEndpoints(other subsetEndpoints) {
 // from Pilot. Similarly the the network port of this endpoint that must be accessible from Pilot.
 // socketProtocol should be set to TCP or UPD. Labels are properties of the workload, for example: pod labels in Kubernetes.
 func NewEndpoint(address string, port uint32, socketProtocol SocketProtocol, labels []EndpointLabel) (*Endpoint, error) {
+
+	log.Infof("===================================================")
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - mesh.go - NewEndpoint()")
+	log.Infof("address:" + address)
+	log.Infof("===================================================")
+
 	var errs error
 	ipAddr := net.ParseIP(address)
 	if ipAddr == nil {
@@ -853,6 +928,9 @@ func NewEndpoint(address string, port uint32, socketProtocol SocketProtocol, lab
 
 // getSingleValuedAttrs returns a map of single valued labels.
 func (ep *Endpoint) getSingleValuedAttrs() map[string]string {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - getSingleValuedAttrs()")
+
 	metadataFields := ep.getIstioMetadata()
 	if metadataFields == nil {
 		return nil
@@ -870,6 +948,9 @@ func (ep *Endpoint) getSingleValuedAttrs() map[string]string {
 
 // getMultiValuedAttrs returns a list of values for a multi-valued label attrName.
 func (ep *Endpoint) getMultiValuedAttrs(attrName string) []string {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - getMultiValuedAttrs()")
+
 	metadataFields := ep.getIstioMetadata()
 	if metadataFields == nil {
 		return nil
@@ -891,6 +972,9 @@ func (ep *Endpoint) getMultiValuedAttrs(attrName string) []string {
 
 // setSingleValuedAttrs sets up the endpoint with the supplied single-valued labels.
 func (ep *Endpoint) setSingleValuedAttrs(labels map[string]string) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - setSingleValuedAttrs()")
+
 	istioMeta := ep.createIstioMetadata()
 	for k, v := range labels {
 		istioMeta[k] = &types.Value{
@@ -902,6 +986,9 @@ func (ep *Endpoint) setSingleValuedAttrs(labels map[string]string) {
 // setMultiValuedAttrs sets the multi-values attribute attrName with attrValues.
 // Currently used internally for service name and svcAliases only.
 func (ep *Endpoint) setMultiValuedAttrs(attrName string, attrValues []string) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - setMultiValuedAttrs()")
+
 	istioMeta := ep.createIstioMetadata()
 	listValues := make([]*types.Value, 0, len(attrValues))
 	for _, attrValue := range attrValues {
@@ -912,6 +999,9 @@ func (ep *Endpoint) setMultiValuedAttrs(attrName string, attrValues []string) {
 
 // createIstioMetadata returns the internal label store for the endpoint, creating one if necessary.
 func (ep *Endpoint) createIstioMetadata() map[string]*types.Value {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - createIstioMetadata()")
+
 	metadata := ep.Metadata
 	if metadata == nil {
 		metadata = &xdsapi.Metadata{}
@@ -935,6 +1025,9 @@ func (ep *Endpoint) createIstioMetadata() map[string]*types.Value {
 
 // getIstioMetadata returns the internal implementation of the label store for the endpoint, returning nil the internal implementation doesn't have one.
 func (ep *Endpoint) getIstioMetadata() map[string]*types.Value {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - getIstioMetadata()")
+
 	metadata := ep.Metadata
 	if metadata == nil {
 		return nil
@@ -953,6 +1046,9 @@ func (ep *Endpoint) getIstioMetadata() map[string]*types.Value {
 // matchDomainSuffix returns true if any of the domains attribute for this Endpoint match the domain suffix.
 // If the domainSuffix is empty, it matches any endpoints that have a domain attribute set.
 func (ep *Endpoint) matchDomainSuffix(domainSuffix string) bool {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - matchDomainSuffix()")
+
 	for _, epDomainName := range ep.getMultiValuedAttrs(DestinationDomain.AttrName()) {
 		if domainSuffix == "" {
 			return true
@@ -970,6 +1066,12 @@ func (ep *Endpoint) matchDomainSuffix(domainSuffix string) bool {
 // For CIDRs, the query value is set to nil, but a IP network corresponding to the CIDR specified in
 // ruleName is returned. For all other types, the returned IP Network is nil.
 func getDestinationRuleType(ruleName string) (DestinationRuleType, string, *net.IPNet) {
+
+	log.Infof("===================================================")
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - getDestinationRuleType()")
+	log.Infof("ruleName:" + ruleName)
+	log.Infof("===================================================")
+
 	if wildcardDomainRegex.MatchString(ruleName) {
 		switch {
 		case ruleName == "*":
@@ -996,11 +1098,17 @@ func getDestinationRuleType(ruleName string) (DestinationRuleType, string, *net.
 
 // AttrName returns the string value of attr.
 func (attr DestinationAttribute) AttrName() string {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - AttrName()")
+
 	return (string)(attr)
 }
 
 // newMapWithLabelValue returns a new copy of the map with the name value mapping added to it.
 func newMapWithLabelValue(labels map[string]string, name, value string) map[string]string {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - mesh.go - newMapWithLabelValue()")
+
 	out := make(map[string]string, len(labels)+1)
 	out[name] = value
 	for n, v := range labels {

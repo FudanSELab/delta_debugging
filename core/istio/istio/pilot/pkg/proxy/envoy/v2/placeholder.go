@@ -35,6 +35,9 @@ import (
 
 // RunADS starts an ADS server at the given port.
 func RunXDS(ctx context.Context, config cache.Cache, port uint) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - placeholder.go - RunXDS()")
+
 	server := xds.NewServer(config)
 	grpcServer := grpc.NewServer()
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
@@ -60,6 +63,9 @@ func RunXDS(ctx context.Context, config cache.Cache, port uint) {
 // cache snapshots causes new config to be pushed to envoy.
 // Clusters, listeners and routes are reused across different snapshots.
 func DataPlaneConfigRefresh(ctx context.Context, config cache.Cache, interval time.Duration) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v2 - placeholder.go - DataPlaneConfigRefresh()")
+
 	for {
 		// for each node in the data plane api cache
 		// compute node-level config if platform info has changed

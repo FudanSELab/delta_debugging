@@ -74,6 +74,9 @@ var (
 		Use:   "proxy",
 		Short: "Envoy proxy agent",
 		RunE: func(c *cobra.Command, args []string) error {
+
+			fmt.Println("[调试标记 - pilot - cmd - pilot-agent - main.go - proxyCmd = &cobra.Command")
+
 			if err := log.Configure(loggingOptions); err != nil {
 				return err
 			}
@@ -221,6 +224,9 @@ var (
 )
 
 func timeDuration(dur *duration.Duration) time.Duration {
+
+	//fmt.Println("[调试标记 - pilot - cmd - pilot-agent - main.go - timeDuration()")
+
 	out, err := ptypes.Duration(dur)
 	if err != nil {
 		log.Warna(err)
@@ -229,6 +235,9 @@ func timeDuration(dur *duration.Duration) time.Duration {
 }
 
 func init() {
+
+	fmt.Println("[调试标记 - pilot - cmd - pilot-agent - main.go - init()")
+
 	proxyCmd.PersistentFlags().StringVar((*string)(&registry), "serviceregistry",
 		string(serviceregistry.KubernetesRegistry),
 		fmt.Sprintf("Select the platform for service registry, options are {%s, %s, %s}",

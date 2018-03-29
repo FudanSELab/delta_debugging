@@ -16,10 +16,9 @@ package kube
 
 import (
 	"sync"
-
 	"k8s.io/api/core/v1"
-
 	"istio.io/istio/pilot/pkg/model"
+	"istio.io/istio/pkg/log"
 )
 
 // PodCache is an eventually consistent pod cache
@@ -33,6 +32,9 @@ type PodCache struct {
 }
 
 func newPodCache(ch cacheHandler) *PodCache {
+
+	log.Infof("[调试标记 - pilot - pkg - serviceregistry - cache.go - newPodCache()")
+
 	out := &PodCache{
 		cacheHandler: ch,
 		keys:         make(map[string]string),
@@ -59,6 +61,9 @@ func newPodCache(ch cacheHandler) *PodCache {
 
 // getPodByIp returns the pod or nil if pod not found or an error occurred
 func (pc *PodCache) getPodByIP(addr string) (*v1.Pod, bool) {
+
+	log.Infof("[调试标记 - pilot - pkg - serviceregistry - cache.go - getPodByIP()")
+
 	pc.rwMu.RLock()
 	defer pc.rwMu.RUnlock()
 
@@ -75,6 +80,9 @@ func (pc *PodCache) getPodByIP(addr string) (*v1.Pod, bool) {
 
 // labelsByIP returns pod labels or nil if pod not found or an error occurred
 func (pc *PodCache) labelsByIP(addr string) (model.Labels, bool) {
+
+	log.Infof("[调试标记 - pilot - pkg - serviceregistry - cache.go - labelsByIP()")
+
 	pod, exists := pc.getPodByIP(addr)
 	if !exists {
 		return nil, false

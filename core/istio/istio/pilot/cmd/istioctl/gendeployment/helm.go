@@ -17,6 +17,7 @@ package gendeployment
 import (
 	"bytes"
 	"text/template"
+	"fmt"
 )
 
 var valuesTemplate = template.Must(template.New("helm").Parse(
@@ -49,6 +50,9 @@ var valuesTemplate = template.Must(template.New("helm").Parse(
 
 // fromModel returns a string representation of the values.yaml file for helm config
 func valuesFromInstallation(i *installation) string {
+
+	//fmt.Println("[调试标记 - pilot - cmd - istioctl - gendeployment - helm.go - valuesFromInstallation()")
+
 	buf := &bytes.Buffer{}
 	_ = valuesTemplate.Execute(buf, i)
 	return buf.String()

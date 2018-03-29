@@ -38,6 +38,7 @@ import (
 	"istio.io/istio/pkg/log"
 	"istio.io/istio/pkg/util"
 	"istio.io/istio/pkg/version"
+	//"k8s.io/client-go/discovery"
 )
 
 const (
@@ -122,6 +123,9 @@ var (
 )
 
 func init() {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - init()")
+
 	prometheus.MustRegister(cacheSizeGauge)
 	prometheus.MustRegister(cacheHitCounter)
 	prometheus.MustRegister(cacheMissCounter)
@@ -180,6 +184,9 @@ type discoveryCache struct {
 }
 
 func newDiscoveryCache(name string, enabled bool) *discoveryCache {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - newDiscoveryCache()")
+
 	return &discoveryCache{
 		name:     name,
 		disabled: !enabled,
@@ -188,6 +195,9 @@ func newDiscoveryCache(name string, enabled bool) *discoveryCache {
 }
 
 func (c *discoveryCache) cachedDiscoveryResponse(key string) ([]byte, uint32, bool) {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - cachedDiscoveryResponse()")
+
 	if c.disabled {
 		return nil, 0, false
 	}
@@ -208,6 +218,9 @@ func (c *discoveryCache) cachedDiscoveryResponse(key string) ([]byte, uint32, bo
 }
 
 func (c *discoveryCache) updateCachedDiscoveryResponse(key string, resourceCount uint32, data []byte) {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - updateCachedDiscoveryResponse()")
+
 	if c.disabled {
 		return
 	}
@@ -233,6 +246,9 @@ func (c *discoveryCache) updateCachedDiscoveryResponse(key string, resourceCount
 }
 
 func (c *discoveryCache) clear() {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - clear()")
+
 	// Reset the cache size metric for this cache.
 	cacheSizeGauge.Delete(c.cacheSizeLabels())
 
@@ -244,6 +260,9 @@ func (c *discoveryCache) clear() {
 }
 
 func (c *discoveryCache) resetStats() {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - resetStats()")
+
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	for _, v := range c.cache {
@@ -253,6 +272,9 @@ func (c *discoveryCache) resetStats() {
 }
 
 func (c *discoveryCache) stats() map[string]*discoveryCacheStatEntry {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - stats()")
+
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -267,6 +289,9 @@ func (c *discoveryCache) stats() map[string]*discoveryCacheStatEntry {
 }
 
 func (c *discoveryCache) cacheSizeLabels() prometheus.Labels {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - cacheSizeLabels()")
+
 	return prometheus.Labels{
 		metricLabelCacheName: c.name,
 		metricBuildVersion:   buildVersion,
@@ -321,6 +346,9 @@ type DiscoveryServiceOptions struct {
 // NewDiscoveryService creates an Envoy discovery service on a given port
 func NewDiscoveryService(ctl model.Controller, configCache model.ConfigStoreCache,
 	environment model.Environment, o DiscoveryServiceOptions) (*DiscoveryService, error) {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - NewDiscoveryService()")
+
 	out := &DiscoveryService{
 		Environment: environment,
 		sdsCache:    newDiscoveryCache("sds", o.EnableCaching),
@@ -368,6 +396,9 @@ func NewDiscoveryService(ctl model.Controller, configCache model.ConfigStoreCach
 
 // Register adds routes a web service container. This is visible for testing purposes only.
 func (ds *DiscoveryService) Register(container *restful.Container) {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - Register()")
+
 	ws := &restful.WebService{}
 	ws.Produces(restful.MIME_JSON)
 
@@ -440,6 +471,9 @@ func (ds *DiscoveryService) Register(container *restful.Container) {
 // connections. Content serving is started by this method, but is executed asynchronously. Serving can be cancelled
 // at any time by closing the provided stop channel.
 func (ds *DiscoveryService) Start(stop chan struct{}) (net.Addr, error) {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - Start()")
+
 	addr := ds.server.Addr
 	if addr == "" {
 		addr = ":http"
@@ -470,6 +504,9 @@ func (ds *DiscoveryService) Start(stop chan struct{}) (net.Addr, error) {
 
 // GetCacheStats returns the statistics for cached discovery responses.
 func (ds *DiscoveryService) GetCacheStats(_ *restful.Request, response *restful.Response) {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - GetCacheStats()")
+
 	stats := make(map[string]*discoveryCacheStatEntry)
 	for k, v := range ds.sdsCache.stats() {
 		stats[k] = v
@@ -490,6 +527,9 @@ func (ds *DiscoveryService) GetCacheStats(_ *restful.Request, response *restful.
 
 // ClearCacheStats clear the statistics for cached discovery responses.
 func (ds *DiscoveryService) ClearCacheStats(_ *restful.Request, _ *restful.Response) {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - ClearCacheStats()")
+
 	ds.sdsCache.resetStats()
 	ds.cdsCache.resetStats()
 	ds.rdsCache.resetStats()
@@ -499,6 +539,9 @@ func (ds *DiscoveryService) ClearCacheStats(_ *restful.Request, _ *restful.Respo
 // clearCache will clear all envoy caches. Called by service, instance and config handlers.
 // This will impact the performance, since envoy will need to recalculate.
 func (ds *DiscoveryService) clearCache() {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - clearCache()")
+
 	clearCacheMutex.Lock()
 	defer clearCacheMutex.Unlock()
 
@@ -523,6 +566,9 @@ func (ds *DiscoveryService) clearCache() {
 
 // ListAllEndpoints responds with all Services and is not restricted to a single service-key
 func (ds *DiscoveryService) ListAllEndpoints(_ *restful.Request, response *restful.Response) {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - ListAllEndpoints()")
+
 	methodName := "ListAllEndpoints"
 	incCalls(methodName)
 
@@ -573,6 +619,7 @@ func (ds *DiscoveryService) ListAllEndpoints(_ *restful.Request, response *restf
 
 	if err := response.WriteEntity(services); err != nil {
 		incErrors(methodName)
+		fmt.Println(err)
 		log.Warna(err)
 	} else {
 		observeResources(methodName, uint32(len(services)))
@@ -581,6 +628,9 @@ func (ds *DiscoveryService) ListAllEndpoints(_ *restful.Request, response *restf
 
 // ListEndpoints responds to EDS requests
 func (ds *DiscoveryService) ListEndpoints(request *restful.Request, response *restful.Response) {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - ListEndpoints()")
+
 	methodName := "ListEndpoints"
 	incCalls(methodName)
 
@@ -617,6 +667,9 @@ func (ds *DiscoveryService) ListEndpoints(request *restful.Request, response *re
 }
 
 func (ds *DiscoveryService) parseDiscoveryRequest(request *restful.Request) (model.Proxy, error) {
+
+	fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - parseDiscoveryRequest()")
+
 	nodeInfo := request.PathParameter(ServiceNode)
 	svcNode, err := model.ParseServiceNode(nodeInfo)
 	if err != nil {
@@ -627,6 +680,9 @@ func (ds *DiscoveryService) parseDiscoveryRequest(request *restful.Request) (mod
 
 // AvailabilityZone responds to requests for an AZ for the given cluster node
 func (ds *DiscoveryService) AvailabilityZone(request *restful.Request, response *restful.Response) {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - AvailabilityZone()")
+
 	methodName := "AvailabilityZone"
 	incCalls(methodName)
 
@@ -650,6 +706,9 @@ func (ds *DiscoveryService) AvailabilityZone(request *restful.Request, response 
 
 // ListClusters responds to CDS requests for all outbound clusters
 func (ds *DiscoveryService) ListClusters(request *restful.Request, response *restful.Response) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - ListClusters()")
+
 	methodName := "ListClusters"
 	incCalls(methodName)
 
@@ -695,6 +754,9 @@ func (ds *DiscoveryService) ListClusters(request *restful.Request, response *res
 
 // ListListeners responds to LDS requests
 func (ds *DiscoveryService) ListListeners(request *restful.Request, response *restful.Response) {
+
+	log.Info("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - ListListeners()")
+
 	methodName := "ListListeners"
 	incCalls(methodName)
 
@@ -743,6 +805,9 @@ func (ds *DiscoveryService) ListListeners(request *restful.Request, response *re
 // Routes correspond to HTTP routes and use the listener port as the route name
 // to identify HTTP filters in the config. Service node value holds the local proxy identity.
 func (ds *DiscoveryService) ListRoutes(request *restful.Request, response *restful.Response) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - ListRoutes()")
+
 	methodName := "ListRoutes"
 	incCalls(methodName)
 
@@ -788,6 +853,9 @@ func (ds *DiscoveryService) ListRoutes(request *restful.Request, response *restf
 }
 
 func (ds *DiscoveryService) invokeWebhook(path string, payload []byte, methodName string) ([]byte, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - invokeWebhook()")
+
 	if ds.webhookClient == nil {
 		return payload, nil
 	}
@@ -810,6 +878,9 @@ func (ds *DiscoveryService) invokeWebhook(path string, payload []byte, methodNam
 }
 
 func incCalls(methodName string) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - incCalls()")
+
 	callCounter.With(prometheus.Labels{
 		metricLabelMethod:  methodName,
 		metricBuildVersion: buildVersion,
@@ -817,6 +888,9 @@ func incCalls(methodName string) {
 }
 
 func incErrors(methodName string) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - incErrors()")
+
 	errorCounter.With(prometheus.Labels{
 		metricLabelMethod:  methodName,
 		metricBuildVersion: buildVersion,
@@ -824,6 +898,9 @@ func incErrors(methodName string) {
 }
 
 func incWebhookCalls(methodName string) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - incWebhookCalls()")
+
 	webhookCallCounter.With(prometheus.Labels{
 		metricLabelMethod:  methodName,
 		metricBuildVersion: buildVersion,
@@ -831,6 +908,9 @@ func incWebhookCalls(methodName string) {
 }
 
 func incWebhookErrors(methodName string) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - incWebhookErrors()")
+
 	webhookErrorCounter.With(prometheus.Labels{
 		metricLabelMethod:  methodName,
 		metricBuildVersion: buildVersion,
@@ -838,6 +918,9 @@ func incWebhookErrors(methodName string) {
 }
 
 func observeResources(methodName string, count uint32) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - observeResources()")
+
 	resourceCounter.With(prometheus.Labels{
 		metricLabelMethod:  methodName,
 		metricBuildVersion: buildVersion,
@@ -845,7 +928,11 @@ func observeResources(methodName string, count uint32) {
 }
 
 func errorResponse(methodName string, r *restful.Response, status int, msg string) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - errorResponse()")
+
 	incErrors(methodName)
+	fmt.Println(msg)
 	log.Warn(msg)
 	if err := r.WriteErrorString(status, msg); err != nil {
 		log.Warna(err)
@@ -853,8 +940,12 @@ func errorResponse(methodName string, r *restful.Response, status int, msg strin
 }
 
 func writeResponse(r *restful.Response, data []byte) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - discovery.go - writeResponse()")
+
 	r.WriteHeader(http.StatusOK)
 	if _, err := r.Write(data); err != nil {
+		fmt.Println(err)
 		log.Warna(err)
 	}
 }

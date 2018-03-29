@@ -24,6 +24,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"istio.io/istio/pkg/log"
+	//"fmt"
 )
 
 var (
@@ -119,6 +120,11 @@ func addLabelsAndAnnotations(obj *meta_v1.ObjectMeta, labels []string, annotatio
 // optional labels.
 func RegisterEndpoint(client kubernetes.Interface, namespace string, svcName string,
 	ip string, portsList []NamedPort, labels []string, annotations []string) error {
+
+	log.Infof("===================================================")
+	log.Infof("[调试标记 - pilot - pkg - serviceregistry - kube - register.go - RegisterEndpoint()")
+	log.Infof("===================================================")
+
 	getOpt := meta_v1.GetOptions{IncludeUninitialized: true}
 	_, err := client.CoreV1().Services(namespace).Get(svcName, getOpt)
 	if err != nil {

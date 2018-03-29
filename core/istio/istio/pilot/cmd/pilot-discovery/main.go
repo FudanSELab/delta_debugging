@@ -47,6 +47,9 @@ var (
 		Use:   "discovery",
 		Short: "Start Istio proxy discovery service",
 		RunE: func(c *cobra.Command, args []string) error {
+
+			fmt.Println("[调试标记 - pilot - cmd - pilot-discovery - main.go - discoveryCmd = &cobra.Command")
+
 			if err := log.Configure(loggingOptions); err != nil {
 				return err
 			}
@@ -73,6 +76,9 @@ var (
 )
 
 func init() {
+
+	fmt.Println("[调试标记 - pilot - cmd - pilot-discovery - main.go - init()")
+
 	discoveryCmd.PersistentFlags().StringSliceVar(&serverArgs.Service.Registries, "registries",
 		[]string{string(bootstrap.KubernetesRegistry)},
 		fmt.Sprintf("Comma separated list of platform service registries to read from (choose one or more from {%s, %s, %s, %s, %s})",

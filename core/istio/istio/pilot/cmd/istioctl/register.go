@@ -31,6 +31,9 @@ var (
 		Args:             cobra.MinimumNArgs(3),
 		PersistentPreRun: getRealKubeConfig,
 		RunE: func(c *cobra.Command, args []string) error {
+
+			fmt.Println("[调试标记 - pilot - cmd - istioctl - register.go - registerCmd = &cobra.Command")
+
 			svcName := args[0]
 			ip := args[1]
 			portsListStr := args[2:]
@@ -62,6 +65,9 @@ var (
 )
 
 func init() {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - register.go - init()")
+
 	rootCmd.AddCommand(registerCmd)
 	registerCmd.PersistentFlags().StringSliceVarP(&labels, "labels", "l",
 		nil, "List of labels to apply if creating a service/endpoint; e.g. -l env=prod,vers=2")

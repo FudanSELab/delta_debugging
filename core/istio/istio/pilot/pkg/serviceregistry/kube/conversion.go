@@ -27,6 +27,7 @@ import (
 
 	meshconfig "istio.io/api/mesh/v1alpha1"
 	"istio.io/istio/pilot/pkg/model"
+	"istio.io/istio/pkg/log"
 )
 
 type kubeServiceNode struct {
@@ -92,6 +93,12 @@ func convertPort(port v1.ServicePort, obj meta_v1.ObjectMeta) *model.Port {
 }
 
 func convertService(svc v1.Service, domainSuffix string) *model.Service {
+
+	log.Infof("===================================================")
+	log.Infof("[调试标记 - pilot - pkg - serviceregistry - kube - conversion.go - convertService)")
+	log.Infof("domainSuffix string:" + domainSuffix)
+	log.Infof("===================================================")
+
 	addr, external := "", ""
 	if svc.Spec.ClusterIP != "" && svc.Spec.ClusterIP != v1.ClusterIPNone {
 		addr = svc.Spec.ClusterIP

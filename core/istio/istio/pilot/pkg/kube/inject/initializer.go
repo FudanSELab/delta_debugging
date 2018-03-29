@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"istio.io/istio/pkg/log"
 )
 
 var ignoredNamespaces = []string{
@@ -58,6 +59,9 @@ var (
 )
 
 func init() {
+
+	log.Info("[调试标记 - pilot - pkg - kube - inject - initializer.go - init()")
+
 	for _, kind := range kinds {
 		injectScheme.AddKnownTypes(kind.groupVersion, kind.obj)
 		injectScheme.AddUnversionedTypes(kind.groupVersion, kind.obj)

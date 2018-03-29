@@ -40,6 +40,9 @@ const (
 )
 
 func getMeshConfigFromConfigMap(kubeconfig string) (*meshconfig.MeshConfig, error) {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - inject.go - getMeshConfigFromConfigMap()")
+
 	_, client, err := kube.CreateInterface(kubeconfig)
 	if err != nil {
 		return nil, err
@@ -61,6 +64,9 @@ func getMeshConfigFromConfigMap(kubeconfig string) (*meshconfig.MeshConfig, erro
 }
 
 func getInjectConfigFromConfigMap(kubeconfig string) (string, error) {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - inject.go - getInjectConfigFromConfigMap()")
+
 	_, client, err := kube.CreateInterface(kubeconfig)
 	if err != nil {
 		return "", err
@@ -271,6 +277,9 @@ istioctl kube-inject -f deployment.yaml -o deployment-injected.yaml --injectConf
 )
 
 func init() {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - inject.go - init()")
+
 	rootCmd.AddCommand(injectCmd)
 
 	injectCmd.PersistentFlags().StringVar(&hub, "hub", version.Info.DockerHub, "Docker hub")

@@ -83,6 +83,9 @@ const (
 )
 
 func (w *watcher) Run(ctx context.Context) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - watcher.go - Run()")
+
 	// agent consumes notifications from the controller
 	go w.agent.Run(ctx)
 
@@ -102,6 +105,9 @@ func (w *watcher) Run(ctx context.Context) {
 }
 
 func (w *watcher) Reload() {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - watcher.go - Reload()")
+
 	config := BuildConfig(w.config, w.pilotSAN)
 
 	// compute hash of dependent certificates
@@ -117,6 +123,9 @@ func (w *watcher) Reload() {
 // retrieveAZ will only run once and then exit because AZ won't change over a proxy's lifecycle
 // it has to use a reload due to limitations with envoy (az has to be passed in as a flag)
 func (w *watcher) retrieveAZ(ctx context.Context, delay time.Duration, retries int) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - watcher.go - retrieveAZ()")
+
 	if !model.IsApplicationNodeType(w.role.Type) {
 		log.Infof("Agent is proxy for %v component. This component does not require zone aware routing.", w.role.Type)
 		return
@@ -156,6 +165,9 @@ type watchFileEventsFn func(ctx context.Context, wch <-chan *fsnotify.FileEvent,
 // The function ensures that notifyFn() is called no more than one time per minDelay.
 // The function does not return until the the context is cancelled.
 func watchFileEvents(ctx context.Context, wch <-chan *fsnotify.FileEvent, minDelay time.Duration, notifyFn func()) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - watcher.go - watchFileEvents()")
+
 	// timer and channel for managing minDelay.
 	var timeChan <-chan time.Time
 	var timer *time.Timer
@@ -191,6 +203,9 @@ func watchFileEvents(ctx context.Context, wch <-chan *fsnotify.FileEvent, minDel
 // updateFunc will not be called more than one time per minDelay.
 func watchCerts(ctx context.Context, certsDirs []string, watchFileEventsFn watchFileEventsFn,
 	minDelay time.Duration, updateFunc func()) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - watcher.go - watchCerts()")
+
 	fw, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Warnf("failed to create a watcher for certificate files: %v", err)
@@ -213,6 +228,9 @@ func watchCerts(ctx context.Context, certsDirs []string, watchFileEventsFn watch
 }
 
 func generateCertHash(h hash.Hash, certsDir string, files []string) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - watcher.go - generateCertHash()")
+
 	if _, err := os.Stat(certsDir); os.IsNotExist(err) {
 		return
 	}
@@ -236,6 +254,9 @@ const (
 )
 
 func configFile(config string, epoch int) string {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - watcher.go - configFile()")
+
 	return path.Join(config, fmt.Sprintf(EpochFileTemplate, epoch))
 }
 
@@ -249,6 +270,9 @@ type envoy struct {
 
 // NewProxy creates an instance of the proxy control commands
 func NewProxy(config meshconfig.ProxyConfig, node string, logLevel string) proxy.Proxy {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - watcher.go - NewProxy()")
+
 	// inject tracing flag for higher levels
 	var args []string
 	if logLevel != "" {
@@ -264,6 +288,9 @@ func NewProxy(config meshconfig.ProxyConfig, node string, logLevel string) proxy
 
 // NewV2Proxy creates an instance of the proxy using v2 bootstrap
 func NewV2Proxy(config meshconfig.ProxyConfig, node string, logLevel string, pilotSAN []string) proxy.Proxy {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - watcher.go - NewV2Proxy()")
+
 	proxy := NewProxy(config, node, logLevel)
 	e := proxy.(envoy)
 	e.v2 = true
@@ -272,6 +299,9 @@ func NewV2Proxy(config meshconfig.ProxyConfig, node string, logLevel string, pil
 }
 
 func (proxy envoy) args(fname string, epoch int) []string {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - watcher.go - args()")
+
 	startupArgs := []string{"-c", fname,
 		"--restart-epoch", fmt.Sprint(epoch),
 		"--drain-time-s", fmt.Sprint(int(convertDuration(proxy.config.DrainDuration) / time.Second)),
@@ -295,6 +325,9 @@ func (proxy envoy) args(fname string, epoch int) []string {
 }
 
 func (proxy envoy) Run(config interface{}, epoch int, abort <-chan error) error {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - watcher.go - Run()")
+
 	envoyConfig, ok := config.(*Config)
 	if !ok {
 		return fmt.Errorf("unexpected config type: %#v", config)
@@ -359,6 +392,9 @@ func (proxy envoy) Run(config interface{}, epoch int, abort <-chan error) error 
 }
 
 func (proxy envoy) Cleanup(epoch int) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - watcher.go - Cleanup()")
+
 	filePath := configFile(proxy.config.ConfigPath, epoch)
 	if err := os.Remove(filePath); err != nil {
 		log.Warnf("Failed to delete config file %s for %d, %v", filePath, epoch, err)
@@ -366,6 +402,9 @@ func (proxy envoy) Cleanup(epoch int) {
 }
 
 func (proxy envoy) Panic(_ interface{}) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - watcher.go - Panic()")
+
 	log.Error("cannot start the proxy with the desired configuration")
 	os.Exit(-1)
 }

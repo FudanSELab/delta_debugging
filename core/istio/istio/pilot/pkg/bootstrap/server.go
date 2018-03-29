@@ -180,6 +180,9 @@ type Server struct {
 
 // NewServer creates a new Server instance based on the provided arguments.
 func NewServer(args PilotArgs) (*Server, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - server.go - NewServer()")
+
 	// If the namespace isn't set, try looking it up from the environment.
 	if args.Namespace == "" {
 		args.Namespace = os.Getenv("POD_NAMESPACE")
@@ -223,6 +226,9 @@ func NewServer(args PilotArgs) (*Server, error) {
 // listening for incoming connections. Content serving is started by this method, but is executed asynchronously.
 // Serving can be cancelled at any time by closing the provided stop channel.
 func (s *Server) Start(stop chan struct{}) (net.Addr, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - server.go - Start()")
+
 	// Now start all of the components.
 	for _, fn := range s.startFuncs {
 		if err := fn(stop); err != nil {
@@ -238,6 +244,9 @@ type startFunc func(stop chan struct{}) error
 
 // initMonitor initializes the configuration for the pilot monitoring server.
 func (s *Server) initMonitor(args *PilotArgs) error {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - server.go - initMonitor()")
+
 	s.addStartFunc(func(stop chan struct{}) error {
 		monitor, err := startMonitor(args.DiscoveryOptions.MonitoringPort)
 		if err != nil {
@@ -255,6 +264,9 @@ func (s *Server) initMonitor(args *PilotArgs) error {
 }
 
 func (s *Server) initClusterRegistries(args *PilotArgs) (err error) {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - server.go - initClusterRegistries()")
+
 	if args.Config.ClusterRegistriesDir != "" {
 		s.clusterStore, err = clusterregistry.ReadClusters(args.Config.ClusterRegistriesDir)
 		if s.clusterStore != nil {
@@ -266,6 +278,9 @@ func (s *Server) initClusterRegistries(args *PilotArgs) (err error) {
 
 // initMesh creates the mesh in the pilotConfig from the input arguments.
 func (s *Server) initMesh(args *PilotArgs) error {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - server.go - initMesh()")
+
 	// If a config file was specified, use it.
 	var mesh *meshconfig.MeshConfig
 	if args.Mesh.ConfigFile != "" {
@@ -302,6 +317,9 @@ func (s *Server) initMesh(args *PilotArgs) error {
 
 // initMixerSan configures the mixerSAN configuration item. The mesh must already have been configured.
 func (s *Server) initMixerSan(args *PilotArgs) error {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - server.go - initMixerSan()")
+
 	if s.mesh == nil {
 		return fmt.Errorf("the mesh has not been configured before configuring mixer san")
 	}
@@ -312,6 +330,9 @@ func (s *Server) initMixerSan(args *PilotArgs) error {
 }
 
 func (s *Server) getKubeCfgFile(args *PilotArgs) (kubeCfgFile string) {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - server.go - getKubeCfgFile()")
+
 	// If the cluster store is configured, get pilot's kubeconfig from there
 	if s.clusterStore != nil {
 		if kubeCfgFile = s.clusterStore.GetPilotAccessConfig(); kubeCfgFile != "" {
@@ -326,6 +347,9 @@ func (s *Server) getKubeCfgFile(args *PilotArgs) (kubeCfgFile string) {
 
 // initKubeClient creates the k8s client if running in an k8s environment.
 func (s *Server) initKubeClient(args *PilotArgs) error {
+
+	fmt.Println("[调试标记 - pilot - pkg - bootstrap - server.go - initKubeClient()")
+
 	needToCreateClient := false
 	for _, r := range args.Service.Registries {
 		switch ServiceRegistry(r) {
@@ -355,10 +379,16 @@ func (s *Server) initKubeClient(args *PilotArgs) error {
 type mockController struct{}
 
 func (c *mockController) AppendServiceHandler(f func(*model.Service, model.Event)) error {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - server.go - AppendServiceHandler()")
+
 	return nil
 }
 
 func (c *mockController) AppendInstanceHandler(f func(*model.ServiceInstance, model.Event)) error {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - server.go - AppendInstanceHandler()")
+
 	return nil
 }
 
@@ -366,6 +396,9 @@ func (c *mockController) Run(<-chan struct{}) {}
 
 // initConfigController creates the config controller in the pilotConfig.
 func (s *Server) initConfigController(args *PilotArgs) error {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - server.go - initConfigController()")
+
 	var configController model.ConfigStoreCache
 	if args.Config.FileDir != "" {
 		store := memory.Make(configDescriptor)
@@ -403,6 +436,9 @@ func (s *Server) initConfigController(args *PilotArgs) error {
 
 // createK8sServiceControllers creates all the k8s service controllers under this pilot
 func (s *Server) createK8sServiceControllers(serviceControllers *aggregate.Controller, args *PilotArgs) (err error) {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - server.go - createK8sServiceControllers()")
+
 	kubectl := kube.NewController(s.kubeClient, args.Config.ControllerOptions)
 	serviceControllers.AddRegistry(
 		aggregate.Registry{
@@ -440,6 +476,9 @@ func (s *Server) createK8sServiceControllers(serviceControllers *aggregate.Contr
 
 // initServiceControllers creates and initializes the service controllers
 func (s *Server) initServiceControllers(args *PilotArgs) error {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - server.go - initServiceControllers()")
+
 	serviceControllers := aggregate.NewController()
 	registered := make(map[ServiceRegistry]bool)
 	for _, r := range args.Service.Registries {
@@ -572,6 +611,9 @@ func (s *Server) initServiceControllers(args *PilotArgs) error {
 }
 
 func (s *Server) initDiscoveryService(args *PilotArgs) error {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - server.go - initDiscoveryService()")
+
 	environment := model.Environment{
 		Mesh:             s.mesh,
 		IstioConfigStore: model.MakeIstioStore(s.configController),
@@ -604,6 +646,9 @@ func (s *Server) initDiscoveryService(args *PilotArgs) error {
 
 // initAdmissionController creates and initializes the k8s admission controller if running in a k8s environment.
 func (s *Server) initAdmissionController(args *PilotArgs) error {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - server.go - initAdmissionController()")
+
 	if s.kubeClient == nil {
 		// Not running in a k8s environment - do nothing.
 		return nil
@@ -639,5 +684,8 @@ func (s *Server) initAdmissionController(args *PilotArgs) error {
 }
 
 func (s *Server) addStartFunc(fn startFunc) {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - server.go - addStartFunc()")
+
 	s.startFuncs = append(s.startFuncs, fn)
 }
