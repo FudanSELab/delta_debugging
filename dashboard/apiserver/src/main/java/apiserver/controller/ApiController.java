@@ -88,4 +88,11 @@ public class ApiController {
     public GetSinglePodLogResponse getSinglePodLog(@RequestBody GetSinglePodLogRequest getSinglePodLogRequest){
         return apiService.getSinglePodLog(getSinglePodLogRequest);
     }
+
+    //Restart the zipkin pod
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/restartService", method= RequestMethod.GET)
+    public RestartServiceResponse restartService(){
+        return apiService.restartService();
+    }
 }

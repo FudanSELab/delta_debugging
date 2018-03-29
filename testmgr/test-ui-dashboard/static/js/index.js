@@ -40,15 +40,59 @@ app.controller('indexCtrl', function ($scope, $http,$window,loadDataService) {
         // console.log(JSON.stringify(result));
         $('#fileTree').tree({
             dataSource:function(options, callback) {
+                var tree = [];
+                for(var key in result){
+                    var o = {};
+                    o.title = key;
+                    o.type = "folder";
+                    o.products = [];
+                    var list = result[key];
+                    for(var i = 0; i < list.length; i++){
+                        o.products.push({
+                            title:list[i],
+                            type:'item'
+                        })
+                    }
+                    tree.push(o);
+                }
                 // 模拟异步加载
                 //options.products一定要！不然会无限循环套用
-                callback({data: options.products || result});
+                callback({data: options.products || tree});
             },
             multiSelect: false,
             cacheItems: true,
             folderSelect: false
         });
     });
+
+    // var result = {"Single Service":["TestFlowFour","TestServiceRegister","TestServiceExecute","TestServiceVoucher","TestServiceNews","TestServiceTicketOffice"],"Ticket Reserve":["TestFlowOne","TestServiceLogin","TestServiceSSO","TestServiceVerificationCode","TestServiceTravel","TestServiceTravel2","TestServiceSecurity","TestServiceBasicInfo","TestServiceTicketInfo","TestServiceContacts","TestServicePrice","TestServiceTrain","TestServiceStation","TestServiceOrders","TestServiceConsign","TestServiceConfig","TestServiceFood","TestServiceRoute"],"Ticket Rebook":["TestFlowTwoPay","TestFlowTwoRebook","TestServiceRebook","TestServiceInsidePay","TestServicePayment","TestServiceNotification","TestServiceCancel"]};
+    // $('#fileTree').tree({
+    //     dataSource:function(options, callback) {
+    //         var tree = [];
+    //         for(var key in result){
+    //             var o = {};
+    //             o.title = key;
+    //             o.type = "folder";
+    //             o.products = [];
+    //             var list = result[key];
+    //             for(var i = 0; i < list.length; i++){
+    //                 o.products.push({
+    //                     title:list[i],
+    //                     type:'item'
+    //                 })
+    //             }
+    //             tree.push(o);
+    //         }
+    //         // 模拟异步加载
+    //         //options.products一定要！不然会无限循环套用
+    //         callback({data: options.products || tree});
+    //     },
+    //     multiSelect: false,
+    //     cacheItems: true,
+    //     folderSelect: false
+    // });
+
+
 
     $('#fileTree').on('selected.tree.amui', function (event, data) {
         // console.log(data);

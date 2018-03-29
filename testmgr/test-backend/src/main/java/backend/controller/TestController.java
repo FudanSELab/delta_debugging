@@ -86,7 +86,7 @@ public class TestController {
         List<String> testStrings = request.getTestNames();
         if(testStrings == null){
             DeltaTestResponse response = new DeltaTestResponse();
-            response.setStatus(false);
+            response.setStatus(0);
             response.setMessage("The testString is null.");
             return response;
         }
@@ -95,7 +95,7 @@ public class TestController {
         ExecutorService executorService = Executors.newFixedThreadPool(10);
         for(String s: testStrings){
             if( ! configService.containTestCase(s) ){
-                response.setStatus(false);
+                response.setStatus(0);
                 response.setMessage(s + " is not in the test list.");
                 return response;
             } else {
@@ -107,15 +107,20 @@ public class TestController {
                 executorService.submit(futureTask);
             }
         }
-        boolean status = true;
+        int status = 1;
+        String message = "Test all the chosen testcases";
         for (FutureTask<DeltaTestResult> futureTask : futureTasks) {
             response.addDeltaResult(futureTask.get());
-            if( ! "SUCCESS".equals(futureTask.get().getStatus())){
-                status = false;
+            if( "EXCEPTION".equals(futureTask.get().getStatus())){
+                status = -1;
+                message = futureTask.get().getMessage();
+                break;
+            } else if( ! "SUCCESS".equals(futureTask.get().getStatus())){
+                status = 0;
             }
         }
         response.setStatus(status);
-        response.setMessage("Test all the chosen testcases");
+        response.setMessage(message);
         // 清理线程池
         executorService.shutdown();
         return response;
@@ -139,14 +144,21 @@ public class TestController {
 
     private DeltaTestResult runDeltaTest(String testString) throws Exception{
         TestNG testng = new TestNG();
-        //must add the package name
-        testng.setTestClasses(new Class[]{Class.forName("test." + testString)});
+        try{
+            //must add the package name
+            testng.setTestClasses(new Class[]{Class.forName("test." + testString)});
 //        testng.setTestClasses(new Class[]{Class.forName(configService.getTestCase(testString))});
-        DeltaTestReporter tfr = new DeltaTestReporter();
-        testng.addListener((ITestNGListener)tfr);
-        testng.setOutputDirectory("./test-output");
-        testng.run();
-        return tfr.getDeltaResult();
+            DeltaTestReporter tfr = new DeltaTestReporter();
+            testng.addListener((ITestNGListener)tfr);
+            testng.setOutputDirectory("./test-output");
+            testng.run();
+            return tfr.getDeltaResult();
+        } catch(Exception e){
+            DeltaTestResult r = new DeltaTestResult();
+            r.setStatus("EXCEPTION");
+            r.setMessage("Cannot find and run test case: " + testString);
+            return r;
+        }
     }
 
 

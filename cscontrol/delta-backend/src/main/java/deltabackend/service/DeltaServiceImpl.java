@@ -91,6 +91,12 @@ public class DeltaServiceImpl implements DeltaService{
                     DeltaTestResponse result = restTemplate.postForObject(
                             "http://test-backend:5001/testBackend/deltaTest",dtr,
                             DeltaTestResponse.class);
+                    if(result.getStatus() == -1){ //the backend throw an exception, stop the delta test, maybe the testcase not exist
+                        dr.setStatus(false);
+                        dr.setMessage(result.getMessage());
+                        template.convertAndSendToUser(sessionId,"/topic/deltaresponse" ,dr, createHeaders(sessionId));
+                        break;
+                    }
                     dr.setStatus(true);//just mean the test case has been executed
                     dr.setMessage(result.getMessage());
                     dr.setResult(result);
