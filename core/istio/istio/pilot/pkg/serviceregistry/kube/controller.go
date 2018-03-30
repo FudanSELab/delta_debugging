@@ -70,6 +70,7 @@ type cacheHandler struct {
 
 // NewController creates a new Kubernetes controller
 func NewController(client kubernetes.Interface, options ControllerOptions) *Controller {
+
 	log.Infof("Service controller watching namespace %q", options.WatchedNamespace)
 
 	// Queue requires a time duration for a retry delay after a handler error

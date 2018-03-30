@@ -144,6 +144,9 @@ var ListenersALPNProtocols = []string{"h2", "http/1.1"}
 
 // convertDuration converts to golang duration and logs errors
 func convertDuration(d *duration.Duration) time.Duration {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - convertDuration()")
+
 	if d == nil {
 		return 0
 	}
@@ -155,6 +158,9 @@ func convertDuration(d *duration.Duration) time.Duration {
 }
 
 func protoDurationToMS(dur *duration.Duration) int64 {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - protoDurationToMS()")
+
 	return int64(convertDuration(dur) / time.Millisecond)
 }
 
@@ -304,11 +310,17 @@ type HTTPRoute struct {
 
 // Redirect returns true if route contains redirect logic
 func (route *HTTPRoute) Redirect() bool {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - Redirect()")
+
 	return route.HostRedirect != "" || route.PathRedirect != ""
 }
 
 // CatchAll returns true if the route matches all requests
 func (route *HTTPRoute) CatchAll() bool {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - CatchAll()")
+
 	return len(route.Headers) == 0 && route.Path == "" && route.Prefix == "/"
 }
 
@@ -319,6 +331,9 @@ func (route *HTTPRoute) CatchAll() bool {
 // requests that match both the original route and the supplied path and
 // prefix.
 func (route *HTTPRoute) CombinePathPrefix(path, prefix string) *HTTPRoute {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - CombinePathPrefix()")
+
 	switch {
 	case path == "" && route.Path == "" && strings.HasPrefix(route.Prefix, prefix):
 		// pick the longest prefix if both are prefix matches
@@ -407,6 +422,9 @@ type HTTPRouteConfigs map[int]*HTTPRouteConfig
 
 // EnsurePort creates a route config if necessary
 func (routes HTTPRouteConfigs) EnsurePort(port int) *HTTPRouteConfig {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - EnsurePort()")
+
 	config, ok := routes[port]
 	if !ok {
 		config = &HTTPRouteConfig{}
@@ -416,6 +434,9 @@ func (routes HTTPRouteConfigs) EnsurePort(port int) *HTTPRouteConfig {
 }
 
 func (routes HTTPRouteConfigs) clusters() Clusters {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - clusters()")
+
 	out := make(Clusters, 0)
 	for _, config := range routes {
 		out = append(out, config.clusters()...)
@@ -424,6 +445,9 @@ func (routes HTTPRouteConfigs) clusters() Clusters {
 }
 
 func (routes HTTPRouteConfigs) normalize() HTTPRouteConfigs {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - normalize()")
+
 	out := make(HTTPRouteConfigs)
 
 	// sort HTTP routes by virtual hosts, rest should be deterministic
@@ -438,6 +462,9 @@ func (routes HTTPRouteConfigs) normalize() HTTPRouteConfigs {
 // note that the virtual hosts without an explicit port suffix (IP:PORT) are stripped
 // for all routes except the route for port 80.
 func (routes HTTPRouteConfigs) combine() *HTTPRouteConfig {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - combine()")
+
 	out := &HTTPRouteConfig{}
 	for port, config := range routes {
 		for _, host := range config.VirtualHosts {
@@ -461,6 +488,9 @@ func (routes HTTPRouteConfigs) combine() *HTTPRouteConfig {
 
 // faults aggregates fault filters across virtual hosts in single http_conn_man
 func (rc *HTTPRouteConfig) faults() []*HTTPFilter {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - faults()")
+
 	out := make([]*HTTPFilter, 0)
 	for _, host := range rc.VirtualHosts {
 		for _, route := range host.Routes {
@@ -471,6 +501,9 @@ func (rc *HTTPRouteConfig) faults() []*HTTPFilter {
 }
 
 func (rc *HTTPRouteConfig) clusters() Clusters {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - clusters()")
+
 	out := make(Clusters, 0)
 	for _, host := range rc.VirtualHosts {
 		out = append(out, host.clusters()...)
@@ -479,6 +512,9 @@ func (rc *HTTPRouteConfig) clusters() Clusters {
 }
 
 func (rc *HTTPRouteConfig) normalize() *HTTPRouteConfig {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - normalize()")
+
 	hosts := make([]*VirtualHost, len(rc.VirtualHosts))
 	copy(hosts, rc.VirtualHosts)
 	sort.Slice(hosts, func(i, j int) bool { return hosts[i].Name < hosts[j].Name })
@@ -529,14 +565,23 @@ type TCPRoute struct {
 type TCPRouteByRoute []*TCPRoute
 
 func (r TCPRouteByRoute) Len() int {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - Len()")
+
 	return len(r)
 }
 
 func (r TCPRouteByRoute) Swap(i, j int) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - Swap()")
+
 	r[i], r[j] = r[j], r[i]
 }
 
 func (r TCPRouteByRoute) Less(i, j int) bool {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - Less()")
+
 	if r[i].Cluster != r[j].Cluster {
 		return r[i].Cluster < r[j].Cluster
 	}
@@ -641,6 +686,9 @@ type Listeners []*Listener
 
 // normalize sorts and de-duplicates listeners by address
 func (listeners Listeners) normalize() Listeners {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - normalize()")
+
 	out := make(Listeners, 0, len(listeners))
 	set := make(map[string]bool)
 	for _, listener := range listeners {
@@ -655,6 +703,9 @@ func (listeners Listeners) normalize() Listeners {
 
 // GetByAddress returns a listener by its address
 func (listeners Listeners) GetByAddress(addr string) *Listener {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - GetByAddress()")
+
 	for _, listener := range listeners {
 		if listener.Address == addr {
 			return listener
@@ -745,6 +796,9 @@ type Clusters []*Cluster
 
 // normalize deduplicates and sorts clusters by name
 func (clusters Clusters) normalize() Clusters {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - normalize()")
+
 	out := make(Clusters, 0, len(clusters))
 	set := make(map[string]bool)
 	for _, cluster := range clusters {
@@ -767,14 +821,23 @@ func (clusters Clusters) normalize() Clusters {
 type RoutesByPath []*HTTPRoute
 
 func (r RoutesByPath) Len() int {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - Len()")
+
 	return len(r)
 }
 
 func (r RoutesByPath) Swap(i, j int) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - Swap()")
+
 	r[i], r[j] = r[j], r[i]
 }
 
 func (r RoutesByPath) Less(i, j int) bool {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - Less()")
+
 	if r[i].Path != "" {
 		if r[j].Path != "" {
 			// i and j are both path
@@ -795,14 +858,23 @@ func (r RoutesByPath) Less(i, j int) bool {
 type Headers []Header
 
 func (s Headers) Len() int {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - Len()")
+
 	return len(s)
 }
 
 func (s Headers) Swap(i, j int) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - Swap()")
+
 	s[i], s[j] = s[j], s[i]
 }
 
 func (s Headers) Less(i, j int) bool {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - resources.go - Less()")
+
 	if s[i].Name == s[j].Name {
 		if s[i].Regex == s[j].Regex {
 			return s[i].Value < s[j].Value

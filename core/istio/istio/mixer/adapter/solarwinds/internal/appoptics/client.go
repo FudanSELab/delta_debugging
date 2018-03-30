@@ -24,6 +24,7 @@ import (
 	"net/url"
 
 	"istio.io/istio/mixer/pkg/adapter"
+	"istio.io/istio/pkg/log"
 )
 
 // ServiceAccessor defines an interface for talking to AppOptics via domain-specific service constructs
@@ -104,6 +105,9 @@ func (c *Client) NewRequest(method, path string, body interface{}) (*http.Reques
 	req.SetBasicAuth("token", c.token)
 	req.Header.Set("Accept", defaultMediaType)
 	req.Header.Set("Content-Type", defaultMediaType)
+
+	log.Infof("=======mixer - NewRequest=============")
+	log.Infof("req:" + req.RequestURI)
 
 	return req, nil
 }

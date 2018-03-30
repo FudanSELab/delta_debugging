@@ -115,6 +115,9 @@ type AdmissionController struct {
 // NOTE: this certificate is provided kubernetes. We do not control
 // its name or location.
 func getAPIServerExtensionCACert(cl kubernetes.Interface) ([]byte, error) {
+
+	log.Info("[调试标记 - pilot - pkg - kube - admit.go - getAPIServerExtensionCACert()")
+
 	const name = "extension-apiserver-authentication"
 	c, err := cl.CoreV1().ConfigMaps(metav1.NamespaceSystem).Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -130,6 +133,9 @@ func getAPIServerExtensionCACert(cl kubernetes.Interface) ([]byte, error) {
 // MakeTLSConfig makes a TLS configuration suitable for use with the
 // GenericAdmissionWebhook.
 func makeTLSConfig(serverCert, serverKey, caCert []byte) (*tls.Config, error) {
+
+	log.Info("[调试标记 - pilot - pkg - kube - admit.go - makeTLSConfig()")
+
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 	cert, err := tls.X509KeyPair(serverCert, serverKey)
@@ -144,6 +150,9 @@ func makeTLSConfig(serverCert, serverKey, caCert []byte) (*tls.Config, error) {
 }
 
 func getKeyCertsFromSecret(client kubernetes.Interface, name, namespace string) (serverKey, serverCert, caCert []byte, err error) { // nolint: lll
+
+	log.Info("[调试标记 - pilot - pkg - kube - admit.go - getKeyCertsFromSecret()")
+
 	listWatch := cache.NewListWatchFromClient(client.CoreV1().RESTClient(),
 		"secrets", namespace, fields.OneTermEqualSelector("metadata.name", name))
 	var secret *v1.Secret
@@ -175,6 +184,9 @@ func getKeyCertsFromSecret(client kubernetes.Interface, name, namespace string) 
 
 // NewController creates a new instance of the admission webhook controller.
 func NewController(client kubernetes.Interface, options ControllerOptions) (*AdmissionController, error) {
+
+	log.Info("[调试标记 - pilot - pkg - kube - admit.go - NewController()")
+
 	return &AdmissionController{
 		client:  client,
 		options: options,
@@ -182,6 +194,9 @@ func NewController(client kubernetes.Interface, options ControllerOptions) (*Adm
 }
 
 func configureCerts(client kubernetes.Interface, options *ControllerOptions) (*tls.Config, []byte, error) {
+
+	log.Info("[调试标记 - pilot - pkg - kube - admit.go - configureCerts()")
+
 	apiServerCACert, err := getAPIServerExtensionCACert(client)
 	if err != nil {
 		return nil, nil, err
@@ -200,6 +215,9 @@ func configureCerts(client kubernetes.Interface, options *ControllerOptions) (*t
 
 // Run implements the admission controller run loop.
 func (ac *AdmissionController) Run(stop <-chan struct{}) {
+
+	log.Info("[调试标记 - pilot - pkg - kube - admit.go - Run()")
+
 	tlsConfig, caCert, err := configureCerts(ac.client, &ac.options)
 	if err != nil {
 		log.Errorf("Could not configure admission webhook certs: %v", err)
@@ -245,12 +263,18 @@ func (ac *AdmissionController) Run(stop <-chan struct{}) {
 
 // Unregister unregisters the external admission webhook
 func (ac *AdmissionController) unregister(client clientadmissionregistrationv1beta1.ValidatingWebhookConfigurationInterface) error {
+
+	log.Info("[调试标记 - pilot - pkg - kube - admit.go - unregister()")
+
 	return client.Delete(ac.options.ExternalAdmissionWebhookName, nil)
 }
 
 // Register registers the external admission webhook for pilot
 // configuration types.
 func (ac *AdmissionController) register(client clientadmissionregistrationv1beta1.ValidatingWebhookConfigurationInterface, caCert []byte) error { // nolint: lll
+
+	log.Info("[调试标记 - pilot - pkg - kube - admit.go - register()")
+
 	var rules []admissionregistrationv1beta1.RuleWithOperations
 	for _, schema := range ac.options.Descriptor {
 		rules = append(rules,
@@ -298,6 +322,12 @@ func (ac *AdmissionController) register(client clientadmissionregistrationv1beta
 // ServeHTTP implements the external admission webhook for validating
 // pilot configuration.
 func (ac *AdmissionController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	log.Info("==================================================================")
+	log.Info("[调试标记 - pilot - pkg - kube - model - admit.go - ServeHTTP()")
+	log.Info("Requst:" + r.URL.String())
+	log.Info("=================================================================")
+
 	log.Debugf("AdmissionController ServeHTTP request=%#v", r)
 
 	var body []byte
@@ -343,6 +373,9 @@ func (ac *AdmissionController) ServeHTTP(w http.ResponseWriter, r *http.Request)
 }
 
 func watched(watchedNamespaces []string, namespace string) bool {
+
+	log.Info("[调试标记 - pilot - pkg - kube - admit.go - watched()")
+
 	for _, watched := range watchedNamespaces {
 		if watched == metav1.NamespaceAll {
 			return true
@@ -355,6 +388,12 @@ func watched(watchedNamespaces []string, namespace string) bool {
 }
 
 func (ac *AdmissionController) admit(request *admissionv1beta1.AdmissionRequest) *admissionv1beta1.AdmissionResponse {
+
+	log.Info("==================================================================")
+	log.Info("[调试标记 - pilot - pkg - kube - model - admit.go - ServeHTTP()")
+	log.Info("Requst:" + request.String())
+	log.Info("=================================================================")
+
 	makeErrorStatus := func(reason string, args ...interface{}) *admissionv1beta1.AdmissionResponse {
 		result := apierrors.NewBadRequest(fmt.Sprintf(reason, args...)).Status()
 		return &admissionv1beta1.AdmissionResponse{

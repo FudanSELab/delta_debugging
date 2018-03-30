@@ -255,8 +255,8 @@ spec:
         - name: config-volume
           mountPath: /etc/statsd
       - name: mixer
-        image: docker.io/istio/mixer:0.6.0
-        # image: 10.141.212.25:5555/mixer:root
+        # image: docker.io/istio/mixer:0.6.0
+        image: 10.141.212.25:5555/mixer:root
         imagePullPolicy: Always
         ports:
         - containerPort: 9091

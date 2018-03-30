@@ -29,6 +29,7 @@ import (
 	routingv2 "istio.io/api/routing/v1alpha2"
 	"istio.io/istio/pilot/pkg/model"
 	"istio.io/istio/pkg/log"
+	//"github.com/emicklei/go-restful"
 )
 
 const (
@@ -41,6 +42,9 @@ const (
 
 // buildListenerSSLContext returns an SSLContext struct.
 func buildListenerSSLContext(certsDir string) *SSLContext {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - route.go - buildListenerSSLContext()")
+
 	return &SSLContext{
 		CertChainFile:            path.Join(certsDir, model.CertChainFilename),
 		PrivateKeyFile:           path.Join(certsDir, model.KeyFilename),
@@ -52,6 +56,9 @@ func buildListenerSSLContext(certsDir string) *SSLContext {
 // buildClusterSSLContext returns an SSLContextWithSAN struct with VerifySubjectAltName.
 // The list of service accounts may be empty but not nil.
 func buildClusterSSLContext(certsDir string, serviceAccounts []string) *SSLContextWithSAN {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - route.go - buildClusterSSLContext()")
+
 	return &SSLContextWithSAN{
 		CertChainFile:        path.Join(certsDir, model.CertChainFilename),
 		PrivateKeyFile:       path.Join(certsDir, model.KeyFilename),
@@ -61,6 +68,9 @@ func buildClusterSSLContext(certsDir string, serviceAccounts []string) *SSLConte
 }
 
 func buildDefaultRoute(cluster *Cluster) *HTTPRoute {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - route.go - buildDefaultRoute()")
+
 	return &HTTPRoute{
 		Prefix:   "/",
 		Cluster:  cluster.Name,
@@ -72,6 +82,14 @@ func buildDefaultRoute(cluster *Cluster) *HTTPRoute {
 }
 
 func buildInboundRoute(config model.Config, rule *routing.RouteRule, cluster *Cluster) *HTTPRoute {
+
+	//fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v1 - fault.go - buildInboundRoute()")
+	log.Infof("=======================================")
+	log.Infof("proxy-envoy-v1-route.go-buildInboundRoute")
+	log.Infof("cluster *Cluster: cluster.ServiceName -- " + cluster.ServiceName)
+	log.Infof("cluster *Cluster: cluster.hostname -- " + cluster.hostname)
+	log.Infof("=======================================")
+
 	route := buildHTTPRouteMatch(rule.Match)
 	route.Cluster = cluster.Name
 	route.clusters = []*Cluster{cluster}
@@ -91,6 +109,14 @@ func buildInboundRoute(config model.Config, rule *routing.RouteRule, cluster *Cl
 }
 
 func buildInboundRoutesV2(proxyInstances []*model.ServiceInstance, config model.Config, rule *routingv2.RouteRule, cluster *Cluster) []*HTTPRoute {
+
+	//fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v1 - fault.go - buildInboundRoutesV2()")
+	log.Infof("=======================================")
+	log.Infof("proxy-envoy-v1-route.go-buildInboundRoutesV2")
+	log.Infof("cluster *Cluster: cluster.ServiceName -- " + cluster.ServiceName)
+	log.Infof("cluster *Cluster: cluster.hostname -- " + cluster.hostname)
+	log.Infof("=======================================")
+
 	routes := make([]*HTTPRoute, 0)
 	for _, http := range rule.Http {
 		if len(http.Match) == 0 {
@@ -109,6 +135,14 @@ func buildInboundRoutesV2(proxyInstances []*model.ServiceInstance, config model.
 }
 
 func buildInboundRouteV2(config model.Config, cluster *Cluster, http *routingv2.HTTPRoute, match *routingv2.HTTPMatchRequest) *HTTPRoute {
+
+	//fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v1 - fault.go - buildInboundRouteV2()")
+	log.Infof("=======================================")
+	log.Infof("proxy-envoy-v1-route.go-buildInboundRouteV2")
+	log.Infof("cluster *Cluster: cluster.ServiceName -- " + cluster.ServiceName)
+	log.Infof("cluster *Cluster: cluster.hostname -- " + cluster.hostname)
+	log.Infof("=======================================")
+
 	route := buildHTTPRouteMatchV2(match)
 
 	route.Cluster = cluster.Name
@@ -129,6 +163,9 @@ func buildInboundRouteV2(config model.Config, cluster *Cluster, http *routingv2.
 }
 
 func buildInboundCluster(port int, protocol model.Protocol, timeout *duration.Duration) *Cluster {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - route.go - buildInboundCluster()")
+
 	cluster := &Cluster{
 		Name:             fmt.Sprintf("%s%d", InboundClusterPrefix, port),
 		Type:             ClusterTypeStatic,
@@ -143,6 +180,13 @@ func buildInboundCluster(port int, protocol model.Protocol, timeout *duration.Du
 }
 
 func buildOutboundCluster(hostname string, port *model.Port, labels model.Labels, isExternal bool) *Cluster {
+
+	//fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v1 - fault.go - buildOutboundCluster()")
+	log.Infof("=======================================")
+	log.Infof("proxy-envoy-v1-route.go-buildOutboundCluster")
+	log.Infof("hostname string -- " + hostname)
+	log.Infof("=======================================")
+
 	svc := model.Service{Hostname: hostname}
 	key := svc.Key(port, labels)
 	name := truncateClusterName(OutboundClusterPrefix + key)
@@ -179,6 +223,13 @@ func buildOutboundCluster(hostname string, port *model.Port, labels model.Labels
 func buildHTTPRoutes(store model.IstioConfigStore, config model.Config, service *model.Service,
 	port *model.Port, proxyInstances []*model.ServiceInstance, domain string, buildCluster buildClusterFunc) []*HTTPRoute {
 
+	log.Infof("=======================================")
+	log.Infof("proxy-envoy-v1-route.go-buildHTTPRoutes")
+	log.Infof("service *model.Service: service.ExternalName -- " + service.ExternalName)
+	log.Infof("service *model.Service: service.Hostname -- " + service.Hostname)
+	log.Infof("=======================================")
+	//fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v1 - fault.go - buildHTTPRoutes()")
+
 	switch config.Spec.(type) {
 	case *routing.RouteRule:
 		return []*HTTPRoute{buildHTTPRouteV1(config, service, port)}
@@ -190,6 +241,9 @@ func buildHTTPRoutes(store model.IstioConfigStore, config model.Config, service 
 }
 
 func buildHTTPRouteV1(config model.Config, service *model.Service, port *model.Port) *HTTPRoute {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - route.go - buildHTTPRouteV1()")
+
 	rule := config.Spec.(*routing.RouteRule)
 	route := buildHTTPRouteMatch(rule.Match)
 
@@ -316,6 +370,8 @@ func buildHTTPRouteV1(config model.Config, service *model.Service, port *model.P
 func buildHTTPRoutesV2(store model.IstioConfigStore, config model.Config, service *model.Service, port *model.Port,
 	proxyInstances []*model.ServiceInstance, domain string, buildCluster buildClusterFunc) []*HTTPRoute {
 
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - fault.go - buildHTTPRoutesV2()")
+
 	rule := config.Spec.(*routingv2.RouteRule)
 	routes := make([]*HTTPRoute, 0)
 
@@ -348,6 +404,8 @@ func buildHTTPRoutesV2(store model.IstioConfigStore, config model.Config, servic
 
 func buildHTTPRouteV2(store model.IstioConfigStore, config model.Config, service *model.Service, port *model.Port,
 	http *routingv2.HTTPRoute, match *routingv2.HTTPMatchRequest, domain string, buildCluster buildClusterFunc) *HTTPRoute {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - route.go - buildHTTPRouteV2()")
 
 	route := buildHTTPRouteMatchV2(match)
 
@@ -416,6 +474,9 @@ func buildHTTPRouteV2(store model.IstioConfigStore, config model.Config, service
 // In v1alpha2, cluster names will be built using the subset name instead of labels.
 // This will allow us to remove this function, which is very inefficient.
 func fetchSubsetLabels(store model.IstioConfigStore, name, subsetName, domain string) (labels model.Labels) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - route.go - fetchSubsetLabels()")
+
 	if subsetName == "" {
 		return
 	}
@@ -442,6 +503,9 @@ func fetchSubsetLabels(store model.IstioConfigStore, name, subsetName, domain st
 }
 
 func applyRedirect(route *HTTPRoute, redirect *routingv2.HTTPRedirect) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - route.go - applyRedirect()")
+
 	if redirect != nil {
 		route.HostRedirect = redirect.Authority
 		route.PathRedirect = redirect.Uri
@@ -450,6 +514,9 @@ func applyRedirect(route *HTTPRoute, redirect *routingv2.HTTPRedirect) {
 }
 
 func buildRetryPolicy(retries *routingv2.HTTPRetry) (policy *RetryPolicy) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - route.go - buildRetryPolicy()")
+
 	if retries != nil && retries.Attempts > 0 {
 		policy = &RetryPolicy{
 			NumRetries: int(retries.GetAttempts()),
@@ -463,6 +530,9 @@ func buildRetryPolicy(retries *routingv2.HTTPRetry) (policy *RetryPolicy) {
 }
 
 func applyRewrite(route *HTTPRoute, rewrite *routingv2.HTTPRewrite) {
+
+	fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v1 - route.go - applyRewrite()")
+
 	if rewrite != nil {
 		route.HostRewrite = rewrite.Authority
 		route.PrefixRewrite = rewrite.Uri
@@ -470,17 +540,30 @@ func applyRewrite(route *HTTPRoute, rewrite *routingv2.HTTPRewrite) {
 }
 
 func buildHeadersToAdd(headers map[string]string) []AppendedHeader {
+
+	//fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v1 - fault.go - buildHeadersToAdd()")
+	//fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v1 - fault.go - buildCluster()")
+	log.Infof("=======================================")
+	log.Infof("proxy-envoy-v1-route.go-buildHeadersToAdd")
+
 	out := make([]AppendedHeader, 0, len(headers))
 	for name, val := range headers {
+		fmt.Println("header name:" + name)
+		fmt.Println("header val" + val)
 		out = append(out, AppendedHeader{
 			Key:   name,
 			Value: val,
 		})
 	}
+
+	log.Infof("=======================================")
 	return out
 }
 
 func buildCORSPolicy(policy *routingv2.CorsPolicy) *CORSPolicy {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - route.go - buildCORSPolicy()")
+
 	if policy == nil {
 		return nil
 	}
@@ -508,6 +591,14 @@ func buildCORSPolicy(policy *routingv2.CorsPolicy) *CORSPolicy {
 }
 
 func buildCluster(address, name string, timeout *duration.Duration) *Cluster {
+
+	//fmt.Println("[调试标记 - pilot - pkg - proxy - envoy - v1 - fault.go - buildCluster()")
+	log.Infof("=======================================")
+	log.Infof("proxy-envoy-v1-route.go-buildCluster")
+	log.Infof("address string:" + address)
+	log.Infof("name string" + name)
+	log.Infof("=======================================")
+
 	return &Cluster{
 		Name:             name,
 		Type:             ClusterTypeStrictDNS,
@@ -522,6 +613,9 @@ func buildCluster(address, name string, timeout *duration.Duration) *Cluster {
 }
 
 func buildDecorator(config model.Config) *Decorator {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - route.go - buildDecorator()")
+
 	if config.ConfigMeta.Name != "" {
 		return &Decorator{
 			Operation: config.ConfigMeta.Name,
@@ -531,6 +625,9 @@ func buildDecorator(config model.Config) *Decorator {
 }
 
 func buildZipkinTracing() *Tracing {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - route.go - buildZipkinTracing()")
+
 	return &Tracing{
 		HTTPTracer: HTTPTracer{
 			HTTPTraceDriver: HTTPTraceDriver{
@@ -550,6 +647,14 @@ func buildZipkinTracing() *Tracing {
 // Suffix provides the proxy context information - it is the shared sub-domain between co-located
 // service instances (e.g. "namespace", "svc", "cluster", "local")
 func buildVirtualHost(svc *model.Service, port *model.Port, suffix []string, routes []*HTTPRoute) *VirtualHost {
+
+	log.Infof("=======================================")
+	log.Infof("proxy-envoy-v1-route.go-buildVirtualHost")
+	log.Infof("svc *model.Service: svc.ExternalName-- " + svc.ExternalName)
+	log.Infof("svc *model.Service: svc.Hostname-- " + svc.Hostname)
+	log.Infof("=======================================")
+
+
 	hosts := make([]string, 0)
 	domains := make([]string, 0)
 	parts := strings.Split(svc.Hostname, ".")
@@ -594,6 +699,9 @@ func buildVirtualHost(svc *model.Service, port *model.Port, suffix []string, rou
 // sharedHost computes the shared host name suffix for instances.
 // Each host name is split into its domains.
 func sharedHost(parts ...[]string) []string {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - route.go - sharedHost()")
+
 	switch len(parts) {
 	case 0:
 		return nil
@@ -630,6 +738,14 @@ func sharedHost(parts ...[]string) []string {
 }
 
 func buildTCPRoute(cluster *Cluster, addresses []string) *TCPRoute {
+
+	log.Infof("=======================================")
+	log.Infof("proxy-envoy-v1-route.go-buildTCPRoute")
+	log.Infof("cluster *Cluster: cluster.Name -- " + cluster.Name)
+	log.Infof("cluster *Cluster: cluster.ServiceName -- " + cluster.ServiceName)
+	log.Infof("cluster *Cluster: cluster.Type -- " + cluster.Type)
+	log.Infof("=======================================")
+
 	// destination port is unnecessary with use_original_dst since
 	// the listener address already contains the port
 	route := &TCPRoute{
@@ -648,6 +764,12 @@ func buildTCPRoute(cluster *Cluster, addresses []string) *TCPRoute {
 }
 
 func buildOriginalDSTCluster(name string, timeout *duration.Duration) *Cluster {
+
+	log.Infof("=======================================")
+	log.Infof("proxy-envoy-v1-route.go-buildOriginalDSTCluster")
+	log.Infof("name string -- " + name)
+	log.Infof("=======================================")
+
 	return &Cluster{
 		Name:             truncateClusterName(OutboundClusterPrefix + name),
 		Type:             ClusterTypeOriginalDST,

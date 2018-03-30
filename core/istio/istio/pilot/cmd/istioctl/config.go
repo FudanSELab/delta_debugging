@@ -48,6 +48,9 @@ istioctl proxy-config productpage-v1-bb8d5cbc7-k7qbm`,
 		Aliases: []string{"pc"},
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(c *cobra.Command, args []string) error {
+
+			fmt.Println("[调试标记 - pilot - cmd - istioctl - config.go - &cobra.Command")
+
 			podName := args[0]
 			log.Infof("Retrieving proxy config for %q", podName)
 
@@ -68,10 +71,16 @@ istioctl proxy-config productpage-v1-bb8d5cbc7-k7qbm`,
 )
 
 func init() {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - config.go - init()")
+
 	rootCmd.AddCommand(configCmd)
 }
 
 func createCoreV1Client() (*rest.RESTClient, error) {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - config.go - createCoreV1Client()")
+
 	config, err := defaultRestConfig()
 	if err != nil {
 		return nil, err
@@ -80,6 +89,9 @@ func createCoreV1Client() (*rest.RESTClient, error) {
 }
 
 func defaultRestConfig() (*rest.Config, error) {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - config.go - defaultRestConfig()")
+
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		return nil, err
@@ -91,6 +103,9 @@ func defaultRestConfig() (*rest.Config, error) {
 }
 
 func readConfigFile(podName, podNamespace string) (string, error) {
+
+	fmt.Println("[调试标记 - pilot - cmd - istioctl - config.go - readConfigFile()")
+
 	// Get filename to read from
 	var fileLocation string
 	cmd := []string{"ls", "-Art", "/etc/istio/proxy"}
@@ -116,6 +131,12 @@ func readConfigFile(podName, podNamespace string) (string, error) {
 }
 
 func podExec(podName, podNamespace string, command []string) (*bytes.Buffer, *bytes.Buffer, error) {
+
+	fmt.Printf("=============================================================")
+	fmt.Printf("[调试标记 - pilot - cmd - istioctl - config.go - podExec()")
+	fmt.Printf("podName: " + podName)
+	fmt.Printf("=============================================================")
+
 	client, err := createCoreV1Client()
 	if err != nil {
 		return nil, nil, err

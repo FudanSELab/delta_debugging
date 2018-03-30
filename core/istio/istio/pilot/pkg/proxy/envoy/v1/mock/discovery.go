@@ -20,6 +20,8 @@ import (
 
 	meshconfig "istio.io/api/mesh/v1alpha1"
 	"istio.io/istio/pilot/pkg/model"
+
+	"istio.io/istio/pkg/log"
 )
 
 // Mock values
@@ -72,6 +74,9 @@ var (
 
 // NewDiscovery builds a mock ServiceDiscovery
 func NewDiscovery(services map[string]*model.Service, versions int) *ServiceDiscovery {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - mock - discovery.go - NewDiscovery()")
+
 	return &ServiceDiscovery{
 		services: services,
 		versions: versions,
@@ -80,6 +85,9 @@ func NewDiscovery(services map[string]*model.Service, versions int) *ServiceDisc
 
 // MakeService creates a mock service
 func MakeService(hostname, address string) *model.Service {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - mock - discovery.go - MakeService()")
+
 	return &model.Service{
 		Hostname: hostname,
 		Address:  address,
@@ -116,6 +124,9 @@ func MakeService(hostname, address string) *model.Service {
 
 // MakeExternalHTTPService creates mock external service
 func MakeExternalHTTPService(hostname, external string, address string) *model.Service {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - mock - discovery.go - MakeExternalHTTPService()")
+
 	return &model.Service{
 		Hostname:     hostname,
 		Address:      address,
@@ -131,6 +142,9 @@ func MakeExternalHTTPService(hostname, external string, address string) *model.S
 
 // MakeExternalHTTPSService creates mock external service
 func MakeExternalHTTPSService(hostname, external string, address string) *model.Service {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - mock - discovery.go - MakeExternalHTTPSService()")
+
 	return &model.Service{
 		Hostname:     hostname,
 		Address:      address,
@@ -146,6 +160,9 @@ func MakeExternalHTTPSService(hostname, external string, address string) *model.
 
 // MakeInstance creates a mock instance, version enumerates endpoints
 func MakeInstance(service *model.Service, port *model.Port, version int, az string) *model.ServiceInstance {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - mock - discovery.go - MakeInstance()")
+
 	if service.External() {
 		return nil
 	}
@@ -172,6 +189,9 @@ func MakeInstance(service *model.Service, port *model.Port, version int, az stri
 // a port does not exist (should not happenen if service is create via
 // mock MakeSericve)
 func GetPortHTTP(service *model.Service) *model.Port {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - mock - discovery.go - GetPortHTTP()")
+
 	for _, port := range service.Ports {
 		if port.Name == PortHTTPName {
 			return port
@@ -182,6 +202,9 @@ func GetPortHTTP(service *model.Service) *model.Port {
 
 // MakeIP creates a fake IP address for a service and instance version
 func MakeIP(service *model.Service, version int) string {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - mock - discovery.go - MakeIP()")
+
 	// external services have no instances
 	if service.External() {
 		return ""
@@ -205,6 +228,9 @@ type ServiceDiscovery struct {
 
 // ClearErrors clear errors used for mocking failures during model.ServiceDiscovery interface methods
 func (sd *ServiceDiscovery) ClearErrors() {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - mock - discovery.go - ClearErrors()")
+
 	sd.ServicesError = nil
 	sd.GetServiceError = nil
 	sd.InstancesError = nil
@@ -213,6 +239,9 @@ func (sd *ServiceDiscovery) ClearErrors() {
 
 // Services implements discovery interface
 func (sd *ServiceDiscovery) Services() ([]*model.Service, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - mock - discovery.go - Services()")
+
 	if sd.ServicesError != nil {
 		return nil, sd.ServicesError
 	}
@@ -225,6 +254,9 @@ func (sd *ServiceDiscovery) Services() ([]*model.Service, error) {
 
 // GetService implements discovery interface
 func (sd *ServiceDiscovery) GetService(hostname string) (*model.Service, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - mock - discovery.go - GetService()")
+
 	if sd.GetServiceError != nil {
 		return nil, sd.GetServiceError
 	}
@@ -235,6 +267,9 @@ func (sd *ServiceDiscovery) GetService(hostname string) (*model.Service, error) 
 // Instances implements discovery interface
 func (sd *ServiceDiscovery) Instances(hostname string, ports []string,
 	labels model.LabelsCollection) ([]*model.ServiceInstance, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - mock - discovery.go - Instances()")
+
 	if sd.InstancesError != nil {
 		return nil, sd.InstancesError
 	}
@@ -260,6 +295,9 @@ func (sd *ServiceDiscovery) Instances(hostname string, ports []string,
 
 // GetProxyServiceInstances implements discovery interface
 func (sd *ServiceDiscovery) GetProxyServiceInstances(node model.Proxy) ([]*model.ServiceInstance, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - mock - discovery.go - GetProxyServiceInstances()")
+
 	if sd.GetProxyServiceInstancesError != nil {
 		return nil, sd.GetProxyServiceInstancesError
 	}
@@ -283,6 +321,9 @@ func (sd *ServiceDiscovery) GetProxyServiceInstances(node model.Proxy) ([]*model
 
 // ManagementPorts implements discovery interface
 func (sd *ServiceDiscovery) ManagementPorts(addr string) model.PortList {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - mock - discovery.go - ManagementPorts()")
+
 	return model.PortList{{
 		Name:     "http",
 		Port:     3333,
@@ -296,6 +337,9 @@ func (sd *ServiceDiscovery) ManagementPorts(addr string) model.PortList {
 
 // GetIstioServiceAccounts gets the Istio service accounts for a service hostname.
 func (sd *ServiceDiscovery) GetIstioServiceAccounts(hostname string, ports []string) []string {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - mock - discovery.go - GetIstioServiceAccounts()")
+
 	if hostname == "world.default.svc.cluster.local" {
 		return []string{
 			"spiffe://cluster.local/ns/default/sa/serviceaccount1",

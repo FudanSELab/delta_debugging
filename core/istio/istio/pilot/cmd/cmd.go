@@ -33,6 +33,12 @@ import (
 
 // ReadMeshConfig gets mesh configuration from a config file
 func ReadMeshConfig(filename string) (*meshconfig.MeshConfig, error) {
+
+	fmt.Printf("======================================================")
+	fmt.Printf("[调试标记 - pilot - cmd - cmd.go - ReadMeshConfig()")
+	fmt.Printf("filename string:" + filename)
+	fmt.Printf("======================================================")
+
 	yaml, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, multierror.Prefix(err, "cannot read mesh config file")
@@ -42,6 +48,9 @@ func ReadMeshConfig(filename string) (*meshconfig.MeshConfig, error) {
 
 // AddFlags adds all command line flags to the given command.
 func AddFlags(rootCmd *cobra.Command) {
+
+	fmt.Println("[调试标记 - pilot - cmd - cmd.go - AddFlags()")
+
 	flag.CommandLine.VisitAll(func(gf *flag.Flag) {
 		switch gf.Name {
 		case "logtostderr":
@@ -59,6 +68,9 @@ func AddFlags(rootCmd *cobra.Command) {
 // SupressGlogWarnings is a hack to make flag.Parsed return true such that glog is happy
 // about the flags having been parsed.  See https://github.com/istio/istio/issues/2127.
 func SupressGlogWarnings() {
+
+	fmt.Println("[调试标记 - pilot - cmd - cmd.go - SupressGlogWarnings()")
+
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
 	/* #nosec */
 	_ = fs.Parse([]string{})
@@ -67,6 +79,9 @@ func SupressGlogWarnings() {
 
 // WaitSignal awaits for SIGINT or SIGTERM and closes the channel
 func WaitSignal(stop chan struct{}) {
+
+	fmt.Println("[调试标记 - pilot - cmd - cmd.go - WaitSignal()")
+
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	<-sigs

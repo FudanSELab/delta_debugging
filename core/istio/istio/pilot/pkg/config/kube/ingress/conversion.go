@@ -33,6 +33,9 @@ import (
 )
 
 func convertIngress(ingress v1beta1.Ingress, domainSuffix string) []model.Config {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - ingress - conversion.go - convertIngress()")
+
 	out := make([]model.Config, 0)
 	tls := ""
 
@@ -68,6 +71,9 @@ func convertIngress(ingress v1beta1.Ingress, domainSuffix string) []model.Config
 
 func createIngressRule(name, host, path, domainSuffix string,
 	ingress v1beta1.Ingress, backend v1beta1.IngressBackend, tlsSecret string) model.Config {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - ingress - conversion.go - createIngressRule()")
+
 	rule := &routing.IngressRule{
 		Destination: &routing.IstioService{
 			Name: backend.ServiceName,
@@ -132,11 +138,17 @@ func createIngressRule(name, host, path, domainSuffix string,
 // as well as the position of the rule and path specified within it, counting from 1.
 // ruleNum == pathNum == 0 indicates the default backend specified for an ingress.
 func encodeIngressRuleName(ingressName string, ruleNum, pathNum int) string {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - ingress - conversion.go - encodeIngressRuleName()")
+
 	return fmt.Sprintf("%s-%d-%d", ingressName, ruleNum, pathNum)
 }
 
 // decodeIngressRuleName decodes an ingress rule name previously encoded with encodeIngressRuleName.
 func decodeIngressRuleName(name string) (ingressName string, ruleNum, pathNum int, err error) {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - ingress - conversion.go - decodeIngressRuleName()")
+
 	parts := strings.Split(name, "-")
 	if len(parts) < 3 {
 		err = fmt.Errorf("could not decode string into ingress rule name: %s", name)
@@ -161,6 +173,9 @@ func decodeIngressRuleName(name string) (ingressName string, ruleNum, pathNum in
 // by the controller, based on its ingress class annotation.
 // See https://github.com/kubernetes/ingress/blob/master/examples/PREREQUISITES.md#ingress-class
 func shouldProcessIngress(mesh *meshconfig.MeshConfig, ingress *v1beta1.Ingress) bool {
+
+	log.Infof("[调试标记 - pilot - pkg - config - kube - ingress - conversion.go - shouldProcessIngress()")
+
 	class, exists := "", false
 	if ingress.Annotations != nil {
 		class, exists = ingress.Annotations[kube.IngressClassAnnotation]

@@ -30,6 +30,8 @@ import (
 func buildGatewayHTTPListeners(mesh *meshconfig.MeshConfig,
 	configStore model.IstioConfigStore, node model.Proxy) (Listeners, error) {
 
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - gateway.go - buildGatewayHTTPListeners()")
+
 	gateways, err := configStore.List(model.Gateway.Type, model.NamespaceAll)
 	if err != nil {
 		return nil, fmt.Errorf("listing gateways: %s", err)
@@ -70,6 +72,8 @@ func buildPhysicalGatewayListener(
 	config model.IstioConfigStore,
 	server *routing.Server,
 ) *Listener {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - gateway.go - buildPhysicalGatewayListener()")
 
 	opts := buildHTTPListenerOpts{
 		mesh:             mesh,
@@ -112,6 +116,9 @@ func buildPhysicalGatewayListener(
 // Our TLS options align with SDSv2 DownstreamTlsContext, but the v1 API's SSLContext is split
 // into three pieces; we need at least two of the pieces here.
 func tlsToSSLContext(tls *routing.Server_TLSOptions, protocol string) *SSLContext {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - gateway.go - tlsToSSLContext()")
+
 	return &SSLContext{
 		CertChainFile:            tls.ServerCertificate,
 		PrivateKeyFile:           tls.PrivateKey,
@@ -123,6 +130,9 @@ func tlsToSSLContext(tls *routing.Server_TLSOptions, protocol string) *SSLContex
 
 // buildGatewayHTTPRoutes creates HTTP route configs for a single external port on a gateway
 func buildGatewayVirtualHosts(configStore model.IstioConfigStore, node model.Proxy, listenerPort int) (*HTTPRouteConfig, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - gateway.go - buildGatewayVirtualHosts()")
+
 	gateways, err := configStore.List(model.Gateway.Type, model.NamespaceAll)
 	if err != nil {
 		return nil, err
@@ -187,6 +197,8 @@ type ruleWithHosts struct {
 
 func findRulesAndMatchingHosts(allRuleConfigs []model.Config, gatewayName string, gatewayHost string) []ruleWithHosts {
 
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - gateway.go - findRulesAndMatchingHosts()")
+
 	result := []ruleWithHosts{}
 	for _, config := range allRuleConfigs {
 		rule := config.Spec.(*routing.RouteRule)
@@ -206,6 +218,9 @@ func findRulesAndMatchingHosts(allRuleConfigs []model.Config, gatewayName string
 }
 
 func stringSliceContains(match string, things []string) bool {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - gateway.go - stringSliceContains()")
+
 	for _, thing := range things {
 		if thing == match {
 			return true
@@ -215,6 +230,15 @@ func stringSliceContains(match string, things []string) bool {
 }
 
 func findMatchingHosts(matchCriteria string, hosts []string) []string {
+
+	log.Infof("===================================================")
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - gateway.go - findMatchingHosts()")
+	log.Infof("matchCriteria string：" + matchCriteria)
+	for a := 0; a < len(hosts); a++ {
+		log.Infof(hosts[a])
+	}
+	log.Infof("===================================================")
+
 	if matchCriteria == "" {
 		return nil
 	}

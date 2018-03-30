@@ -298,6 +298,12 @@ func (ac *AdmissionController) register(client clientadmissionregistrationv1beta
 
 // ServeHTTP implements the external admission webhook.
 func (ac *AdmissionController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	log.Infof("================================================")
+	log.Infof("Request:" + r.URL.String())
+	log.Infof("istio - mixer - pkg - config - crd - admit.go")
+	log.Infof("================================================")
+
 	var body []byte
 	if r.Body != nil {
 		if data, err := ioutil.ReadAll(r.Body); err == nil {

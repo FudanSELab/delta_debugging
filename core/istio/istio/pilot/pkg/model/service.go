@@ -29,6 +29,7 @@ import (
 	"strings"
 
 	meshconfig "istio.io/api/mesh/v1alpha1"
+	"istio.io/istio/pkg/log"
 )
 
 // Service describes an Istio service (e.g., catalog.mystore.com:8080)
@@ -361,6 +362,9 @@ func (s *Service) Key(port *Port, labels Labels) string {
 
 // ServiceKey generates a service key for a collection of ports and labels
 func ServiceKey(hostname string, servicePorts PortList, labelsList LabelsCollection) string {
+
+	log.Infof("[调试标记 - pilot - pkg - kube - model - service.go - ServiceKey()")
+
 	// example: name.namespace|http|env=prod;env=test,version=my-v1
 	var buffer bytes.Buffer
 	buffer.WriteString(hostname)
@@ -412,6 +416,9 @@ func ServiceKey(hostname string, servicePorts PortList, labelsList LabelsCollect
 
 // ParseServiceKey is the inverse of the Service.String() method
 func ParseServiceKey(s string) (hostname string, ports PortList, labels LabelsCollection) {
+
+	log.Infof("[调试标记 - pilot - pkg - kube - model - service.go - ParseServiceKey()")
+
 	parts := strings.Split(s, "|")
 	hostname = parts[0]
 
@@ -460,6 +467,9 @@ func (l Labels) String() string {
 
 // ParseLabelsString extracts labels from a string
 func ParseLabelsString(s string) Labels {
+
+	log.Infof("[调试标记 - pilot - pkg - kube - model - service.go - ParseLabelsString()")
+
 	pairs := strings.Split(s, ",")
 	tag := make(map[string]string, len(pairs))
 

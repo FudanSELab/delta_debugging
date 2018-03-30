@@ -30,6 +30,9 @@ const (
 
 // Command returns the "gen-deploy" subcommand for istioctl.
 func Command(istioNamespaceFlag *string) *cobra.Command {
+
+	//fmt.Println("[调试标记 - pilot - cmd - istioctl - gendeployment - cmd.go - Command()")
+
 	var (
 		features          *[]string
 		out               string
@@ -104,6 +107,9 @@ func Command(istioNamespaceFlag *string) *cobra.Command {
 }
 
 func getValues(path string, i *installation) (string, error) {
+
+	//fmt.Println("[调试标记 - pilot - cmd - istioctl - gendeployment - cmd.go - getValues()")
+
 	if path == "" {
 		return valuesFromInstallation(i), nil
 	}
@@ -139,6 +145,9 @@ type installation struct {
 }
 
 func defaultInstall() *installation {
+
+	//fmt.Println("[调试标记 - pilot - cmd - istioctl - gendeployment - cmd.go - defaultInstall()")
+
 	return &installation{
 		Mixer:           true,
 		Pilot:           true,
@@ -162,6 +171,9 @@ func defaultInstall() *installation {
 }
 
 func (i *installation) setFeatures(features []string) error {
+
+	//fmt.Println("[调试标记 - pilot - cmd - istioctl - gendeployment - cmd.go - setFeatures()")
+
 	if len(features) == 0 {
 		return nil
 	} else if len(features) == 1 {

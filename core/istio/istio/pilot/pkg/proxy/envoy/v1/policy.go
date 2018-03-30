@@ -26,6 +26,9 @@ import (
 )
 
 func isDestinationExcludedForMTLS(serviceName string, mtlsExcludedServices []string) bool {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - policy.go - isDestinationExcludedForMTLS()")
+
 	hostname, _, _ := model.ParseServiceKey(serviceName)
 	for _, serviceName := range mtlsExcludedServices {
 		if hostname == serviceName {
@@ -42,6 +45,9 @@ func applyClusterPolicy(cluster *Cluster,
 	mesh *meshconfig.MeshConfig,
 	accounts model.ServiceAccounts,
 	domain string) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - policy.go - applyClusterPolicy()")
+
 	duration := protoDurationToMS(mesh.ConnectTimeout)
 	cluster.ConnectTimeoutMs = duration
 
@@ -126,6 +132,9 @@ func applyClusterPolicy(cluster *Cluster,
 }
 
 func applyLoadBalancePolicy(cluster *Cluster, policy *routingv2.LoadBalancerSettings) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - policy.go - applyLoadBalancePolicy()")
+
 	if policy == nil || cluster.Type == ClusterTypeOriginalDST {
 		return
 	}
@@ -150,6 +159,9 @@ func applyLoadBalancePolicy(cluster *Cluster, policy *routingv2.LoadBalancerSett
 }
 
 func buildOutlierDetection(outlier *routingv2.OutlierDetection) *OutlierDetection {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - policy.go - buildOutlierDetection()")
+
 	if outlier != nil && outlier.Http != nil {
 		out := &OutlierDetection{
 			ConsecutiveErrors:  5,
@@ -177,6 +189,9 @@ func buildOutlierDetection(outlier *routingv2.OutlierDetection) *OutlierDetectio
 }
 
 func applyConnectionPool(cluster *Cluster, settings *routingv2.ConnectionPoolSettings) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - policy.go - applyConnectionPool()")
+
 	cluster.MaxRequestsPerConnection = 1024 // TODO: set during cluster construction?
 
 	if settings == nil {
@@ -227,6 +242,9 @@ func applyConnectionPool(cluster *Cluster, settings *routingv2.ConnectionPoolSet
 
 // TODO: write unit tests for sub-functions
 func applyTrafficPolicy(cluster *Cluster, policy *routingv2.TrafficPolicy) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - policy.go - applyTrafficPolicy()")
+
 	if policy == nil {
 		return
 	}
@@ -236,6 +254,9 @@ func applyTrafficPolicy(cluster *Cluster, policy *routingv2.TrafficPolicy) {
 }
 
 func applyDestinationRule(config model.IstioConfigStore, cluster *Cluster, domain string) {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - policy.go - applyDestinationRule()")
+
 	destinationRuleConfig := config.DestinationRule(cluster.hostname, domain)
 	if destinationRuleConfig != nil {
 		destinationRule := destinationRuleConfig.Spec.(*routingv2.DestinationRule)

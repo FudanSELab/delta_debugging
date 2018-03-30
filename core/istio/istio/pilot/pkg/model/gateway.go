@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	routing "istio.io/api/routing/v1alpha2"
+	"istio.io/istio/pkg/log"
 )
 
 // MergeGateways merges servers from src into the server set on dst
@@ -41,6 +42,9 @@ import (
 // See also: Merging Gateways and RouteRules
 //  https://docs.google.com/document/d/1z9jOZ1f4MhC3Fvisduio8IoUqd1_Eqrd3kG65M6n854
 func MergeGateways(dst, src *routing.Gateway) error {
+
+	log.Infof("[调试标记 - pilot - pkg - kube - model - gateway.go - MergeGateways()")
+
 	// Simplify the loop logic below by handling the case where either Gateway is empty.
 	if len(dst.Servers) == 0 {
 		dst.Servers = src.Servers

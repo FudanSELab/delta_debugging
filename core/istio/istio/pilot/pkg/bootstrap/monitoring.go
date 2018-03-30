@@ -37,6 +37,9 @@ const (
 )
 
 func startMonitor(port int) (*monitor, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - monitoring.go - startMonitor()")
+
 	m := &monitor{
 		shutdown: make(chan struct{}),
 	}
@@ -55,6 +58,11 @@ func startMonitor(port int) (*monitor, error) {
 	mux := http.NewServeMux()
 	mux.Handle(metricsPath, promhttp.Handler())
 	mux.HandleFunc(versionPath, func(out http.ResponseWriter, req *http.Request) {
+
+		log.Infof("===============")
+		log.Infof("request:" + req.URL.String())
+		log.Infof("===============")
+
 		if _, err := out.Write([]byte(version.Info.String())); err != nil {
 			log.Errorf("Unable to write version string: %v", err)
 		}
@@ -79,6 +87,9 @@ func startMonitor(port int) (*monitor, error) {
 }
 
 func (m *monitor) Close() error {
+
+	log.Infof("[调试标记 - pilot - pkg - bootstrap - monitoring.go - Close()")
+
 	err := m.monitoringServer.Close()
 	<-m.shutdown
 	return err

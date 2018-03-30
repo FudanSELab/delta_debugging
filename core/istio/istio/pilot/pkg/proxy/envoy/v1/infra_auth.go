@@ -16,6 +16,7 @@ package v1
 
 import (
 	"fmt"
+	"istio.io/istio/pkg/log"
 )
 
 const (
@@ -25,6 +26,9 @@ const (
 )
 
 func getSAN(domain, ns, svcAccName string) []string {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - infra_auth.go - getSAN()")
+
 	// spiffe SAN for services is of the form. e.g. for pilot
 	// "spiffe://cluster.local/ns/istio-system/sa/istio-pilot-service-account"
 	svcSAN := fmt.Sprintf("spiffe://%v/ns/%v/sa/%v", domain, ns, svcAccName)
@@ -34,10 +38,16 @@ func getSAN(domain, ns, svcAccName string) []string {
 
 // GetMixerSAN returns the SAN used for mixer mTLS
 func GetMixerSAN(domain, ns string) []string {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - infra_auth.go - GetMixerSAN()")
+
 	return getSAN(domain, ns, mixerSvcAccName)
 }
 
 // GetPilotSAN returns the SAN used for pilot mTLS
 func GetPilotSAN(domain, ns string) []string {
+
+	log.Infof("[调试标记 - pilot - pkg - proxy - envoy - v1 - infra_auth.go - GetPilotSAN()")
+
 	return getSAN(domain, ns, pilotSvcAccName)
 }

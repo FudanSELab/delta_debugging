@@ -22,6 +22,7 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 
 	routing "istio.io/api/routing/v1alpha1"
+	"istio.io/istio/pkg/log"
 )
 
 // RejectConflictingEgressRules rejects conflicting egress rules.
@@ -41,6 +42,9 @@ func RejectConflictingEgressRules(rules []Config) ([]Config, error) {
 // Here the key of the rule is the key of the Istio configuration objects - see
 // `func (meta *ConfigMeta) Key() string`
 func rejectConflictingOnDomainEgressRules(cfg []Config) ([]Config, error) {
+
+	fmt.Println("[调试标记 - pilot - pkg - kube - model - egress_rule.go - rejectConflictingOnDomainEgressRules()")
+
 	var errs error
 
 	filteredEgressRules := make([]Config, 0, len(cfg))
@@ -148,6 +152,9 @@ func egressRulesSupportedProtocols() string {
 // Here the key of the rule is the key of the Istio configuration objects - see
 // `func (meta *ConfigMeta) Key() string`
 func rejectConflictingOnPortTCPEgressRules(cfg []Config) ([]Config, error) {
+
+	log.Infof("[调试标记 - pilot - pkg - kube - model - egress_rule.go - rejectConflictingOnPortTCPEgressRules()")
+
 	filteredEgressRules := make([]Config, 0, len(cfg))
 	var errs error
 
