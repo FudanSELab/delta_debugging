@@ -26,11 +26,12 @@ public class TestServiceLogin {
     }
     @BeforeClass
     public void setUp() throws Exception {
-//        System.setProperty("webdriver.chrome.driver", "/Users/hechuan/Downloads/chromedriver");
+//        System.setProperty("webdriver.chrome.driver", "F:/app/new2/chromedriver.exe");
 //        driver = new ChromeDriver();
+//        baseUrl = "http://10.141.211.173:30004";
         driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
                 DesiredCapabilities.chrome());
-        baseUrl = "http://10.141.211.181:30004";
+        baseUrl = "http://10.141.211.180:30776";
         driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
     }
 

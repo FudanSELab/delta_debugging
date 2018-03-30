@@ -1,6 +1,6 @@
-var instance = angular.module('app.instance-controller', []);
+var sequence = angular.module('app.sequence-controller', []);
 
-instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases','loadServiceList', 'getPodLogService','refreshPodsService',
+sequence.controller('SequenceCtrl', ['$scope', '$http','$window','loadTestCases','loadServiceList', 'getPodLogService','refreshPodsService',
         function($scope, $http,$window,loadTestCases,loadServiceList, getPodLogService, refreshPodsService) {
 
         //刷新页面
@@ -12,12 +12,13 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
         loadServiceList.loadServiceList().then(function (result) {
             if(result.status){
                 $scope.services = result.services;
-                $scope.serviceGroup = [];
+                $scope.senderGroup = [];
+                $scope.receiverGroup = [];
                 for(var i = 0; i < $scope.services.length; i++){
                     for(var j = 0; j < 5 && i < $scope.services.length; ){
                         if($scope.services[i].serviceName.indexOf("service") !== -1){
-                            // $scope.services[i].checked = false;
-                            $scope.serviceGroup.push($scope.services[i]);
+                            $scope.senderGroup.push($scope.services[i]);
+                            $scope.receiverGroup.push($scope.services[i]);
                             i++;
                             j++;
                         } else {
@@ -46,13 +47,35 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
 
         $scope.refreshPod = function(){
             refreshPodsService.load().then(function(result){
-                // alert("23333");
                 if(result.status){
                     $scope.podList = result.pods;
                 } else {
                     alert(result.message);
                 }
             });
+        };
+
+        $scope.test = function(){
+            var checkedTest = $("input[name='testcase']:checked");
+            var tests = [];
+            checkedTest.each(function(){
+                tests.push($(this).val());
+            });
+            var checkedSenderServices = $("input[name='sender']:checked");
+            var senders = [];
+            checkedSenderServices.each(function(){
+                senders.push($(this).val());
+            });
+            var checkedReceiverServices = $("input[name='receiver']:checked");
+            var receivers = [];
+            checkedReceiverServices.each(function(){
+                receivers.push($(this).val());
+            });
+
+            console.log(tests);
+            console.log(senders);
+            console.log(receivers);
+
         };
 
 
@@ -74,7 +97,7 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
             stompClient = Stomp.over(socket);
             stompClient.connect({login:loginId}, function (frame) {
                 setConnected(true);
-                stompClient.subscribe('/user/topic/deltaresponse', function (data) {
+                stompClient.subscribe('/user/topic/sequenceDeltaResponse', function (data) {
                     var data = JSON.parse(data.body);
                     if(data.status){
                         var env = data.env;
@@ -101,10 +124,10 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
 
                 });
 
-                stompClient.subscribe('/user/topic/deltaend', function (data) {
-                    $('#test-button').removeClass('disabled');
-                    console.log( "deltaend" + data.body);
-                });
+                // stompClient.subscribe('/user/topic/sequencedeltaend', function (data) {
+                //     $('#test-button').removeClass('disabled');
+                //     console.log( "deltaend" + data.body);
+                // });
 
             });
         }
@@ -117,24 +140,31 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
             checkedTest.each(function(){
                 tests.push($(this).val());
             });
-            var checkedServices = $("input[name='service']:checked");
-            var env = [];
-            checkedServices.each(function(){
-                env.push($(this).val());
+            var checkedSenderServices = $("input[name='sender']:checked");
+            var senders = [];
+            checkedSenderServices.each(function(){
+                senders.push($(this).val());
             });
-            console.log("tests:" + tests);
-            console.log("env:" + env);
+            var checkedReceiverServices = $("input[name='receiver']:checked");
+            var receivers = [];
+            checkedReceiverServices.each(function(){
+                receivers.push($(this).val());
+            });
 
-            if(tests.length > 0 && env.length > 0){
+            // console.log("tests:" + tests);
+            // console.log("env:" + env);
+
+            if(tests.length > 0 && senders.length > 0 && receivers.length > 0){
                 $('#test-button').addClass('disabled');
                 var data = {
                     'id': loginId,
-                    'env': env,
+                    'senders': senders,
+                    'receivers': receivers,
                     'tests': tests
                 };
-                stompClient.send("/app/msg/delta", {}, JSON.stringify(data));
+                stompClient.send("/app/msg/sequenceDelta", {}, JSON.stringify(data));
             } else {
-                alert("To delete node, please select at least one service and one testcase.");
+                alert("Please choose at least one testcase, one sender and one receiver.");
             }
 
         };
@@ -184,7 +214,6 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
             }
 
         };
-
 
 }]);
 

@@ -1,9 +1,11 @@
 package deltabackend.controller;
 
 import deltabackend.domain.*;
+import deltabackend.domain.configDelta.ConfigDeltaRequest;
 import deltabackend.domain.nodeDelta.DeltaNodeByListResponse;
 import deltabackend.domain.nodeDelta.DeltaNodeRequest;
 import deltabackend.domain.nodeDelta.NodeDeltaRequest;
+import deltabackend.domain.sequenceDelta.SequenceDeltaRequest;
 import deltabackend.domain.serviceDelta.ExtractServiceRequest;
 import deltabackend.domain.serviceDelta.ReserveServiceByListResponse;
 import deltabackend.domain.serviceDelta.ReserveServiceResponse;
@@ -53,5 +55,16 @@ public class DeltaController {
         return deltaService.deleteNodesByList(request);
     }
 
+    //////////////////////////////////////////To do //////////////////////////////////////////
+
+    @MessageMapping("/msg/configDelta")
+    public void configDelta(ConfigDeltaRequest message) throws Exception {
+        deltaService.configDelta(message);
+    }
+
+    @MessageMapping("/msg/sequenceDelta")
+    public void sequenceDelta(SequenceDeltaRequest message) throws Exception {
+        deltaService.sequenceDelta(message);
+    }
 
 }

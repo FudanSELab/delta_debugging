@@ -1,0 +1,118 @@
+<div class="admin">
+
+    <div class="admin-biaoge" style="float:left;padding-left: 10px;margin-top: 20px;width:54%;">
+
+        <div  style="width:35%;float:left">
+            <h4 style="font-weight: bold; margin-bottom: 30px">Senders</h4>
+            <div ng-repeat="sender in senderGroup" style="margin-bottom: 8px">
+                <input type="checkbox" icheck  value="{{sender.serviceName}}" name="sender">
+                <span style="font-size: 12px">{{sender.serviceName}} : {{sender.numOfReplicas}}</span>
+            </div>
+            <button ng-click="test()">test</button>
+        </div>
+
+        <div  style="width:35%;float:left">
+            <h4 style="font-weight: bold; margin-bottom: 30px">Receivers</h4>
+            <div ng-repeat="receiver in receiverGroup" style="margin-bottom: 8px">
+                <input type="checkbox" icheck  value="{{receiver.serviceName}}" name="receiver">
+                <span style="font-size: 12px">{{receiver.serviceName}} : {{receiver.numOfReplicas}}</span>
+            </div>
+        </div>
+
+        <div id="case-names"  style="width:30%; float:right">
+            <h4 style="font-weight: bold; margin-bottom: 30px">TestCases</h4>
+            <div ng-repeat="(key, names) in testCases" style="margin-bottom: 8px">
+                <fieldset>
+                    <legend style="font-size:18px;margin-bottom: 5px">{{key}}</legend>
+                    <p ng-repeat="name in names">
+                        <input type="checkbox" icheck value="{{name}}" name="testcase">
+                        <span style="font-size: 12px">{{name}}</span>
+                    </p>
+                </fieldset>
+            </div>
+        </div>
+
+    </div>
+
+
+    <div style="padding-right: 10px;margin-top: 50px;width:45%; float: right">
+
+        <div>
+            <!--<span style="font-size: medium;font-weight: bold">{{resultCount}}</span>-->
+            <button  class="btn btn-primary " style="float: right;margin-right: 30px" ng-click="showDelta()">Connect
+            </button>
+            <button  class="btn btn-primary" style="float: right;margin-right: 20px;display: none" id="test-button" ng-click="sendDeltaData()">Start Delta
+            </button>
+        </div>
+
+        <table class="table table-hover table-bordered" style="margin-top: 50px;width:100%">
+            <thead >
+                <tr style="background-color: #aeb2b7;color:#fff;">
+                    <th style="text-align: center"><span style="font-size:16px;font-weight: bold">Sender</span></th>
+                    <th style="text-align: center"><span style="font-size:16px;font-weight: bold">Receiver</span></th>
+                    <th style="text-align: center"><span style="font-size:16px;font-weight: bold">Test Result</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr  ng-repeat=" result in deltaResults">
+                    <td>{{result.services}}</td>
+                    <td>
+                        {{result.tests}}
+                        <span ng-if="result.diff" style="color: red">
+                            different from the first test!
+                        </span>
+                    </td>
+                    <!--<td >-->
+                    <!--<img ng-if="result.status == 'SUCCESS'" ng-src="img/pass.png">-->
+                    <!--<img ng-if="result.status == 'FAILURE'" ng-src="img/failed.png">-->
+                    <!--<img ng-if="result.status == 'SKIP'" ng-src="img/skip.png">-->
+                    <!--</td>-->
+                    <!--<td>{{result.startTime}}</td>-->
+                 </tr>
+
+            </tbody>
+        </table>
+
+        <div style="border: 2px #a2abb6 dashed; margin-top: 20px;"></div>
+
+        <div style="margin-top: 50px;margin-bottom: 10px">
+            <button  class="btn btn-primary " id="refreshPodButton" style="float:right;margin-right: 20px" ng-click="refreshPod()">Refresh Pods List
+            </button>
+            <button  class="btn btn-danger" id="inspectPodButton" style="float:right; margin-right: 20px;" ng-click="getPodLogs()">Inspect Pod Logs
+            </button>
+            <div style="clear: both"></div>
+        </div>
+        <table class="table table-hover table-bordered" style="margin-top: 10px;width:570px;">
+            <thead style="table-layout: fixed;display: table;width: 100%; ">
+            <tr style="background-color: #aeb2b7;color:#fff;">
+                <th></th>
+                <th style="text-align: center;width: 300px"><span style="font-size:16px;font-weight: bold">Pod Name</span></th>
+                <th style="text-align: center;width: 100px"><span style="font-size:16px;font-weight: bold">Status</span></th>
+                <th style="text-align: center;width: 120px"><span style="font-size:16px;font-weight: bold">Node Name</span></th>
+            </tr>
+            </thead>
+            <tbody style="height:350px;overflow-y: scroll;display: block;width: 570px">
+            <tr  ng-repeat=" pod in podList" style="display:table;width:570px;table-layout:fixed;min-width: 570px;">
+                <td><input type="radio" icheck name="pod" value="{{pod.name}}"></td>
+                <td style="width: 300px">{{pod.name}}</td>
+                <td style="width: 100px">{{pod.status}}</td>
+                <td style="width: 120px">{{pod.nodeName}}</td>
+            </tr>
+            </tbody>
+        </table>
+
+
+        <div class="panel panel-primary" style="margin-left:10px;margin-top: 30px;height:450px">
+            <div class="panel-heading">
+                Logs
+            </div>
+            <div class="panel-body" id="instance-logs" style="height:90%; overflow-x: scroll;overflow-y: scroll;" >
+                <article ng-bind-html="instancelogs | trustHtml">
+                </article>
+            </div>
+        </div>
+
+    </div>
+
+
+</div>

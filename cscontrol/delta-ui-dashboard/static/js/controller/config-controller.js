@@ -69,7 +69,7 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
             stompClient = Stomp.over(socket);
             stompClient.connect({login:loginId}, function (frame) {
                 setConnected(true);
-                stompClient.subscribe('/user/topic/configdeltaresponse', function (data) {
+                stompClient.subscribe('/user/topic/configDeltaResponse', function (data) {
                     var data = JSON.parse(data.body);
                     if(data.status){
                         $scope.configDeltaResult = JSON.stringify(data.message);
@@ -101,7 +101,7 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
                     'id': loginId,
                    'configs': configs
                 };
-                stompClient.send("/app/msg/configdelta", {}, JSON.stringify(data));
+                stompClient.send("/app/msg/configDelta", {}, JSON.stringify(data));
             } else {
                 alert("config delta failed!");
             }
@@ -127,26 +127,31 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
 
         $scope.configlogs = "";
         $scope.getPodLogs = function(){
-            var checkedPods = $("input[name='pod']:checked");
-            var pods = [];
-            checkedPods.each(function () {
-                pods.push($(this).val());
-            });
-            if(pods.length > 0){
-                $('#inspectPodButton').addClass('disabled');
-                getPodLogService.load(pods[0]).then(function(result){
-                    if(result.status){
-                        $scope.configlogs += result.podLog.podName +  ":</br>" + result.podLog.logs + "</br>";
-                        var height = $('#config-logs').prop('scrollHeight');
-                        $('#config-logs').scrollTop(height);
-                        $('#inspectPodButton').removeClass('disabled');
-                    } else {
-                        alert(result.message);
-                    }
+            if ( stompClient != null ) {
+                var checkedPods = $("input[name='pod']:checked");
+                var pods = [];
+                checkedPods.each(function () {
+                    pods.push($(this).val());
                 });
+                if(pods.length > 0){
+                    $('#inspectPodButton').addClass('disabled');
+                    getPodLogService.load(pods[0]).then(function(result){
+                        if(result.status){
+                            $scope.configlogs += result.podLog.podName +  ":</br>" + result.podLog.logs + "</br>";
+                            var height = $('#config-logs').prop('scrollHeight');
+                            $('#config-logs').scrollTop(height);
+                            $('#inspectPodButton').removeClass('disabled');
+                        } else {
+                            alert(result.message);
+                        }
+                    });
+                } else {
+                    alert("Please check at least one pod to show its logs!");
+                }
             } else {
-                alert("Please check at least one pod to show its logs!");
+                alert("Please click the connect button.")
             }
+
         };
 
 

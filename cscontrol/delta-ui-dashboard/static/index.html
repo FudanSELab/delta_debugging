@@ -25,6 +25,7 @@
         <script src="js/controller/node-controller.js"></script>
         <script src="js/controller/service-controller.js"></script>
         <script src="js/controller/config-controller.js"></script>
+        <script src="js/controller/sequence-controller.js"></script>
 
     </head>
 
@@ -41,11 +42,11 @@
                 <a href="#/node"><li ng-class="{active: isActive('/node')}">Node</li></a>
                 <a href="#/instance"><li  ng-class="{active: isActive('/instance')}">Instance</li></a>
                 <a href="#/config"><li ng-class="{active: isActive('/config')}">Config</li></a>
-                <a href="#"><li >Sequence</li></a>
+                <a href="#/sequence"><li ng-class="{active: isActive('/sequence')}">Sequence</li></a>
             </ul>
         </div>
 
-        <div ng-view style="float: right;height:100%;width:88%;background-color: #f1f2f7; overflow: scroll;"></div>
+        <div ng-view style="float: right;height:100%;width:90%;background-color: #f1f2f7; overflow: scroll;"></div>
 
     </body>
 

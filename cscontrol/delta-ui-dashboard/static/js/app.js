@@ -1,24 +1,33 @@
-var app = angular.module('app', ['ngRoute', 'app.instance-controller','app.node-controller', 'app.service-controller', 'app.config-controller']);
+var app = angular.module('app', ['ngRoute', 'app.instance-controller','app.node-controller', 'app.service-controller', 'app.config-controller', 'app.sequence-controller']);
 
 app.config(['$routeProvider', function($routeProvider){
     $routeProvider
         .when('/instance', {
             templateUrl: 'templates/instance.html',
-            controller: 'InstanceCtrl'
+            controller: 'InstanceCtrl',
+            cache: true
         })
         .when('/node',{
             templateUrl: 'templates/node.html',
-            controller: 'NodeCtrl'
+            controller: 'NodeCtrl',
+            cache: true
         })
         .when('/service',{
             templateUrl: 'templates/service.html',
-            controller: 'ServiceCtrl'
+            controller: 'ServiceCtrl',
+            cache: true
         })
         .when('/config',{
             templateUrl: 'templates/config.html',
-            controller: 'ConfigCtrl'
+            controller: 'ConfigCtrl',
+            cache: true
         })
-        .otherwise({redirectTo:'/config'});
+        .when('/sequence',{
+            templateUrl: 'templates/sequence.html',
+            controller: 'SequenceCtrl',
+            cache: true
+        })
+        .otherwise({redirectTo:'/sequence'});
 }
 
 ]);
@@ -69,6 +78,7 @@ app.factory('loadTestCases', function ($http, $q) {
             url: "/testBackend/getFileTree",
             contentType: "application/json",
             dataType: "json",
+            cache:true,
             withCredentials: true
         }).success(function (data, status, headers, config) {
             if (data) {
@@ -104,6 +114,7 @@ app.factory('loadServiceList', function ($http, $q) {
                 alert("Request the order list fail!" + data.message);
             }
         });
+
         return promise;
     };
     return service;

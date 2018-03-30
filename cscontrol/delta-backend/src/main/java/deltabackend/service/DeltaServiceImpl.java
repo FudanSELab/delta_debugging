@@ -5,9 +5,11 @@ import deltabackend.domain.api.GetServiceReplicasRequest;
 import deltabackend.domain.api.GetServiceReplicasResponse;
 import deltabackend.domain.api.SetServiceReplicasRequest;
 import deltabackend.domain.api.SetServiceReplicasResponse;
+import deltabackend.domain.configDelta.ConfigDeltaRequest;
 import deltabackend.domain.nodeDelta.DeltaNodeByListResponse;
 import deltabackend.domain.nodeDelta.DeltaNodeRequest;
 import deltabackend.domain.nodeDelta.NodeDeltaRequest;
+import deltabackend.domain.sequenceDelta.SequenceDeltaRequest;
 import deltabackend.domain.serviceDelta.*;
 import deltabackend.domain.socket.SocketSessionRegistry;
 import deltabackend.util.MyConfig;
@@ -226,13 +228,28 @@ public class DeltaServiceImpl implements DeltaService{
         }
     }
 
-
     @Override
     public DeltaNodeByListResponse deleteNodesByList(DeltaNodeRequest list) {
         DeltaNodeByListResponse result = restTemplate.postForObject(
                 "http://api-server:18898/api/deleteNodeByList",list,
                 DeltaNodeByListResponse.class);
         return result;
+    }
+
+
+    ///////////////////////////////////////To do///////////////////////////////////////////////////
+    ///////////////////////////////////////Config Delta/////////////////////////////////////////////
+    @Override
+    public void configDelta(ConfigDeltaRequest message) {
+
+    }
+
+
+    ////////////////////////////////////////Sequence Delta/////////////////////////////////////////////////
+
+    @Override
+    public void sequenceDelta(SequenceDeltaRequest message) {
+
     }
 
 }

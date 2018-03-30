@@ -97,26 +97,32 @@ service.controller('ServiceCtrl',['$scope', '$http','$window','loadTestCases',  
 
     $scope.servicelogs = "";
     $scope.getPodLogs = function(){
-        var checkedPods = $("input[name='pod']:checked");
-        var pods = [];
-        checkedPods.each(function () {
-            pods.push($(this).val());
-        });
-        if(pods.length > 0){
-            $('#inspectPodButton').addClass('disabled');
-            getPodLogService.load(pods[0]).then(function(result){
-                if(result.status){
-                    $scope.servicelogs += result.podLog.podName +  ":</br>" + result.podLog.logs + "</br>";
-                    var height = $('#service-logs').prop('scrollHeight');
-                    $('#service-logs').scrollTop(height);
-                    $('#inspectPodButton').removeClass('disabled');
-                } else {
-                    alert(result.message);
-                }
-            })
+        if ( stompClient != null ) {
+            var checkedPods = $("input[name='pod']:checked");
+            var pods = [];
+            checkedPods.each(function () {
+                pods.push($(this).val());
+            });
+            if(pods.length > 0){
+                $('#inspectPodButton').addClass('disabled');
+                getPodLogService.load(pods[0]).then(function(result){
+                    if(result.status){
+                        $scope.servicelogs += result.podLog.podName +  ":</br>" + result.podLog.logs + "</br>";
+                        var height = $('#service-logs').prop('scrollHeight');
+                        $('#service-logs').scrollTop(height);
+                        $('#inspectPodButton').removeClass('disabled');
+                    } else {
+                        alert(result.message);
+                    }
+                })
+            } else {
+                alert("Please check at least one pod to show the logs!");
+            }
         } else {
-            alert("Please check at least one pod to show the logs!");
+            alert("Please click the connect button.")
         }
+
+
     };
 
 

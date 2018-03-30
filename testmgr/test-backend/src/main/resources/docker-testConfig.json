@@ -2,6 +2,9 @@
   "testDir": "/app/test",
   "classDir": "/test",
   "testCases":{
+    "Delta Test":[
+      "TestErrorInstance"
+    ],
     "Ticket Reserve":[
       "TestFlowOne",
       "TestServiceLogin",
@@ -39,6 +42,7 @@
       "TestServiceNews",
       "TestServiceTicketOffice"
     ]
+
 
   }
 }

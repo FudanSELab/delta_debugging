@@ -17,10 +17,11 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-public class TestFlowOne {
+public class TestErrorInstance {
     private WebDriver driver;
     private String trainType;//0--all,1--GaoTie,2--others
     private String baseUrl;
+    private int preserveNumber;
     public static void login(WebDriver driver,String username,String password){
         driver.findElement(By.id("flow_one_page")).click();
         driver.findElement(By.id("flow_preserve_login_email")).clear();
@@ -170,8 +171,53 @@ public class TestFlowOne {
         System.out.println("Ticket contacts selected btn is clicked");
         Thread.sleep(2000);
     }
+
+
     @Test (dependsOnMethods = {"testSelectContacts"})
-    public void testTicketConfirm ()throws Exception{
+    public void testTicketConfirm1 ()throws Exception{
+        String itemFrom = driver.findElement(By.id("ticket_confirm_from")).getText();
+        String itemTo = driver.findElement(By.id("ticket_confirm_to")).getText();
+        String itemTripId = driver.findElement(By.id("ticket_confirm_tripId")).getText();
+        String itemPrice = driver.findElement(By.id("ticket_confirm_price")).getText();
+        String itemDate = driver.findElement(By.id("ticket_confirm_travel_date")).getText();
+        String itemName = driver.findElement(By.id("ticket_confirm_contactsName")).getText();
+        String itemSeatType = driver.findElement(By.id("ticket_confirm_seatType_String")).getText();
+        String itemDocumentType = driver.findElement(By.id("ticket_confirm_documentType")).getText();
+        String itemDocumentNum = driver.findElement(By.id("ticket_confirm_documentNumber")).getText();
+        boolean bFrom = !"".equals(itemFrom);
+        boolean bTo = !"".equals(itemTo);
+        boolean bTripId = !"".equals(itemTripId);
+        boolean bPrice = !"".equals(itemPrice);
+        boolean bDate = !"".equals(itemDate);
+        boolean bName = !"".equals(itemName);
+        boolean bSeatType = !"".equals(itemSeatType);
+        boolean bDocumentType = !"".equals(itemDocumentType);
+        boolean bDocumentNum = !"".equals(itemDocumentNum);
+        boolean bStatusConfirm = bFrom && bTo && bTripId && bPrice && bDate && bName && bSeatType && bDocumentType && bDocumentNum;
+        if(bStatusConfirm == false){
+            driver.findElement(By.id("ticket_confirm_cancel_btn")).click();
+            System.out.println("Confirming Ticket Canceled!");
+        }
+        Assert.assertEquals(bStatusConfirm,true);
+
+        driver.findElement(By.id("ticket_confirm_confirm_btn")).click();
+        Thread.sleep(2000);
+        System.out.println("Confirm Ticket!");
+
+        Thread.sleep(10000);
+
+        Alert javascriptConfirm = driver.switchTo().alert();
+        String statusAlert = driver.switchTo().alert().getText();
+        System.out.println("The Alert information of Confirming Ticket："+statusAlert);
+        Assert.assertEquals(statusAlert.startsWith("Success"),true);
+        javascriptConfirm.accept();
+
+        preserveNumber = Integer.parseInt(driver.findElement(By.id("preserve-people-number")).getAttribute("value"));
+    }
+
+
+    @Test (dependsOnMethods = {"testTicketConfirm1"})
+    public void testTicketConfirm2 ()throws Exception{
         String itemFrom = driver.findElement(By.id("ticket_confirm_from")).getText();
         String itemTo = driver.findElement(By.id("ticket_confirm_to")).getText();
         String itemTripId = driver.findElement(By.id("ticket_confirm_tripId")).getText();
@@ -208,26 +254,142 @@ public class TestFlowOne {
         System.out.println("The Alert information of Confirming Ticket："+statusAlert);
         Assert.assertEquals(statusAlert.startsWith("Success"),true);
         javascriptConfirm.accept();
-    }
-    @Test (dependsOnMethods = {"testTicketConfirm"})
-    public void testTicketPay ()throws Exception {
-        String itemOrderId = driver.findElement(By.id("preserve_pay_orderId")).getAttribute("value");
-        String itemPrice = driver.findElement(By.id("preserve_pay_price")).getAttribute("value");
-        String itemTripId = driver.findElement(By.id("preserve_pay_tripId")).getAttribute("value");
-        boolean bOrderId = !"".equals(itemOrderId);
-        boolean bPrice = !"".equals(itemPrice);
-        boolean bTripId = !"".equals(itemTripId);
-        boolean bStatusPay = bOrderId && bPrice && bTripId;
-        if(bStatusPay == false)
-            System.out.println("Confirming Ticket failed!");
-        Assert.assertEquals(bStatusPay,true);
 
-        driver.findElement(By.id("preserve_pay_button")).click();
-        Thread.sleep(2000);
-        String itemCollectOrderId = driver.findElement(By.id("preserve_collect_order_id")).getAttribute("value");
-        Assert.assertEquals(!"".equals(itemCollectOrderId),true);
-        System.out.println("Success to pay and book ticket!");
+        int number = Integer.parseInt(driver.findElement(By.id("preserve-people-number")).getAttribute("value"));
+        Assert.assertEquals(preserveNumber+1, number);
     }
+
+
+    @Test (dependsOnMethods = {"testTicketConfirm2"})
+    public void testTicketConfirm3 ()throws Exception{
+        String itemFrom = driver.findElement(By.id("ticket_confirm_from")).getText();
+        String itemTo = driver.findElement(By.id("ticket_confirm_to")).getText();
+        String itemTripId = driver.findElement(By.id("ticket_confirm_tripId")).getText();
+        String itemPrice = driver.findElement(By.id("ticket_confirm_price")).getText();
+        String itemDate = driver.findElement(By.id("ticket_confirm_travel_date")).getText();
+        String itemName = driver.findElement(By.id("ticket_confirm_contactsName")).getText();
+        String itemSeatType = driver.findElement(By.id("ticket_confirm_seatType_String")).getText();
+        String itemDocumentType = driver.findElement(By.id("ticket_confirm_documentType")).getText();
+        String itemDocumentNum = driver.findElement(By.id("ticket_confirm_documentNumber")).getText();
+        boolean bFrom = !"".equals(itemFrom);
+        boolean bTo = !"".equals(itemTo);
+        boolean bTripId = !"".equals(itemTripId);
+        boolean bPrice = !"".equals(itemPrice);
+        boolean bDate = !"".equals(itemDate);
+        boolean bName = !"".equals(itemName);
+        boolean bSeatType = !"".equals(itemSeatType);
+        boolean bDocumentType = !"".equals(itemDocumentType);
+        boolean bDocumentNum = !"".equals(itemDocumentNum);
+        boolean bStatusConfirm = bFrom && bTo && bTripId && bPrice && bDate && bName && bSeatType && bDocumentType && bDocumentNum;
+        if(bStatusConfirm == false){
+            driver.findElement(By.id("ticket_confirm_cancel_btn")).click();
+            System.out.println("Confirming Ticket Canceled!");
+        }
+        Assert.assertEquals(bStatusConfirm,true);
+
+        driver.findElement(By.id("ticket_confirm_confirm_btn")).click();
+        Thread.sleep(2000);
+        System.out.println("Confirm Ticket!");
+
+        Thread.sleep(10000);
+
+        Alert javascriptConfirm = driver.switchTo().alert();
+        String statusAlert = driver.switchTo().alert().getText();
+        System.out.println("The Alert information of Confirming Ticket："+statusAlert);
+        Assert.assertEquals(statusAlert.startsWith("Success"),true);
+        javascriptConfirm.accept();
+
+        int number = Integer.parseInt(driver.findElement(By.id("preserve-people-number")).getAttribute("value"));
+        Assert.assertEquals(preserveNumber+2, number);
+    }
+
+
+    @Test (dependsOnMethods = {"testTicketConfirm3"})
+    public void testTicketConfirm4 ()throws Exception{
+        String itemFrom = driver.findElement(By.id("ticket_confirm_from")).getText();
+        String itemTo = driver.findElement(By.id("ticket_confirm_to")).getText();
+        String itemTripId = driver.findElement(By.id("ticket_confirm_tripId")).getText();
+        String itemPrice = driver.findElement(By.id("ticket_confirm_price")).getText();
+        String itemDate = driver.findElement(By.id("ticket_confirm_travel_date")).getText();
+        String itemName = driver.findElement(By.id("ticket_confirm_contactsName")).getText();
+        String itemSeatType = driver.findElement(By.id("ticket_confirm_seatType_String")).getText();
+        String itemDocumentType = driver.findElement(By.id("ticket_confirm_documentType")).getText();
+        String itemDocumentNum = driver.findElement(By.id("ticket_confirm_documentNumber")).getText();
+        boolean bFrom = !"".equals(itemFrom);
+        boolean bTo = !"".equals(itemTo);
+        boolean bTripId = !"".equals(itemTripId);
+        boolean bPrice = !"".equals(itemPrice);
+        boolean bDate = !"".equals(itemDate);
+        boolean bName = !"".equals(itemName);
+        boolean bSeatType = !"".equals(itemSeatType);
+        boolean bDocumentType = !"".equals(itemDocumentType);
+        boolean bDocumentNum = !"".equals(itemDocumentNum);
+        boolean bStatusConfirm = bFrom && bTo && bTripId && bPrice && bDate && bName && bSeatType && bDocumentType && bDocumentNum;
+        if(bStatusConfirm == false){
+            driver.findElement(By.id("ticket_confirm_cancel_btn")).click();
+            System.out.println("Confirming Ticket Canceled!");
+        }
+        Assert.assertEquals(bStatusConfirm,true);
+
+        driver.findElement(By.id("ticket_confirm_confirm_btn")).click();
+        Thread.sleep(2000);
+        System.out.println("Confirm Ticket!");
+
+        Thread.sleep(10000);
+
+        Alert javascriptConfirm = driver.switchTo().alert();
+        String statusAlert = driver.switchTo().alert().getText();
+        System.out.println("The Alert information of Confirming Ticket："+statusAlert);
+        Assert.assertEquals(statusAlert.startsWith("Success"),true);
+        javascriptConfirm.accept();
+
+        int number = Integer.parseInt(driver.findElement(By.id("preserve-people-number")).getAttribute("value"));
+        Assert.assertEquals(preserveNumber+3, number);
+    }
+
+
+//    @Test (dependsOnMethods = {"testTicketConfirm4"})
+//    public void testTicketConfirm5 ()throws Exception{
+//        String itemFrom = driver.findElement(By.id("ticket_confirm_from")).getText();
+//        String itemTo = driver.findElement(By.id("ticket_confirm_to")).getText();
+//        String itemTripId = driver.findElement(By.id("ticket_confirm_tripId")).getText();
+//        String itemPrice = driver.findElement(By.id("ticket_confirm_price")).getText();
+//        String itemDate = driver.findElement(By.id("ticket_confirm_travel_date")).getText();
+//        String itemName = driver.findElement(By.id("ticket_confirm_contactsName")).getText();
+//        String itemSeatType = driver.findElement(By.id("ticket_confirm_seatType_String")).getText();
+//        String itemDocumentType = driver.findElement(By.id("ticket_confirm_documentType")).getText();
+//        String itemDocumentNum = driver.findElement(By.id("ticket_confirm_documentNumber")).getText();
+//        boolean bFrom = !"".equals(itemFrom);
+//        boolean bTo = !"".equals(itemTo);
+//        boolean bTripId = !"".equals(itemTripId);
+//        boolean bPrice = !"".equals(itemPrice);
+//        boolean bDate = !"".equals(itemDate);
+//        boolean bName = !"".equals(itemName);
+//        boolean bSeatType = !"".equals(itemSeatType);
+//        boolean bDocumentType = !"".equals(itemDocumentType);
+//        boolean bDocumentNum = !"".equals(itemDocumentNum);
+//        boolean bStatusConfirm = bFrom && bTo && bTripId && bPrice && bDate && bName && bSeatType && bDocumentType && bDocumentNum;
+//        if(bStatusConfirm == false){
+//            driver.findElement(By.id("ticket_confirm_cancel_btn")).click();
+//            System.out.println("Confirming Ticket Canceled!");
+//        }
+//        Assert.assertEquals(bStatusConfirm,true);
+//
+//        driver.findElement(By.id("ticket_confirm_confirm_btn")).click();
+//        Thread.sleep(2000);
+//        System.out.println("Confirm Ticket!");
+//
+//        Thread.sleep(10000);
+//
+//        Alert javascriptConfirm = driver.switchTo().alert();
+//        String statusAlert = driver.switchTo().alert().getText();
+//        System.out.println("The Alert information of Confirming Ticket："+statusAlert);
+//        Assert.assertEquals(statusAlert.startsWith("Success"),true);
+//        javascriptConfirm.accept();
+//
+//        int number = Integer.parseInt(driver.findElement(By.id("preserve-people-number")).getAttribute("value"));
+//        Assert.assertEquals(preserveNumber+3, number);
+//    }
 
     @AfterClass
     public void tearDown() throws Exception {

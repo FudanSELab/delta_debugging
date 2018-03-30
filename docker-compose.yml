@@ -58,7 +58,7 @@ services:
 #        - my-network
 
   chrome:
-      image: selenium/node-chrome:3.8.1-erbium
+      image: selenium/node-chrome:3.11.0-bismuth
       volumes:
         - /dev/shm:/dev/shm
       depends_on:
@@ -69,7 +69,7 @@ services:
         - my-network
 
   hub:
-    image: selenium/hub:3.8.1-erbium
+    image: selenium/hub:3.11.0-bismuth
     ports:
       - 4444:4444
     networks:

@@ -10,52 +10,7 @@ node.controller('NodeCtrl', ['$scope', '$http','$window','loadNodeList', 'refres
         });
 
 
-        // $scope.nodeList = [
-        //     {
-        //         "role": "Master",
-        //         "name": "centos-master",
-        //         "ip": "10.141.211.181",
-        //         "status": "Ready",
-        //         "kubeProxyVersion": "v1.9.3",
-        //         "kubeletVersion": "v1.9.3",
-        //         "operatingSystem": "linux",
-        //         "osImage": "CentOS Linux 7 (Core)",
-        //         "containerRuntimeVersion": "docker://17.3.2"
-        //     },
-        //     {
-        //         "role": "Minion",
-        //         "name": "centos-minion-1",
-        //         "ip": "10.141.211.179",
-        //         "status": "Ready",
-        //         "kubeProxyVersion": "v1.9.3",
-        //         "kubeletVersion": "v1.9.3",
-        //         "operatingSystem": "linux",
-        //         "osImage": "CentOS Linux 7 (Core)",
-        //         "containerRuntimeVersion": "docker://17.3.2"
-        //     },
-        //     {
-        //         "role": "Minion",
-        //         "name": "centos-minion-2",
-        //         "ip": "10.141.211.180",
-        //         "status": "Ready",
-        //         "kubeProxyVersion": "v1.9.3",
-        //         "kubeletVersion": "v1.9.3",
-        //         "operatingSystem": "linux",
-        //         "osImage": "CentOS Linux 7 (Core)",
-        //         "containerRuntimeVersion": "docker://17.3.2"
-        //     },
-        //     {
-        //         "role": "Minion",
-        //         "name": "centos-minion-3",
-        //         "ip": "10.141.211.173",
-        //         "status": "Ready",
-        //         "kubeProxyVersion": "v1.9.3",
-        //         "kubeletVersion": "v1.9.3",
-        //         "operatingSystem": "linux",
-        //         "osImage": "CentOS Linux 7 (Core)",
-        //         "containerRuntimeVersion": "docker://17.3.2"
-        //     }
-        // ];
+
 
     };
 
@@ -159,26 +114,31 @@ node.controller('NodeCtrl', ['$scope', '$http','$window','loadNodeList', 'refres
 
     $scope.nodelogs = "";
     $scope.getPodLogs = function(){
-        var checkedPods = $("input[name='pod']:checked");
-        var pods = [];
-        checkedPods.each(function () {
-            pods.push($(this).val());
-        });
-        if(pods.length > 0){
-            $('#inspectPodButton').addClass('disabled');
-            getPodLogService.load(pods[0]).then(function(result){
-                if(result.status){
-                    $scope.nodelogs += result.podLog.podName +  ":</br>" + result.podLog.logs + "</br>";
-                    var height = $('#node-logs').prop('scrollHeight');
-                    $('#node-logs').scrollTop(height);
-                    $('#inspectPodButton').removeClass('disabled');
-                } else {
-                    alert(result.message);
-                }
-            })
-        } else {
-            alert("Please check at least one pod to show the logs!");
+        if ( stompClient != null ) {
+            var checkedPods = $("input[name='pod']:checked");
+            var pods = [];
+            checkedPods.each(function () {
+                pods.push($(this).val());
+            });
+            if(pods.length > 0){
+                $('#inspectPodButton').addClass('disabled');
+                getPodLogService.load(pods[0]).then(function(result){
+                    if(result.status){
+                        $scope.nodelogs += result.podLog.podName +  ":</br>" + result.podLog.logs + "</br>";
+                        var height = $('#node-logs').prop('scrollHeight');
+                        $('#node-logs').scrollTop(height);
+                        $('#inspectPodButton').removeClass('disabled');
+                    } else {
+                        alert(result.message);
+                    }
+                })
+            } else {
+                alert("Please check at least one pod to show the logs!");
+            }
+        }  else {
+            alert("Please click the connect button.")
         }
+
     };
 
 
