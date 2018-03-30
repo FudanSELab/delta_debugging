@@ -7,6 +7,7 @@ public class V1Container {
     private String image = null;
     private String imagePullPolicy = null;
     private List<V1ContainerPort> ports = null;
+    private V1ResourceRequirements resources = null;
 
     public V1Container(){
 
@@ -42,5 +43,13 @@ public class V1Container {
 
     public void setPorts(List<V1ContainerPort> ports) {
         this.ports = ports;
+    }
+
+    public V1ResourceRequirements getResources() {
+        return resources;
+    }
+
+    public void setResources(V1ResourceRequirements resources) {
+        this.resources = resources;
     }
 }

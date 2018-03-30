@@ -19,7 +19,6 @@ public class ApiServiceImpl implements ApiService {
     @Autowired
     private MyConfig myConfig;
 
-
     //Set the required number of service replicas
     @Override
     public SetServiceReplicasResponse setServiceReplica(SetServiceReplicasRequest setServiceReplicasRequest) {
@@ -514,6 +513,112 @@ public class ApiServiceImpl implements ApiService {
             response.setMessage("The zipkin service doesn't exist!");
         }
         return response;
+    }
+
+    //Get the service list and the config settings
+    @Override
+    public GetServicesAndConfigResponse getServicesAndConfig() {
+        GetServicesAndConfigResponse response = new GetServicesAndConfigResponse();
+        //Get the current deployments information
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE);
+        //Iterate the list and return the result
+        List<ServiceWithConfig> services = new ArrayList<ServiceWithConfig>();
+        for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
+            V1ResourceRequirements resourceRequirements = singleDeploymentInfo.getSpec().getTemplate().getSpec().getContainers().get(0).getResources();
+            ServiceWithConfig serviceWithConfig = new ServiceWithConfig();
+            serviceWithConfig.setServiceName(singleDeploymentInfo.getMetadata().getName());
+            serviceWithConfig.setLimits(resourceRequirements.getLimits());
+            serviceWithConfig.setRequests(resourceRequirements.getRequests());
+            services.add(serviceWithConfig);
+        }
+        System.out.println(String.format("The size of current service is %d",services.size()));
+        if(services.size() != 0){
+            response.setServices(services);
+            response.setMessage("Get the services and the corresponding config successfully!");
+            response.setStatus(true);
+        }
+        else{
+            response.setStatus(false);
+            response.setMessage("Fail to get the services and the corresponding config!");
+        }
+        return response;
+    }
+
+    @Override
+    public DeltaCMResourceResponse deltaCMResource(DeltaCMResourceRequest deltaCMResourceRequest) {
+        DeltaCMResourceResponse response = new DeltaCMResourceResponse();
+        //Get the current deployments information
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE);
+
+        //Check if the resource setting exists
+        for(SingleDeltaCMResourceRequest request : deltaCMResourceRequest.getDeltaRequests()){
+            for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
+                if(singleDeploymentInfo.getMetadata().getName().equals(request.getServiceName())){
+                    V1ResourceRequirements resourceRequirements = singleDeploymentInfo.getSpec().getTemplate().getSpec().getContainers().get(0).getResources();
+                    if(resourceRequirements.getLimits() == null || resourceRequirements.getRequests() == null){
+                        response.setMessage("There is no corresponding config in the cluster!");
+                        response.setStatus(false);
+                        //TODO: Add the config through add option
+                    }
+                    else{
+                        boolean result = deltaCMResource(NAMESPACE,request);
+                        if(result){
+                            response.setStatus(true);
+                            response.setMessage("The config has been deltaed successfully!");
+                        }
+                    }
+                }
+            }
+        }
+        //Wait for the pod restart
+        try{
+            Thread.sleep(1000);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        //Check whether all of the services are available again in certain internals
+        while(!isAllReady(NAMESPACE)){
+            try{
+                //Check every 2 seconds
+                Thread.sleep(2000);
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+
+        return response;
+    }
+
+    //Delta the CPU and memory of service
+    private boolean deltaCMResource(String namespace,SingleDeltaCMResourceRequest request){
+        boolean isSuccess = true;
+        SingleDeploymentInfo result;
+        String filePath = "/app/delta_cmconfig_result.json";
+        String apiUrl = String.format("%s/apis/apps/v1beta1/namespaces/%s/deployments/%s",myConfig.getApiServer(),namespace, request.getServiceName());
+        System.out.println(String.format("The constructed api url for deltaing config is %s", apiUrl));
+        String data = String.format("'[{ \"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/resources/%s/%s\", \"value\": \"%s\"}]'",
+                request.getType(),request.getKey(),request.getValue());
+        System.out.println(String.format("The constructed data for deltaing config is %s", data));
+        String[] cmds ={
+                "/bin/sh","-c",String.format("curl -X PATCH -d%s -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                data,apiUrl,myConfig.getToken(),filePath)
+        };
+        ProcessBuilder pb = new ProcessBuilder(cmds);
+        pb.redirectErrorStream(true);
+        Process p;
+        try {
+            p = pb.start();
+            p.waitFor();
+
+            String json = readWholeFile(filePath);
+            //Parse the response to the SetServicesReplicasResponseFromAPI Bean
+//            System.out.println(json);
+            result = JSON.parseObject(json,SingleDeploymentInfo.class);
+        } catch (Exception e) {
+            isSuccess = false;
+            e.printStackTrace();
+        }
+        return isSuccess;
     }
 
     //Delete the specified pod

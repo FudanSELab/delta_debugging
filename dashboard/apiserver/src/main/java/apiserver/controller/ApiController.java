@@ -26,6 +26,13 @@ public class ApiController {
         return apiService.getServicesList();
     }
 
+    //Get the service config: currently cpu and memory only
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/getServicesAndConfig", method= RequestMethod.GET)
+    public GetServicesAndConfigResponse getServicesAndConfig(){
+        return apiService.getServicesAndConfig();
+    }
+
     //Get the number of replicas of services
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/getServicesReplicas", method= RequestMethod.POST)
@@ -94,5 +101,12 @@ public class ApiController {
     @RequestMapping(value="/api/restartService", method= RequestMethod.GET)
     public RestartServiceResponse restartService(){
         return apiService.restartService();
+    }
+
+    //Config the container resource
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/deltaCMResource", method= RequestMethod.POST)
+    public DeltaCMResourceResponse deltaCMResource(@RequestBody DeltaCMResourceRequest deltaCMResourceRequest){
+        return apiService.deltaCMResource(deltaCMResourceRequest);
     }
 }

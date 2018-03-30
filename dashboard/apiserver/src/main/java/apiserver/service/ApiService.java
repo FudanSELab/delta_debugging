@@ -6,6 +6,7 @@ import apiserver.response.*;
 public interface ApiService {
     SetServiceReplicasResponse setServiceReplica(SetServiceReplicasRequest setServiceReplicasRequest);
     GetServicesListResponse getServicesList();
+    GetServicesAndConfigResponse getServicesAndConfig();
     GetServiceReplicasResponse getServicesReplicas(GetServiceReplicasRequest getServiceReplicasRequest);
     SetRunOnSingleNodeResponse setRunOnSingleNode();
     ReserveServiceByListResponse reserveServiceByList(ReserveServiceRequest reserveServiceRequest);
@@ -16,4 +17,5 @@ public interface ApiService {
     GetPodsLogResponse getPodsLog();
     GetSinglePodLogResponse getSinglePodLog(GetSinglePodLogRequest getSinglePodLogRequest);
     RestartServiceResponse restartService();
+    DeltaCMResourceResponse deltaCMResource(DeltaCMResourceRequest deltaCMResourceRequest);
 }
