@@ -153,10 +153,18 @@ public class DeltaServiceImpl implements DeltaService{
             System.out.println("=============Get one service delta request=============");
             String sessionId=webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
             System.out.println("sessionid = " + sessionId);
-            runTestCases(message.getTests());
-            List<String> servicesNames = getServicesFromZipkin();
-            ReserveServiceResponse response = extract(servicesNames);
-            template.convertAndSendToUser(sessionId,"/topic/serviceDeltaResponse" ,response, createHeaders(sessionId));
+            RestartServiceResponse restartResult = restartZipkin();
+            if(restartResult.isStatus()){
+                runTestCases(message.getTests());
+                List<String> servicesNames = getServicesFromZipkin();
+                ReserveServiceResponse response = extract(servicesNames);
+                template.convertAndSendToUser(sessionId,"/topic/serviceDeltaResponse" ,response, createHeaders(sessionId));
+            } else {
+                ReserveServiceResponse response = new ReserveServiceResponse();
+                response.setStatus(false);
+                response.setMessage("Failed to restart the zipkin!");
+                template.convertAndSendToUser(sessionId,"/topic/serviceDeltaResponse" ,response, createHeaders(sessionId));
+            }
 
         }
     }
@@ -168,7 +176,13 @@ public class DeltaServiceImpl implements DeltaService{
         return extract(servicesNames);
     }
 
-
+    //zero, restart the zipkin
+    private RestartServiceResponse restartZipkin(){
+        RestartServiceResponse result = restTemplate.getForObject(
+                "http://test-backend:5001/testBackend/deltaTest",
+                RestartServiceResponse.class);
+        return result;
+    }
 
     //first, run testcases
     private void runTestCases(List<String> testCaseNames){

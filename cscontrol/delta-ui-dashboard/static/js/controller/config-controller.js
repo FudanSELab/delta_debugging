@@ -22,13 +22,23 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
         // 加载config
         getConfigService.load().then(function (result) {
             if(result.status){
-                $scope.clusterConfig = result.data.clusterConfig;
-                $scope.serviceConfig = result.data.serviceConfig;
-
+                // $scope.clusterConfig = result.data.clusterConfig;
+                $scope.serviceConfig = result.services;
             } else {
                 alert(result.message);
             }
         });
+
+        $scope.test = function(){
+            var checkedConfig = $("input[name='config']:checked");
+            var configs = [];
+            checkedConfig.each(function(){
+                configs.push($(this).val());
+            });
+
+            console.log("configs:\n" );
+            console.log(configs);
+        };
 
 
         //load pods

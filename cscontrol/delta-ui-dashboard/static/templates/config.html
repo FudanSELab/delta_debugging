@@ -20,15 +20,26 @@
         <div id="case-names"  style="width:49%; float:right">
             <h4 style="font-weight: bold; ">Services</h4>
             <div ng-repeat="service in serviceConfig" style="margin-bottom: 8px">
-                <fieldset>
+                <fieldset ng-if="service.requests || service.limits">
                     <legend style="font-size: 18px;margin-bottom: 5px">{{service.serviceName}}</legend>
-                    <p ng-repeat="config in service.configs">
-                        <input type="checkbox" icheck value="{{service.serviceName}}:{{config.configName}}" name="config">
-                        <span style="font-size: 16px;margin-left: 10px">{{config.configName}} : {{config.value}}</span>
-                    </p>
+                    <div ng-if="service.requests" >
+                        <h5>Requests</h5>
+                        <p ng-repeat="(request, value) in service.requests " style="margin-left: 10px">
+                            <input type="checkbox" icheck value="{{service.serviceName}}:{{request}}:{{value}}" name="config">
+                            <span style="font-size: 16px;margin-left: 10px">{{request}} : {{value}}</span>
+                        </p>
+                    </div>
+
+                    <div ng-if="service.limits">
+                        <h5>Limits</h5>
+                        <p ng-repeat="(limit, value) in service.limits "  style="margin-left: 10px">
+                            <input type="checkbox" icheck value="{{service.serviceName}}:{{limit}}:{{value}}" name="config">
+                            <span style="font-size: 16px;margin-left: 10px">{{limit}} : {{value}}</span>
+                        </p>
+                    </div>
                 </fieldset>
             </div>
-            <!--<button ng-click="test()">2333</button>-->
+            <button ng-click="test()">2333</button>
         </div>
 
     </div>
