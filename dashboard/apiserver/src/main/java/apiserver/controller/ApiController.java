@@ -1,5 +1,6 @@
 package apiserver.controller;
 
+import apiserver.response.SetUnsetServiceRequestSuspendResponse;
 import apiserver.request.*;
 import apiserver.response.*;
 import apiserver.service.ApiService;
@@ -11,6 +12,29 @@ public class ApiController {
 
     @Autowired
     private ApiService apiService;
+
+
+    //Set the replicas of running service
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/setServiceRequestSuspend", method= RequestMethod.POST)
+    public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspend(
+            @RequestBody SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+        return apiService.setServiceRequestSuspend(setUnsetServiceRequestSuspendRequest);
+    }
+
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/unsetServiceRequestSuspend", method= RequestMethod.POST)
+    public SetUnsetServiceRequestSuspendResponse unsetServiceRequestSuspend(
+            @RequestBody SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+        return apiService.unsetServiceRequestSuspend(setUnsetServiceRequestSuspendRequest);
+    }
+
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/unsetServiceRequestSuspend", method= RequestMethod.POST)
+    public SetAsyncRequestSequenceResponse setAsyncRequestSequenceResponse(
+            @RequestBody SetAsyncRequestSequenceRequest setAsyncRequestSequenceRequest){
+        return apiService.setAsyncRequestsSequence(setAsyncRequestSequenceRequest);
+    }
 
     //Set the replicas of running service
     @CrossOrigin(origins = "*")

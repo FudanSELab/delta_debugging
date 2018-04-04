@@ -4,10 +4,10 @@ import apiserver.bean.*;
 import apiserver.request.*;
 import apiserver.response.*;
 import apiserver.util.MyConfig;
+import apiserver.util.RemoteExecuteCommand;
 import com.alibaba.fastjson.JSON;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,8 +16,95 @@ import java.util.List;
 public class ApiServiceImpl implements ApiService {
 
     private final String NAMESPACE = "default";
+
+    private String masterIp = "10.141.212.21";
+
+    private String username = "root";
+
+    private String password = "root";
+
     @Autowired
     private MyConfig myConfig;
+
+    @Override
+    public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspend(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+
+        String svcName = setUnsetServiceRequestSuspendRequest.getSvc();
+        String executeResult = doSetServiceRequestSuspend(svcName);
+        System.out.println(executeResult);
+        boolean status = (executeResult != null);
+        SetUnsetServiceRequestSuspendResponse response = new SetUnsetServiceRequestSuspendResponse(status,executeResult);
+        return response;
+    }
+
+    @Override
+    public SetUnsetServiceRequestSuspendResponse unsetServiceRequestSuspend(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+        String svcName = setUnsetServiceRequestSuspendRequest.getSvc();
+        String executeResult = doUnsetServiceRequestSuspend(svcName);
+        System.out.println(executeResult);
+        boolean status = (executeResult != null);
+        SetUnsetServiceRequestSuspendResponse response = new SetUnsetServiceRequestSuspendResponse(status,executeResult);
+        return response;
+    }
+
+    public String doSetServiceRequestSuspend(String svcName){
+        String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
+        String serLongDelayRequest = "kubectl apply -f " + svcLongDelayFilePath;
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
+        //执行脚本
+        String executeResult = rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
+        return executeResult;
+    }
+
+    public String applyYml(String fileName){
+        String applyRequest = "kubectl apply -f " + fileName;
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
+        //执行脚本
+        return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + applyRequest);
+    }
+
+    public String deleteYml(String fileName){
+        String applyRequest = "kubectl delete -f " + fileName;
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
+        //执行脚本
+        return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + applyRequest);
+    }
+
+    public String doUnsetServiceRequestSuspend(String svcName){
+        String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
+        String serLongDelayRequest = "kubectl delete -f " + svcLongDelayFilePath;
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
+        //执行脚本
+        return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
+    }
+
+    public boolean waitForComplete(String svcName){
+        try {
+            Thread.sleep(60000);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+    @Override
+    public SetAsyncRequestSequenceResponse setAsyncRequestsSequence(SetAsyncRequestSequenceRequest setAsyncRequestSequenceRequest){
+
+        ArrayList<String> svcList = setAsyncRequestSequenceRequest.getSvcList();
+
+        for(int i = 0;i < svcList.size(); i++){
+            String svcName = svcList.get(i);
+            doUnsetServiceRequestSuspend(svcName);
+            if(waitForComplete(svcName) == true) {
+                System.out.println("[===== Complete =====] " + svcName);
+            }
+        }
+
+        SetAsyncRequestSequenceResponse request = new SetAsyncRequestSequenceResponse(true,"Complete");
+        return request;
+
+    }
+
 
     //Set the required number of service replicas
     @Override
