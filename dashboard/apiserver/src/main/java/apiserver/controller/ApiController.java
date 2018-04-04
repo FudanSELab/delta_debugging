@@ -13,12 +13,15 @@ public class ApiController {
     @Autowired
     private ApiService apiService;
 
-
     //Set the replicas of running service
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/setServiceRequestSuspend", method= RequestMethod.POST)
     public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspend(
             @RequestBody SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+
+        System.out.println("[=====] /api/setServiceRequestSuspend");
+        System.out.println("[=====] svcName:" + setUnsetServiceRequestSuspendRequest.getSvc());
+
         return apiService.setServiceRequestSuspend(setUnsetServiceRequestSuspendRequest);
     }
 
@@ -26,13 +29,21 @@ public class ApiController {
     @RequestMapping(value="/api/unsetServiceRequestSuspend", method= RequestMethod.POST)
     public SetUnsetServiceRequestSuspendResponse unsetServiceRequestSuspend(
             @RequestBody SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+
+        System.out.println("[=====] /api/unsetServiceRequestSuspend");
+        System.out.println("[=====] svcName:" + setUnsetServiceRequestSuspendRequest.getSvc());
+
         return apiService.unsetServiceRequestSuspend(setUnsetServiceRequestSuspendRequest);
     }
 
     @CrossOrigin(origins = "*")
-    @RequestMapping(value="/api/unsetServiceRequestSuspend", method= RequestMethod.POST)
+    @RequestMapping(value="/api/setAsyncRequestSequence", method= RequestMethod.POST)
     public SetAsyncRequestSequenceResponse setAsyncRequestSequenceResponse(
             @RequestBody SetAsyncRequestSequenceRequest setAsyncRequestSequenceRequest){
+
+        System.out.println("[=====] /api/setAsyncRequestSequence");
+        System.out.println("[=====] svcName:" + setAsyncRequestSequenceRequest.getSvcList().size());
+
         return apiService.setAsyncRequestsSequence(setAsyncRequestSequenceRequest);
     }
 

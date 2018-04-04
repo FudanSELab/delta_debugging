@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Delta Sequence Control</title>
+        <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+        <link rel="stylesheet" type="text/css" href="css/bootstrap-theme.css">
+        <script type="text/javascript" src="js/jquery-3.2.1.min.js" defer charset="utf-8"></script>
+        <script type="text/javascript"src="js/bootstrap.js" defer charset="utf-8"></script>
+        <script type="text/javascript" src="js/PostForSequenceControl.js" defer charset="utf-8"></script>
+    </head>
+    <body>
+        <div class="">
+            <div class="panel-heading">
+                <h3 class="panel-title">
+                    Suspend a Service.
+                </h3>
+            </div>
+            <div class="input-box panel-body">
+                <form class="form-horizontal">
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label">Service Name:</label>
+                        <div class="col-sm-10">
+                            <input id="suspend_service_name" class="form-control" name='' value='rest-service-sub-1'>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-sm-offset-2 col-sm-10">
+                            <button id="set_suspend_service_btn" type="button" class="btn btn-primary">Suspend</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="panel-heading">
+                <h3 class="panel-title">
+                    Un-suspend a Service.
+                </h3>
+            </div>
+            <div class="input-box panel-body">
+                <form class="form-horizontal">
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label">Service Name:</label>
+                        <div class="col-sm-10">
+                            <input id="unsuspend_service_name" class="form-control" name='' value='rest-service-sub-1'>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-sm-offset-2 col-sm-10">
+                            <button id="set_unsuspend_service_btn" type="button" class="btn btn-primary">Un-suspend</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="panel-heading">
+                <h3 class="panel-title">
+                    Control Request Sequence
+                </h3>
+            </div>
+            <div class="input-box panel-body">
+                <form class="form-horizontal">
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label">Service Name:</label>
+                        <div class="col-sm-10">
+                            <input id="service_sequence_list" class="form-control" name=''
+                                   value='rest-service-sub-1,rest-service-sub-2,rest-service-sub-3'>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-sm-offset-2 col-sm-10">
+                            <button id="service_sequence_list_suspend_all" type="button" class="btn btn-primary">Suspend All</button>
+                        </div>
+                        <div class="col-sm-offset-2 col-sm-10">
+                            <button id="service_sequence_list_check_and_unsuspend" type="button" class="btn btn-primary">Check And Unsuspend</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </body>
+</html>
