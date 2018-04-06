@@ -8,45 +8,43 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
             $window.location.reload();
         };
 
-        // 加载service列表
-        loadServiceList.loadServiceList().then(function (result) {
-            if(result.status){
-                $scope.services = result.services;
-                $scope.serviceGroup = [];
-                for(var i = 0; i < $scope.services.length; i++){
-                    for(var j = 0; j < 5 && i < $scope.services.length; ){
+        $scope.refreshServices = function(){
+            loadServiceList.loadServiceList().then(function (result) {
+                if(result.status){
+                    $scope.services = result.services;
+                    $scope.serviceGroup = [];
+                    for(var i = 0; i < $scope.services.length; i++){
                         if($scope.services[i].serviceName.indexOf("service") !== -1){
-                            // $scope.services[i].checked = false;
                             $scope.serviceGroup.push($scope.services[i]);
-                            i++;
-                            j++;
-                        } else {
-                            i++;
                         }
+                        // for(var j = 0; j < 5 && i < $scope.services.length; ){
+                        //     if($scope.services[i].serviceName.indexOf("service") !== -1){
+                        //         // $scope.services[i].checked = false;
+                        //         $scope.serviceGroup.push($scope.services[i]);
+                        //         i++;
+                        //         j++;
+                        //     } else {
+                        //         i++;
+                        //     }
+                        // }
                     }
+                } else {
+                    alert(result.message);
                 }
-            } else {
-                alert(result.message);
-            }
-        });
+            });
+        };
+        // 加载service列表
+        $scope.refreshServices();
+
 
         // 加载testcase列表
         loadTestCases.loadTestList().then(function (result) {
             $scope.testCases = result;
         });
 
-        //load pods
-        refreshPodsService.load().then(function(result){
-            if(result.status){
-                $scope.podList = result.pods;
-            } else {
-                alert(result.message);
-            }
-        });
 
         $scope.refreshPod = function(){
             refreshPodsService.load().then(function(result){
-                // alert("23333");
                 if(result.status){
                     $scope.podList = result.pods;
                 } else {
@@ -54,6 +52,8 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
                 }
             });
         };
+        //load pods
+        $scope.refreshPod();
 
 
         var stompClient = null;
@@ -98,13 +98,27 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
                     } else {
                         alert(data.message);
                     }
-
                 });
 
-                stompClient.subscribe('/user/topic/deltaend', function (data) {
+                stompClient.subscribe('/user/topic/deltaEnd', function (data) {
+                    // console.log(data.body);
+                    var data = JSON.parse(data.body);
+                    if(data.status){
+                        $scope.instanceDeltaResult = data.ddminResult;
+                        console.log("data.ddminResult: " + data.ddminResult);
+                        $scope.$apply();
+                    } else {
+                        alert(data.message);
+                    }
                     $('#test-button').removeClass('disabled');
-                    console.log( "deltaend" + data.body);
                 });
+
+                stompClient.subscribe('/user/topic/simpleSetInstanceResult', function (data) {
+                    alert(data.body);
+                    $scope.refreshServices();
+                    $('#test-button').removeClass('disabled');
+                });
+
 
             });
         }
@@ -133,8 +147,9 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
                     'tests': tests
                 };
                 stompClient.send("/app/msg/delta", {}, JSON.stringify(data));
+                $scope.instanceDeltaResult = "";
             } else {
-                alert("To delete node, please select at least one service and one testcase.");
+                alert("To delta instance, please select at least one service and one testcase.");
             }
 
         };
@@ -182,8 +197,30 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
             } else {
                 alert("Please click the connect button.")
             }
-
         };
+
+
+        $scope.simpleSetInstance = function(n){
+            if ( stompClient != null ) {
+                var checkedServices = $("input[name='service']:checked");
+                var services = [];
+                checkedServices.each(function(){
+                    services.push($(this).val());
+                });
+                if(services.length > 0){
+                    var data = {
+                        'id': loginId,
+                        'services': services,
+                        'instanceNum': n
+                    };
+                    stompClient.send("/app/msg/simpleSetInstance", {}, JSON.stringify(data));
+                } else {
+                    alert("Please select at least one service.");
+                }
+            } else {
+                alert("Please click the connect button.")
+            }
+        }
 
 
 }]);

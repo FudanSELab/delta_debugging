@@ -45,6 +45,12 @@ public class DeltaTestReporter implements IReporter {
             deltaResult.setStatus("SUCCESS");
             deltaResult.setClassName(list.get(0).getTestClass().getName());
             for (ITestResult l : list) {
+                System.out.println("------------throwable:------------");
+                System.out.println(l.getThrowable());
+                if( (null != l.getThrowable()) && (! (l.getThrowable() instanceof AssertionError)) ){
+                    deltaResult.setStatus("EXCEPTION");
+                    break;
+                }
                 if( ! "SUCCESS".equals(this.getStatus(l.getStatus())) ){
                     deltaResult.setStatus("FAILURE");
                     break;

@@ -1,11 +1,18 @@
 package deltabackend.service;
 
+import com.baeldung.algorithms.ddmin.DDMinAlgorithm;
+import com.baeldung.algorithms.ddmin.DDMinDelta;
 import deltabackend.domain.*;
 import deltabackend.domain.api.GetServiceReplicasRequest;
 import deltabackend.domain.api.GetServiceReplicasResponse;
 import deltabackend.domain.api.SetServiceReplicasRequest;
 import deltabackend.domain.api.SetServiceReplicasResponse;
 import deltabackend.domain.configDelta.ConfigDeltaRequest;
+import deltabackend.domain.ddmin.InstanceDDMinDeltaExt;
+import deltabackend.domain.ddmin.InstanceDDMinResponse;
+import deltabackend.domain.instanceDelta.DeltaRequest;
+import deltabackend.domain.instanceDelta.DeltaResponse;
+import deltabackend.domain.instanceDelta.SimpleInstanceRequest;
 import deltabackend.domain.nodeDelta.DeltaNodeByListResponse;
 import deltabackend.domain.nodeDelta.DeltaNodeRequest;
 import deltabackend.domain.nodeDelta.NodeDeltaRequest;
@@ -40,6 +47,8 @@ public class DeltaServiceImpl implements DeltaService{
     @Autowired
     private MyConfig myConfig;
 
+
+    //////////////////////////////////////////Instance Delta////////////////////////////////////////////////////
     @Override
     public void delta(DeltaRequest message) {
         if ( ! webAgentSessionRegistry.getSessionIds(message.getId()).isEmpty()){
@@ -48,76 +57,159 @@ public class DeltaServiceImpl implements DeltaService{
             System.out.println("sessionid = " + sessionId);
             List<String> envStrings= message.getEnv();
             //query for the env services' instance number
-            GetServiceReplicasRequest gsrr = new GetServiceReplicasRequest();
-            gsrr.setServices(envStrings);
-            GetServiceReplicasResponse gsrp = restTemplate.postForObject(
-                    "http://api-server:18898/api/getServicesReplicas",gsrr,
-                    GetServiceReplicasResponse.class);
-            System.out.println("============= GetServiceReplicasResponse =============");
-            System.out.println(gsrp.toString());
-
+            GetServiceReplicasResponse gsrp = queryServicesReplicas(envStrings);
             List<EnvParameter> env = null;
             if(gsrp.isStatus()){
                 env = gsrp.getServices();
-                System.out.println("============= GetServiceReplicasResponse status is true =============");
             } else {
                 System.out.println("################ cannot get service replica number ####################");
             }
 
-            DeltaTestResponse firstResult = new DeltaTestResponse();//save the first result
-            for(int i = 0; null != env && i < env.size() + 1; i++){
-                System.out.println("============= For loop to change the env parameter =============");
-                if( i != 0 && env.get(i-1).getNumOfReplicas() <= 1){
-                    continue;
+            DDMinAlgorithm ddmin = new DDMinAlgorithm();
+            DDMinDelta ddmin_delta = new InstanceDDMinDeltaExt(message.getTests(),env, sessionId, template);
+            ddmin.setDdmin_delta(ddmin_delta);
+            List<String> ddminResult = ddmin.ddmin(ddmin_delta.deltas_all);
+
+            InstanceDDMinResponse r = new InstanceDDMinResponse();
+            if(null != ddminResult){
+                for(String s: ddminResult){
+                    System.out.println("######## ddminResult: " + s);
+                    r.setStatus(true);
+                    r.setMessage("Success");
+                    r.setDdminResult(ddminResult);
                 }
-                DeltaResponse dr = new DeltaResponse();
-                List<EnvParameter> env2 = new ArrayList<EnvParameter>(env.size());
-                Iterator<EnvParameter> iterator = env.iterator();
-                while(iterator.hasNext()){
-                    env2.add((EnvParameter) iterator.next().clone());
-                }
-                if( i != 0 && i <= env.size()){
-                    env2.get(i-1).setNumOfReplicas(1);
-                }
-                //adjust the instance number
-                SetServiceReplicasRequest ssrr = new SetServiceReplicasRequest();
-                ssrr.setServiceReplicasSettings(env2);
-                SetServiceReplicasResponse ssresult = restTemplate.postForObject(
-                        "http://api-server:18898/api/setReplicas",ssrr,
-                        SetServiceReplicasResponse.class);
-                if(ssresult.isStatus()){
-                    System.out.println("============= SetServiceReplicasResponse status is true =============");
-                    dr.setEnv(env2);
-                    DeltaTestRequest dtr = new DeltaTestRequest();
-                    dtr.setTestNames(message.getTests());
-                    DeltaTestResponse result = restTemplate.postForObject(
-                            "http://test-backend:5001/testBackend/deltaTest",dtr,
-                            DeltaTestResponse.class);
-                    if(result.getStatus() == -1){ //the backend throw an exception, stop the delta test, maybe the testcase not exist
-                        dr.setStatus(false);
-                        dr.setMessage(result.getMessage());
-                        template.convertAndSendToUser(sessionId,"/topic/deltaresponse" ,dr, createHeaders(sessionId));
-                        break;
-                    }
-                    dr.setStatus(true);//just mean the test case has been executed
-                    dr.setMessage(result.getMessage());
-                    dr.setResult(result);
-                    if( i == 0 ){
-                        firstResult = result;
-                        dr.setDiffFromFirst(false);
-                    } else {
-                        dr.setDiffFromFirst(judgeDiffer( firstResult, result));
-                    }
-                    template.convertAndSendToUser(sessionId,"/topic/deltaresponse" ,dr, createHeaders(sessionId));
-                } else {
-                    System.out.println("-----------------" + ssresult.getMessage() + "----------------------");
-                }
-//                if( ! result.isStatus()){ //if failure, break the loop
-//                    break;
-//                }
+            } else {
+                r.setStatus(false);
+                r.setMessage("Failed");
+                r.setDdminResult(null);
             }
 
-            template.convertAndSendToUser(sessionId,"/topic/deltaend" ,"end", createHeaders(sessionId));
+            template.convertAndSendToUser(sessionId,"/topic/deltaEnd" ,r, createHeaders(sessionId));
+        }
+    }
+
+//    @Override
+//    public void delta(DeltaRequest message) {
+//        if ( ! webAgentSessionRegistry.getSessionIds(message.getId()).isEmpty()){
+//            System.out.println("=============Get one delta request=============");
+//            String sessionId=webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
+//            System.out.println("sessionid = " + sessionId);
+//            List<String> envStrings= message.getEnv();
+//            //query for the env services' instance number
+//            GetServiceReplicasResponse gsrp = queryServicesReplicas(envStrings);
+//
+//            List<EnvParameter> env = null;
+//            if(gsrp.isStatus()){
+//                env = gsrp.getServices();
+//            } else {
+//                System.out.println("################ cannot get service replica number ####################");
+//            }
+//
+//            DeltaTestResponse firstResult = new DeltaTestResponse();//save the first result
+//            for(int i = 0; null != env && i < env.size() + 1; i++){
+//                System.out.println("============= For loop to change the env parameter =============");
+//                if( i != 0 && env.get(i-1).getNumOfReplicas() <= 1){
+//                    continue;
+//                }
+//                DeltaResponse dr = new DeltaResponse();
+//                List<EnvParameter> env2 = new ArrayList<EnvParameter>(env.size());
+//                Iterator<EnvParameter> iterator = env.iterator();
+//                while(iterator.hasNext()){
+//                    env2.add((EnvParameter) iterator.next().clone());
+//                }
+//                if( i != 0 && i <= env.size()){
+//                    env2.get(i-1).setNumOfReplicas(1);
+//                }
+//                //adjust the instance number
+//                SetServiceReplicasResponse ssresult = setInstanceNumOfServices(env2);
+//
+//                if(ssresult.isStatus()){
+//                    System.out.println("============= SetServiceReplicasResponse status is true =============");
+//                    dr.setEnv(env2);
+//
+//                    //delta tests
+//                    DeltaTestResponse result = deltaTests(message.getTests());
+//
+//                    if(result.getStatus() == -1){ //the backend throw an exception, stop the delta test, maybe the testcase not exist
+//                        dr.setStatus(false);
+//                        dr.setMessage(result.getMessage());
+//                        template.convertAndSendToUser(sessionId,"/topic/deltaresponse" ,dr, createHeaders(sessionId));
+//                        break;
+//                    }
+//                    dr.setStatus(true);//just mean the test case has been executed
+//                    dr.setMessage(result.getMessage());
+//                    dr.setResult(result);
+//                    if( i == 0 ){
+//                        firstResult = result;
+//                        dr.setDiffFromFirst(false);
+//                    } else {
+//                        dr.setDiffFromFirst(judgeDiffer( firstResult, result));
+//                    }
+//                    template.convertAndSendToUser(sessionId,"/topic/deltaresponse" ,dr, createHeaders(sessionId));
+//                } else {
+//                    System.out.println("-----------------" + ssresult.getMessage() + "----------------------");
+//                }
+////                if( ! result.isStatus()){ //if failure, break the loop
+////                    break;
+////                }
+//            }
+//
+//        }
+//    }
+
+
+    private DeltaTestResponse deltaTests(List<String> testNames){
+        DeltaTestRequest dtr = new DeltaTestRequest();
+        dtr.setTestNames(testNames);
+        DeltaTestResponse result = restTemplate.postForObject(
+                "http://test-backend:5001/testBackend/deltaTest",dtr,
+                DeltaTestResponse.class);
+        return result;
+    }
+
+
+    //query for the env services' instance number
+    private GetServiceReplicasResponse queryServicesReplicas(List<String> envStrings){
+        GetServiceReplicasRequest gsrr = new GetServiceReplicasRequest();
+        gsrr.setServices(envStrings);
+        GetServiceReplicasResponse gsrp = restTemplate.postForObject(
+                "http://api-server:18898/api/getServicesReplicas",gsrr,
+                GetServiceReplicasResponse.class);
+        System.out.println("============= GetServiceReplicasResponse =============");
+        System.out.println(gsrp.toString());
+        return gsrp;
+    }
+
+
+    //adjust the instance number
+    @Override
+    public SetServiceReplicasResponse setInstanceNumOfServices(List<EnvParameter> env) {
+        SetServiceReplicasRequest ssrr = new SetServiceReplicasRequest();
+        ssrr.setServiceReplicasSettings(env);
+        SetServiceReplicasResponse ssresult = restTemplate.postForObject(
+                "http://api-server:18898/api/setReplicas",ssrr,
+                SetServiceReplicasResponse.class);
+        return ssresult;
+    }
+
+
+    @Override
+    public void simpleSetInstance(SimpleInstanceRequest message) {
+        if ( ! webAgentSessionRegistry.getSessionIds(message.getId()).isEmpty()){
+            String sessionId=webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
+            List<EnvParameter> env = new ArrayList<EnvParameter>();
+            for(String service: message.getServices()){
+                EnvParameter ep = new EnvParameter();
+                ep.setServiceName(service);
+                ep.setNumOfReplicas(message.getInstanceNum());
+                env.add(ep);
+            }
+            SetServiceReplicasResponse ssrr = setInstanceNumOfServices(env);
+            if(ssrr.isStatus()){
+                template.convertAndSendToUser(sessionId,"/topic/simpleSetInstanceResult" ,"Success to set these services' replica", createHeaders(sessionId));
+            } else {
+                template.convertAndSendToUser(sessionId,"/topic/simpleSetInstanceResult" ,"Fail to set these services' replica", createHeaders(sessionId));
+            }
         }
     }
 
@@ -255,7 +347,9 @@ public class DeltaServiceImpl implements DeltaService{
     ///////////////////////////////////////Config Delta/////////////////////////////////////////////
     @Override
     public void configDelta(ConfigDeltaRequest message) {
+        if ( ! webAgentSessionRegistry.getSessionIds(message.getId()).isEmpty()){
 
+        }
     }
 
 

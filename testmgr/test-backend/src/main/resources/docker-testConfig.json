@@ -3,46 +3,9 @@
   "classDir": "/test",
   "testCases":{
     "Delta Test":[
-      "TestErrorInstance"
-    ],
-    "Ticket Reserve":[
-      "TestFlowOne",
-      "TestServiceLogin",
-      "TestServiceSSO",
-      "TestServiceVerificationCode",
-      "TestServiceTravel",
-      "TestServiceTravel2",
-      "TestServiceSecurity",
-      "TestServiceBasicInfo",
-      "TestServiceTicketInfo",
-      "TestServiceContacts",
-      "TestServicePrice",
-      "TestServiceTrain",
-      "TestServiceStation",
-      "TestServiceOrders",
-      "TestServiceConsign",
-      "TestServiceConfig",
-      "TestServiceFood",
-      "TestServiceRoute"
-    ],
-    "Ticket Rebook":[
-      "TestFlowTwoPay",
-      "TestFlowTwoRebook",
-      "TestServiceRebook",
-      "TestServiceInsidePay",
-      "TestServicePayment",
-      "TestServiceNotification",
-      "TestServiceCancel"
-    ],
-    "Single Service":[
-      "TestFlowFour",
-      "TestServiceRegister",
-      "TestServiceExecute",
-      "TestServiceVoucher",
-      "TestServiceNews",
-      "TestServiceTicketOffice"
+      "TestErrorInstance",
+      "TestLoginErrorInstance"
     ]
-
 
   }
 }
