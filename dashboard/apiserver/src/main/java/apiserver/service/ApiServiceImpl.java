@@ -4,20 +4,178 @@ import apiserver.bean.*;
 import apiserver.request.*;
 import apiserver.response.*;
 import apiserver.util.MyConfig;
+import apiserver.util.RemoteExecuteCommand;
 import com.alibaba.fastjson.JSON;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
 public class ApiServiceImpl implements ApiService {
 
     private final String NAMESPACE = "default";
+
+    private String masterIp = "10.141.212.21";
+
+    private String username = "root";
+
+    private String password = "root";
+
     @Autowired
     private MyConfig myConfig;
+
+    @Override
+    public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspend(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+
+        String svcName = setUnsetServiceRequestSuspendRequest.getSvc();
+        String executeResult = doSetServiceRequestSuspend(svcName);
+        System.out.println(executeResult);
+        boolean status = (executeResult != null);
+        SetUnsetServiceRequestSuspendResponse response = new SetUnsetServiceRequestSuspendResponse(status,executeResult);
+        return response;
+    }
+
+    @Override
+    public SetUnsetServiceRequestSuspendResponse unsetServiceRequestSuspend(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+        String svcName = setUnsetServiceRequestSuspendRequest.getSvc();
+        String executeResult = doUnsetServiceRequestSuspend(svcName);
+        System.out.println(executeResult);
+        boolean status = (executeResult != null);
+        SetUnsetServiceRequestSuspendResponse response = new SetUnsetServiceRequestSuspendResponse(status,executeResult);
+        return response;
+    }
+
+    private String doSetServiceRequestSuspend(String svcName){
+        String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
+        String serLongDelayRequest = "kubectl apply -f " + svcLongDelayFilePath;
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
+        //执行脚本
+        String executeResult = rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
+        return executeResult;
+    }
+
+    private String applyYml(String fileName){
+        String applyRequest = "kubectl apply -f " + fileName;
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
+        //执行脚本
+        return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + applyRequest);
+    }
+
+    private String deleteYml(String fileName){
+        String applyRequest = "kubectl delete -f " + fileName;
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
+        //执行脚本
+        return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + applyRequest);
+    }
+
+    private String buildLongDelayRuleFile(String svcName){
+        return null;
+    }
+
+    private String doUnsetServiceRequestSuspend(String svcName){
+        String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
+        String serLongDelayRequest = "kubectl delete -f " + svcLongDelayFilePath;
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
+        //执行脚本
+        return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
+    }
+
+    private boolean waitForComplete(String svcName){
+
+        //根据svc的名称，获取svc下的所有pod
+        GetPodsListResponse podsListResponse = getPodsList("default");
+        ArrayList<PodInfo> podInfoList = new ArrayList<>(podsListResponse.getPods());
+
+        ArrayList<PodInfo> targetPodInfoList = new ArrayList<>();
+        for(PodInfo podInfo : podInfoList){
+            System.out.println("[=====] We are now checking useful POD-NAME:" + podInfo.getName());
+            if(podInfo.getName().contains(svcName)){
+                targetPodInfoList.add(podInfo);
+            }else{
+                //do nothing
+            }
+        }
+
+        boolean isRequestComplete = false;
+        while(isRequestComplete == false){
+            //每间隔20秒，获取一次pods的日志。注意是pod下的istio-proxy的日志
+            try{
+                Thread.sleep(20000);
+            }catch (InterruptedException e){
+                e.printStackTrace();
+            }
+
+            //获取各个pod的日志，并截取最后四条
+            for(PodInfo podInfo : targetPodInfoList) {
+                if(isRequestComplete == true){
+                    break;
+                }
+                System.out.println("[=====] We are now checking POD-LOG:" + podInfo.getName());
+                String podLog = getPodLog(podInfo.getName(),"istio-proxy");
+                String[] logsFormatted = podLog.split("\n");
+                ArrayList<String> arrayList = new ArrayList<>(Arrays.asList(logsFormatted));
+                ArrayList<String> lastSeveralLogs = new ArrayList<>(arrayList.subList(arrayList.size() - 4,arrayList.size()));
+                System.out.println(lastSeveralLogs.toString());
+                for(String logStr : lastSeveralLogs) {
+                    //并检查日志     response-code 200 && svcName && 接口名称
+                    //检查log是否合规
+                    if(checkLogCanComfirmRequestComplete(logStr,svcName)){
+                        isRequestComplete = true;
+                        break;
+                    }else{
+                        isRequestComplete = false;
+                    }
+                }
+            }
+        }
+//        try {
+//            Thread.sleep(60000);
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
+        return isRequestComplete;
+    }
+
+    private boolean checkLogCanComfirmRequestComplete(String log, String svcName){
+
+        //[2018-04-04T06:18:18.275Z]
+        // "GET /helloRestServiceSubOne HTTP/1.1"
+        // 200 - 0 29 254 243 "-"
+        // "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36"
+        // "4939e5f4-6760-9181-afe7-b25e54e57c5f"
+        // "rest-service-sub-1:16101"
+        // "127.0.0.1:16101"
+        //注意：这个判断是有漏洞的
+        if(log.contains("200") &&
+                log.contains(svcName)){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    @Override
+    public SetAsyncRequestSequenceResponse setAsyncRequestsSequence(SetAsyncRequestSequenceRequest setAsyncRequestSequenceRequest){
+
+        ArrayList<String> svcList = setAsyncRequestSequenceRequest.getSvcList();
+
+        for(int i = 0;i < svcList.size(); i++){
+            String svcName = svcList.get(i);
+            doUnsetServiceRequestSuspend(svcName);
+            //waitForComplete是阻塞式的 会一直等待直到请求返回
+            if(waitForComplete(svcName) == true) {
+                System.out.println("[===== Complete =====] " + svcName);
+            }
+        }
+
+        SetAsyncRequestSequenceResponse request = new SetAsyncRequestSequenceResponse(true,"Complete");
+        return request;
+
+    }
+
 
     //Set the required number of service replicas
     @Override
@@ -361,6 +519,33 @@ public class ApiServiceImpl implements ApiService {
     public GetPodsListResponse getPodsList() {
         GetPodsListResponse response = new GetPodsListResponse();
         V1PodList podList = getPodList("");
+        System.out.println(String.format("There are now %d pods in the cluster now", podList.getItems().size()));
+        if(podList.getItems().size() < 1){
+            response.setStatus(true);
+            response.setMessage("No resource found!");
+            response.setPods(null);
+        }
+        //Construct the podinfo list
+        List<PodInfo> podInfos = new ArrayList<PodInfo>();
+        for(V1Pod pod : podList.getItems()){
+            PodInfo podInfo = new PodInfo();
+            podInfo.setName(pod.getMetadata().getName());
+            podInfo.setStatus(pod.getStatus().getPhase());
+            podInfo.setNodeName(pod.getSpec().getNodeName());
+            podInfo.setNodeIP(pod.getStatus().getHostIP());
+            podInfo.setPodIP(pod.getStatus().getPodIP());
+            podInfo.setStartTime(pod.getStatus().getStartTime());
+            podInfos.add(podInfo);
+        }
+        response.setStatus(true);
+        response.setMessage("Successfully get the pod info list!");
+        response.setPods(podInfos);
+        return response;
+    }
+
+    public GetPodsListResponse getPodsList(String namespace) {
+        GetPodsListResponse response = new GetPodsListResponse();
+        V1PodList podList = getPodList(namespace);
         System.out.println(String.format("There are now %d pods in the cluster now", podList.getItems().size()));
         if(podList.getItems().size() < 1){
             response.setStatus(true);
