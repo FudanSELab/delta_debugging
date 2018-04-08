@@ -6,17 +6,26 @@ public class SetUnsetServiceRequestSuspendRequest {
 
     public static final int UNSET_SUSPEND = 2;
 
+    private String sourceSvcName;
+
     private String svc;
 
-    private int actionType;
 
     public SetUnsetServiceRequestSuspendRequest() {
         //do nothing
     }
 
-    public SetUnsetServiceRequestSuspendRequest(String svc, int actionType) {
+    public SetUnsetServiceRequestSuspendRequest(String sourceSvcName, String svc) {
+        this.sourceSvcName = sourceSvcName;
         this.svc = svc;
-        this.actionType = actionType;
+    }
+
+    public String getSourceSvcName() {
+        return sourceSvcName;
+    }
+
+    public void setSourceSvcName(String sourceSvcName) {
+        this.sourceSvcName = sourceSvcName;
     }
 
     public String getSvc() {
@@ -27,11 +36,4 @@ public class SetUnsetServiceRequestSuspendRequest {
         this.svc = svc;
     }
 
-    public int getActionType() {
-        return actionType;
-    }
-
-    public void setActionType(int actionType) {
-        this.actionType = actionType;
-    }
 }

@@ -40,12 +40,38 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
+    @Override
+    public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspendWithSource(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+
+        String svcName = setUnsetServiceRequestSuspendRequest.getSvc();
+        String sourceSvcName = setUnsetServiceRequestSuspendRequest.getSourceSvcName();
+        String executeResult = doSetServiceRequestSuspendWithSourceFile(svcName,sourceSvcName);
+        System.out.println(executeResult);
+        boolean status = (executeResult != null);
+        SetUnsetServiceRequestSuspendResponse response = new SetUnsetServiceRequestSuspendResponse(status,executeResult);
+        return response;
+    }
+
     private String doSetServiceRequestSuspend(String svcName){
         String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
 
 //        FileOperation.clearAndWriteFile(svcLongDelayFilePath,svcName);
         RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
         rec.modifyFile(svcLongDelayFilePath,svcName);
+//        rec.uploadFile(svcLongDelayFilePath);
+
+        String serLongDelayRequest = "kubectl apply -f " + svcLongDelayFilePath;
+        //执行脚本
+        String executeResult = rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
+        return executeResult;
+    }
+
+    private String doSetServiceRequestSuspendWithSourceFile(String svcName, String sourceSvcName){
+        String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
+
+//        FileOperation.clearAndWriteFile(svcLongDelayFilePath,svcName);
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
+        rec.modifyFileWithSourceSvcName(svcLongDelayFilePath,svcName,sourceSvcName);
 //        rec.uploadFile(svcLongDelayFilePath);
 
         String serLongDelayRequest = "kubectl apply -f " + svcLongDelayFilePath;

@@ -170,22 +170,68 @@ public class RemoteExecuteCommand {
         conn.close();
     }
 
+    public void modifyFileWithSourceSvcName(String fileName, String svcName, String srcSvcName) {
+        System.out.println("[=====] 开始修改文件[With Source Svc]:" + fileName + "");
+        try{
+            if(login()) {
+                //先删除文件，再传入数据
+                rmFile(fileName);
+                String data = fillLongRuleFileWithSource(svcName,srcSvcName);
+
+                login();
+                SFTPv3Client client = new SFTPv3Client(conn);
+                SFTPv3FileHandle handle = client.createFile(fileName);
+
+                byte []arr = data.getBytes();
+                client.write(handle, 0, arr, 0, arr.length);
+                client.closeFile(handle);
+                client.close();
+                System.out.println("[=====] 修改文件完毕[With Source Svc]:" + fileName + "");
+            }
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        conn.close();
+    }
+
     public String fillLongRuleFile(String svcName){
         String longRuleStr = "apiVersion: config.istio.io/v1alpha2\n" +
-                              "kind: RouteRule\n" +
-                              "metadata:\n" +
-                              "  name: rest-service-delay-long-svcName\n" +
-                              "spec:\n" +
-                              "  destination:\n" +
-                              "    name: svcName\n" +
-                              "  httpFault:\n" +
-                              "    delay:\n" +
-                              "      percent: 100\n" +
-                              "      fixedDelay: 10000s";
+                "kind: RouteRule\n" +
+                "metadata:\n" +
+                "  name: rest-service-delay-long-svcName\n" +
+                "spec:\n" +
+                "  destination:\n" +
+                "    name: svcName\n" +
+                "  httpFault:\n" +
+                "    delay:\n" +
+                "      percent: 100\n" +
+                "      fixedDelay: 10000s";
         String fullLongRuleString = longRuleStr.replaceAll("svcName",svcName);
         System.out.println("[=====]fullLongRuleString");
         System.out.println(fullLongRuleString);
         return fullLongRuleString;
+    }
+
+    public String fillLongRuleFileWithSource(String svcName, String sourceSvcName){
+        String longRuleStr = "apiVersion: config.istio.io/v1alpha2\n" +
+                "kind: RouteRule\n" +
+                "metadata:\n" +
+                "  name: rest-service-delay-long-svcName\n" +
+                "spec:\n" +
+                "  destination:\n" +
+                "    name: svcName\n" +
+                "  match:\n" +
+                "    source:\n" +
+                "      name: sourceSvcName" +
+                "  httpFault:\n" +
+                "    delay:\n" +
+                "      percent: 100\n" +
+                "      fixedDelay: 10000s";
+        String fullLongRuleString = longRuleStr.replaceAll("svcName",svcName);
+        String fullLongRuleStringFinal = longRuleStr.replaceAll("sourceSvcName",sourceSvcName);
+        System.out.println("[=====]fullLongRuleString");
+        System.out.println(fullLongRuleStringFinal);
+        return fullLongRuleStringFinal;
     }
 
     /**

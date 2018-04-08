@@ -33,6 +33,19 @@ public class ApiController {
     }
 
     @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/setServiceRequestSuspendWithSourceSvc", method= RequestMethod.POST)
+    public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspendWithSourceSvc(
+            @RequestBody SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+
+        System.out.println("[=====] /api/setServiceRequestSuspendWithSourceSvc");
+        System.out.println("[=====] svcName:" + setUnsetServiceRequestSuspendRequest.getSvc());
+        System.out.println("[=====] sourceSvcName:" + setUnsetServiceRequestSuspendRequest.getSourceSvcName());
+
+        return apiService.setServiceRequestSuspendWithSource(setUnsetServiceRequestSuspendRequest);
+    }
+
+
+    @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/unsetServiceRequestSuspend", method= RequestMethod.POST)
     public SetUnsetServiceRequestSuspendResponse unsetServiceRequestSuspend(
             @RequestBody SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){

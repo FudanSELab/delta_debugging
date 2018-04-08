@@ -1,7 +1,6 @@
 $("#set_suspend_service_btn").click(function() {
     var SetUnsetServiceRequestSuspendRequest = new Object();
     SetUnsetServiceRequestSuspendRequest.svc = $("#suspend_service_name").val();
-    SetUnsetServiceRequestSuspendRequest.actionType = 1;
     var data = JSON.stringify(SetUnsetServiceRequestSuspendRequest);
     $.ajax({
         type: "post",
@@ -25,7 +24,6 @@ $("#set_suspend_service_btn").click(function() {
 $("#set_unsuspend_service_btn").click(function() {
     var SetUnsetServiceRequestSuspendRequest = new Object();
     SetUnsetServiceRequestSuspendRequest.svc = $("#unsuspend_service_name").val();
-    SetUnsetServiceRequestSuspendRequest.actionType = 2;
     var data = JSON.stringify(SetUnsetServiceRequestSuspendRequest);
     $.ajax({
         type: "post",
@@ -79,6 +77,7 @@ $("#service_sequence_list_suspend_all").click(function() {
 $("#service_sequence_list_check_and_unsuspend").click(function() {
     var SetAsyncRequestSequenceRequest = new Object();
     var svcList = $("#service_sequence_list").val();
+    SetAsyncRequestSequenceRequest.sourceService = $("#source_service").val();
     SetAsyncRequestSequenceRequest.svcList = svcList.split(",");
     var data = JSON.stringify(SetAsyncRequestSequenceRequest);
     $.ajax({
