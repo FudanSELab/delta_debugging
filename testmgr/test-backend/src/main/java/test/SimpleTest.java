@@ -11,17 +11,19 @@ import org.testng.annotations.Test;
 public class SimpleTest {
 
     @Test
-    public void testMethodOne() {
+    public void testMethodOne() throws Exception {
         Assert.assertTrue(true);
+        throw new Exception("233333");
     }
 
-    @Test
-    public void testMethodTwo() {
-        Assert.assertTrue(false);
-    }
-
-    @Test(dependsOnMethods={"testMethodTwo"})
-    public void testMethodThree() {
-        Assert.assertTrue(true);
-    }
+//    @Test
+//    public void testMethodTwo() {
+//        Assert.assertTrue(false);
+//    }
+//
+//    @Test(dependsOnMethods={"testMethodTwo"})
+//    public void testMethodThree() {
+//
+//        Assert.assertTrue(true);
+//    }
 }

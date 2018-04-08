@@ -29,16 +29,16 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
             }
         });
 
-        $scope.test = function(){
-            var checkedConfig = $("input[name='config']:checked");
-            var configs = [];
-            checkedConfig.each(function(){
-                configs.push($(this).val());
-            });
-
-            console.log("configs:\n" );
-            console.log(configs);
-        };
+        // $scope.test = function(){
+        //     var checkedConfig = $("input[name='config']:checked");
+        //     var configs = [];
+        //     checkedConfig.each(function(){
+        //         configs.push($(this).val());
+        //     });
+        //
+        //     console.log("configs:\n" );
+        //     console.log(configs);
+        // };
 
 
         //load pods
@@ -104,6 +104,8 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
 
             console.log("configs:\n" );
             console.log(configs);
+
+
 
             if(configs.length > 0){
                 $('#test-button').addClass('disabled');

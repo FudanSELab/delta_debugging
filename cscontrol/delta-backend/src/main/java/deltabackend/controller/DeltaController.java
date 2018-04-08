@@ -1,13 +1,13 @@
 package deltabackend.controller;
 
-import deltabackend.domain.*;
 import deltabackend.domain.configDelta.ConfigDeltaRequest;
+import deltabackend.domain.instanceDelta.DeltaRequest;
+import deltabackend.domain.instanceDelta.SimpleInstanceRequest;
 import deltabackend.domain.nodeDelta.DeltaNodeByListResponse;
 import deltabackend.domain.nodeDelta.DeltaNodeRequest;
 import deltabackend.domain.nodeDelta.NodeDeltaRequest;
 import deltabackend.domain.sequenceDelta.SequenceDeltaRequest;
 import deltabackend.domain.serviceDelta.ExtractServiceRequest;
-import deltabackend.domain.serviceDelta.ReserveServiceByListResponse;
 import deltabackend.domain.serviceDelta.ReserveServiceResponse;
 import deltabackend.domain.serviceDelta.ServiceDeltaRequest;
 import deltabackend.service.DeltaService;
@@ -33,11 +33,18 @@ public class DeltaController {
         deltaService.delta(message);
     }
 
+    @MessageMapping("/msg/simpleSetInstance")
+    public void simpleSetInstance(SimpleInstanceRequest message) throws Exception {
+        deltaService.simpleSetInstance(message);
+    }
+
+    ////////////////////////////////////////Service delta////////////////////////////////////////
     @MessageMapping("/msg/serviceDelta")
     public void serviceDelta(ServiceDeltaRequest message) throws Exception {
         deltaService.serviceDelta(message);
     }
 
+    ////////////////////////////////////////Service delta////////////////////////////////////////
     @MessageMapping("/msg/nodeDelta")
     public void nodeDelta(NodeDeltaRequest message) throws Exception {
         deltaService.nodeDelta(message);

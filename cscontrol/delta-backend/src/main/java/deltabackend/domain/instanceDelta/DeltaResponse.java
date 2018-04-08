@@ -1,4 +1,7 @@
-package deltabackend.domain;
+package deltabackend.domain.instanceDelta;
+
+import deltabackend.domain.DeltaTestResponse;
+import deltabackend.domain.EnvParameter;
 
 import java.util.ArrayList;
 import java.util.List;
