@@ -5,9 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import ch.ethz.ssh2.Connection;
-import ch.ethz.ssh2.Session;
-import ch.ethz.ssh2.StreamGobbler;
+
+import ch.ethz.ssh2.*;
 import org.apache.commons.lang.StringUtils;
 
 public class RemoteExecuteCommand {
@@ -93,7 +92,7 @@ public class RemoteExecuteCommand {
             if(login()){
                 Session session= conn.openSession();//打开一个会话
                 session.execCommand(cmd);//执行命令
-                result=processStdout(session.getStdout(),DEFAULTCHART);
+                result = processStdout(session.getStdout(),DEFAULTCHART);
                 conn.close();
                 session.close();
             }
@@ -128,6 +127,89 @@ public class RemoteExecuteCommand {
         }
         return buffer.toString();
     }
+
+    /**
+     * 上传本地文件到远程服务器端，即将本地的文件localFile上传到远程Linux服务器中的配置的目录下
+     * @param localFile
+     */
+    public void uploadFile(String localFile) {
+        System.out.println("[=====] 开始上传文件:" + localFile + "");
+        try{
+            if(login()) {
+                SCPClient scpClient = conn.createSCPClient();
+                scpClient.put(localFile, 10000,"./","0644");
+                System.out.println("[=====] 上传文件结束:" + localFile + "");
+            }
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        conn.close();
+    }
+
+    public void modifyFile(String fileName, String svcName) {
+        System.out.println("[=====] 开始修改文件:" + fileName + "");
+        try{
+            if(login()) {
+                //先删除文件，再传入数据
+                rmFile(fileName);
+                String data = fillLongRuleFile(svcName);
+
+                login();
+                SFTPv3Client client = new SFTPv3Client(conn);
+                SFTPv3FileHandle handle = client.createFile(fileName);
+
+                byte []arr = data.getBytes();
+                client.write(handle, 0, arr, 0, arr.length);
+                client.closeFile(handle);
+                client.close();
+                System.out.println("[=====] 修改文件完毕:" + fileName + "");
+            }
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        conn.close();
+    }
+
+    public String fillLongRuleFile(String svcName){
+        String longRuleStr = "apiVersion: config.istio.io/v1alpha2\n" +
+                              "kind: RouteRule\n" +
+                              "metadata:\n" +
+                              "  name: rest-service-delay-long-svcName\n" +
+                              "spec:\n" +
+                              "  destination:\n" +
+                              "    name: svcName\n" +
+                              "  httpFault:\n" +
+                              "    delay:\n" +
+                              "      percent: 100\n" +
+                              "      fixedDelay: 10000s";
+        String fullLongRuleString = longRuleStr.replaceAll("svcName",svcName);
+        System.out.println("[=====]fullLongRuleString");
+        System.out.println(fullLongRuleString);
+        return fullLongRuleString;
+    }
+
+    /**
+     * 删除远端Linux服务器上的文件
+     * @param filePath
+     */
+    public void rmFile(String filePath) {
+        System.out.println("[=====] 开始删除文件:" + filePath + "");
+        try{
+            if(login()) {
+                SFTPv3Client sftpClient = new SFTPv3Client(conn);
+                sftpClient.rm(filePath);
+                System.out.println("[=====] 删除文件完毕:" + filePath + "");
+            }
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+        conn.close();
+    }
+
+    /**
+     * 连接和认证远程Linux主机
+     * @return boolean
+     */
 
     public static void setCharset(String charset) {
         DEFAULTCHART = charset;

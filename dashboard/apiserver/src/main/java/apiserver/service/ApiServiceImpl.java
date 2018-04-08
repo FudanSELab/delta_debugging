@@ -3,6 +3,7 @@ package apiserver.service;
 import apiserver.bean.*;
 import apiserver.request.*;
 import apiserver.response.*;
+import apiserver.util.FileOperation;
 import apiserver.util.MyConfig;
 import apiserver.util.RemoteExecuteCommand;
 import com.alibaba.fastjson.JSON;
@@ -12,6 +13,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import ch.ethz.ssh2.SFTPv3Client;
 
 @Service
 public class ApiServiceImpl implements ApiService {
@@ -38,6 +40,21 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
+    private String doSetServiceRequestSuspend(String svcName){
+        String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
+
+//        FileOperation.clearAndWriteFile(svcLongDelayFilePath,svcName);
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
+        rec.modifyFile(svcLongDelayFilePath,svcName);
+//        rec.uploadFile(svcLongDelayFilePath);
+
+        String serLongDelayRequest = "kubectl apply -f " + svcLongDelayFilePath;
+        //执行脚本
+        String executeResult = rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
+        return executeResult;
+    }
+
+
     @Override
     public SetUnsetServiceRequestSuspendResponse unsetServiceRequestSuspend(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
         String svcName = setUnsetServiceRequestSuspendRequest.getSvc();
@@ -48,13 +65,12 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
-    private String doSetServiceRequestSuspend(String svcName){
+    private String doUnsetServiceRequestSuspend(String svcName){
         String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
-        String serLongDelayRequest = "kubectl apply -f " + svcLongDelayFilePath;
+        String serLongDelayRequest = "kubectl delete -f " + svcLongDelayFilePath;
         RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
         //执行脚本
-        String executeResult = rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
-        return executeResult;
+        return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
     }
 
     private String applyYml(String fileName){
@@ -71,24 +87,25 @@ public class ApiServiceImpl implements ApiService {
         return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + applyRequest);
     }
 
-    private String buildLongDelayRuleFile(String svcName){
-        return null;
-    }
-
-    private String doUnsetServiceRequestSuspend(String svcName){
-        String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
-        String serLongDelayRequest = "kubectl delete -f " + svcLongDelayFilePath;
-        RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
-        //执行脚本
-        return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
+    @Override
+    public SetAsyncRequestSequenceResponse setAsyncRequestsSequence(SetAsyncRequestSequenceRequest setAsyncRequestSequenceRequest){
+        ArrayList<String> svcList = setAsyncRequestSequenceRequest.getSvcList();
+        for(int i = 0;i < svcList.size(); i++){
+            String svcName = svcList.get(i);
+            System.out.println("[=====]释放 " + svcName + ": " + doUnsetServiceRequestSuspend(svcName));
+            //waitForComplete是阻塞式的 会一直等待直到请求返回
+            if(waitForComplete(svcName) == true) {
+                System.out.println("[===== Complete =====] " + svcName);
+            }
+        }
+        SetAsyncRequestSequenceResponse request = new SetAsyncRequestSequenceResponse(true," setAsyncRequestsSequence Complete");
+        return request;
     }
 
     private boolean waitForComplete(String svcName){
-
         //根据svc的名称，获取svc下的所有pod
         GetPodsListResponse podsListResponse = getPodsList("default");
         ArrayList<PodInfo> podInfoList = new ArrayList<>(podsListResponse.getPods());
-
         ArrayList<PodInfo> targetPodInfoList = new ArrayList<>();
         for(PodInfo podInfo : podInfoList){
             System.out.println("[=====] We are now checking useful POD-NAME:" + podInfo.getName());
@@ -98,8 +115,13 @@ public class ApiServiceImpl implements ApiService {
                 //do nothing
             }
         }
-
         boolean isRequestComplete = false;
+//        try{
+//            Thread.sleep(90000);
+//            isRequestComplete = true;
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
         while(isRequestComplete == false){
             //每间隔20秒，获取一次pods的日志。注意是pod下的istio-proxy的日志
             try{
@@ -117,9 +139,10 @@ public class ApiServiceImpl implements ApiService {
                 String podLog = getPodLog(podInfo.getName(),"istio-proxy");
                 String[] logsFormatted = podLog.split("\n");
                 ArrayList<String> arrayList = new ArrayList<>(Arrays.asList(logsFormatted));
-                ArrayList<String> lastSeveralLogs = new ArrayList<>(arrayList.subList(arrayList.size() - 4,arrayList.size()));
-                System.out.println(lastSeveralLogs.toString());
+                ArrayList<String> lastSeveralLogs = new ArrayList<>(arrayList.subList(arrayList.size() - 10,arrayList.size()));
+
                 for(String logStr : lastSeveralLogs) {
+                    System.out.println("[=======]Log Line:" + logStr);
                     //并检查日志     response-code 200 && svcName && 接口名称
                     //检查log是否合规
                     if(checkLogCanComfirmRequestComplete(logStr,svcName)){
@@ -131,11 +154,6 @@ public class ApiServiceImpl implements ApiService {
                 }
             }
         }
-//        try {
-//            Thread.sleep(60000);
-//        }catch (Exception e){
-//            e.printStackTrace();
-//        }
         return isRequestComplete;
     }
 
@@ -155,25 +173,6 @@ public class ApiServiceImpl implements ApiService {
         }else{
             return false;
         }
-    }
-
-    @Override
-    public SetAsyncRequestSequenceResponse setAsyncRequestsSequence(SetAsyncRequestSequenceRequest setAsyncRequestSequenceRequest){
-
-        ArrayList<String> svcList = setAsyncRequestSequenceRequest.getSvcList();
-
-        for(int i = 0;i < svcList.size(); i++){
-            String svcName = svcList.get(i);
-            doUnsetServiceRequestSuspend(svcName);
-            //waitForComplete是阻塞式的 会一直等待直到请求返回
-            if(waitForComplete(svcName) == true) {
-                System.out.println("[===== Complete =====] " + svcName);
-            }
-        }
-
-        SetAsyncRequestSequenceResponse request = new SetAsyncRequestSequenceResponse(true,"Complete");
-        return request;
-
     }
 
 

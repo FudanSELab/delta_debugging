@@ -14,6 +14,13 @@ public class ApiController {
     private ApiService apiService;
 
     //Set the replicas of running service
+
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/hello", method= RequestMethod.GET)
+    public String hello(){
+        return "hello api-server";
+    }
+
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/setServiceRequestSuspend", method= RequestMethod.POST)
     public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspend(
@@ -42,7 +49,7 @@ public class ApiController {
             @RequestBody SetAsyncRequestSequenceRequest setAsyncRequestSequenceRequest){
 
         System.out.println("[=====] /api/setAsyncRequestSequence");
-        System.out.println("[=====] svcName:" + setAsyncRequestSequenceRequest.getSvcList().size());
+        System.out.println("[=====] svc Number:" + setAsyncRequestSequenceRequest.getSvcList().size());
 
         return apiService.setAsyncRequestsSequence(setAsyncRequestSequenceRequest);
     }

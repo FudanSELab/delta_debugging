@@ -5,7 +5,7 @@ $("#set_suspend_service_btn").click(function() {
     var data = JSON.stringify(SetUnsetServiceRequestSuspendRequest);
     $.ajax({
         type: "post",
-        url: "/api/setServiceRequestSuspend",
+        url: "http://10.141.212.24:18898/api/setServiceRequestSuspend",
         contentType: "application/json",
         dataType: "json",
         data:data,
@@ -29,7 +29,7 @@ $("#set_unsuspend_service_btn").click(function() {
     var data = JSON.stringify(SetUnsetServiceRequestSuspendRequest);
     $.ajax({
         type: "post",
-        url: "/api/unsetServiceRequestSuspend",
+        url: "http://10.141.212.24:18898/api/unsetServiceRequestSuspend",
         contentType: "application/json",
         dataType: "json",
         data:data,
@@ -53,12 +53,12 @@ $("#service_sequence_list_suspend_all").click(function() {
 
     for (var i = 0;i < svcList.length;i ++) {
         var SetUnsetServiceRequestSuspendRequest = new Object();
-        SetUnsetServiceRequestSuspendRequest.svc = svcList.get(i);
+        SetUnsetServiceRequestSuspendRequest.svc = svcList[i];
         SetUnsetServiceRequestSuspendRequest.actionType = 1;
         var data = JSON.stringify(SetUnsetServiceRequestSuspendRequest);
         $.ajax({
             type: "post",
-            url: "/api/setServiceRequestSuspend",
+            url: "http://10.141.212.24:18898/api/setServiceRequestSuspend",
             contentType: "application/json",
             dataType: "json",
             data:data,
@@ -83,7 +83,7 @@ $("#service_sequence_list_check_and_unsuspend").click(function() {
     var data = JSON.stringify(SetAsyncRequestSequenceRequest);
     $.ajax({
         type: "post",
-        url: "/api/setAsyncRequestSequence",
+        url: "http://10.141.212.24:18898/api/setAsyncRequestSequence",
         contentType: "application/json",
         dataType: "json",
         data:data,
