@@ -24,4 +24,5 @@ public interface ApiService {
     SetUnsetServiceRequestSuspendResponse setServiceRequestSuspendWithSource(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest);
     ServiceWithEndpointsResponse getServiceWithEndpoints();
     ServiceWithEndpointsResponse getSpecificServiceWithEndpoints(ReserveServiceRequest reserveServiceRequest);
+    SetAsyncRequestSequenceResponse setAsyncRequestsSequenceWithSource(SetAsyncRequestSequenceRequestWithSource setAsyncRequestSequenceRequest);
 }
