@@ -3,7 +3,6 @@ package apiserver.service;
 import apiserver.bean.*;
 import apiserver.request.*;
 import apiserver.response.*;
-import apiserver.util.FileOperation;
 import apiserver.util.MyConfig;
 import apiserver.util.RemoteExecuteCommand;
 import com.alibaba.fastjson.JSON;
@@ -13,7 +12,6 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import ch.ethz.ssh2.SFTPv3Client;
 
 @Service
 public class ApiServiceImpl implements ApiService {
@@ -50,6 +48,7 @@ public class ApiServiceImpl implements ApiService {
         boolean status = (executeResult != null);
         SetUnsetServiceRequestSuspendResponse response = new SetUnsetServiceRequestSuspendResponse(status,executeResult);
         return response;
+
     }
 
     private String doSetServiceRequestSuspend(String svcName){
@@ -124,8 +123,24 @@ public class ApiServiceImpl implements ApiService {
                 System.out.println("[===== Complete =====] " + svcName);
             }
         }
-        SetAsyncRequestSequenceResponse request = new SetAsyncRequestSequenceResponse(true," setAsyncRequestsSequence Complete");
-        return request;
+        SetAsyncRequestSequenceResponse response = new SetAsyncRequestSequenceResponse(true," setAsyncRequestsSequence Complete");
+        return response;
+    }
+
+    @Override
+    public SetAsyncRequestSequenceResponse setAsyncRequestsSequenceWithSource(SetAsyncRequestSequenceRequestWithSource request){
+        ArrayList<String> svcList = request.getSvcList();
+        String srcName = request.getSourceName();
+        for(int i = 0;i < svcList.size(); i++){
+            String svcName = svcList.get(i);
+            System.out.println("[=====]释放 " + svcName + ": " + doUnsetServiceRequestSuspend(svcName));
+            //waitForComplete是阻塞式的 会一直等待直到请求返回
+            if(waitForCompleteWithSource(srcName,svcName) == true) {
+                System.out.println("[===== Complete =====] " + svcName);
+            }
+        }
+        SetAsyncRequestSequenceResponse response = new SetAsyncRequestSequenceResponse(true," setAsyncRequestsSequence Complete");
+        return response;
     }
 
     private boolean waitForComplete(String svcName){
@@ -165,10 +180,65 @@ public class ApiServiceImpl implements ApiService {
                 String podLog = getPodLog(podInfo.getName(),"istio-proxy");
                 String[] logsFormatted = podLog.split("\n");
                 ArrayList<String> arrayList = new ArrayList<>(Arrays.asList(logsFormatted));
-                ArrayList<String> lastSeveralLogs = new ArrayList<>(arrayList.subList(arrayList.size() - 10,arrayList.size()));
+                ArrayList<String> lastSeveralLogs = new ArrayList<>(arrayList.subList(arrayList.size() - 5,arrayList.size()));
 
                 for(String logStr : lastSeveralLogs) {
                     System.out.println("[=======]Log Line:" + logStr);
+                    //并检查日志     response-code 200 && svcName && 接口名称
+                    //检查log是否合规
+                    if(checkLogCanComfirmRequestComplete(logStr,svcName)){
+                        isRequestComplete = true;
+                        break;
+                    }else{
+                        isRequestComplete = false;
+                    }
+                }
+            }
+        }
+        return isRequestComplete;
+    }
+
+    private boolean waitForCompleteWithSource(String srcName, String svcName){
+        //根据svc的名称，获取svc下的所有pod
+        GetPodsListResponse podsListResponse = getPodsList("default");
+        ArrayList<PodInfo> podInfoList = new ArrayList<>(podsListResponse.getPods());
+        ArrayList<PodInfo> targetPodInfoList = new ArrayList<>();
+        for(PodInfo podInfo : podInfoList){
+            System.out.println("[=====] We are now checking useful POD-NAME:" + podInfo.getName());
+            if(podInfo.getName().contains(srcName)){ //寻找source pod的日志，在source pod里看看有没有svcName
+                targetPodInfoList.add(podInfo);
+            }else{
+                //do nothing
+            }
+        }
+        boolean isRequestComplete = false;
+//        try{
+//            Thread.sleep(90000);
+//            isRequestComplete = true;
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
+        while(isRequestComplete == false){
+            //每间隔20秒，获取一次pods的日志。注意是pod下的istio-proxy的日志
+            try{
+                Thread.sleep(10000);
+            }catch (InterruptedException e){
+                e.printStackTrace();
+            }
+
+            //获取各个pod的日志，并截取最后5条
+            for(PodInfo podInfo : targetPodInfoList) {
+                if(isRequestComplete == true){
+                    break;
+                }
+                System.out.println("[=====] We are now checking POD-LOG:" + podInfo.getName());
+                String podLog = getPodLog(podInfo.getName(),"istio-proxy");
+                String[] logsFormatted = podLog.split("\n");
+                ArrayList<String> arrayList = new ArrayList<>(Arrays.asList(logsFormatted));
+                ArrayList<String> lastSeveralLogs = new ArrayList<>(arrayList.subList(arrayList.size() - 5,arrayList.size()));
+
+                for(String logStr : lastSeveralLogs) {
+                    System.out.println("[=======]Log Line -:" + logStr);
                     //并检查日志     response-code 200 && svcName && 接口名称
                     //检查log是否合规
                     if(checkLogCanComfirmRequestComplete(logStr,svcName)){

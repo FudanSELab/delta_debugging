@@ -24,47 +24,59 @@ public class ApiController {
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/setServiceRequestSuspend", method= RequestMethod.POST)
     public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspend(
-            @RequestBody SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+            @RequestBody SetUnsetServiceRequestSuspendRequest request){
 
         System.out.println("[=====] /api/setServiceRequestSuspend");
-        System.out.println("[=====] svcName:" + setUnsetServiceRequestSuspendRequest.getSvc());
+        System.out.println("[=====] svcName:" + request.getSvc());
 
-        return apiService.setServiceRequestSuspend(setUnsetServiceRequestSuspendRequest);
+        return apiService.setServiceRequestSuspend(request);
     }
 
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/setServiceRequestSuspendWithSourceSvc", method= RequestMethod.POST)
     public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspendWithSourceSvc(
-            @RequestBody SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+            @RequestBody SetUnsetServiceRequestSuspendRequest request){
 
         System.out.println("[=====] /api/setServiceRequestSuspendWithSourceSvc");
-        System.out.println("[=====] svcName:" + setUnsetServiceRequestSuspendRequest.getSvc());
-        System.out.println("[=====] sourceSvcName:" + setUnsetServiceRequestSuspendRequest.getSourceSvcName());
+        System.out.println("[=====] svcName:" + request.getSvc());
+        System.out.println("[=====] sourceSvcName:" + request.getSourceSvcName());
 
-        return apiService.setServiceRequestSuspendWithSource(setUnsetServiceRequestSuspendRequest);
+        return apiService.setServiceRequestSuspendWithSource(request);
     }
 
 
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/unsetServiceRequestSuspend", method= RequestMethod.POST)
     public SetUnsetServiceRequestSuspendResponse unsetServiceRequestSuspend(
-            @RequestBody SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+            @RequestBody SetUnsetServiceRequestSuspendRequest request){
 
         System.out.println("[=====] /api/unsetServiceRequestSuspend");
-        System.out.println("[=====] svcName:" + setUnsetServiceRequestSuspendRequest.getSvc());
+        System.out.println("[=====] svcName:" + request.getSvc());
 
-        return apiService.unsetServiceRequestSuspend(setUnsetServiceRequestSuspendRequest);
+        return apiService.unsetServiceRequestSuspend(request);
     }
 
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/setAsyncRequestSequence", method= RequestMethod.POST)
     public SetAsyncRequestSequenceResponse setAsyncRequestSequenceResponse(
-            @RequestBody SetAsyncRequestSequenceRequest setAsyncRequestSequenceRequest){
+            @RequestBody SetAsyncRequestSequenceRequest request){
 
         System.out.println("[=====] /api/setAsyncRequestSequence");
-        System.out.println("[=====] svc Number:" + setAsyncRequestSequenceRequest.getSvcList().size());
+        System.out.println("[=====] svc Number:" + request.getSvcList().size());
 
-        return apiService.setAsyncRequestsSequence(setAsyncRequestSequenceRequest);
+        return apiService.setAsyncRequestsSequence(request);
+    }
+
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/setAsyncRequestSequenceWithSrc", method= RequestMethod.POST)
+    public SetAsyncRequestSequenceResponse setAsyncRequestSequenceResponseWithSrc(
+            @RequestBody SetAsyncRequestSequenceRequestWithSource request){
+
+        System.out.println("[=====] /api/setAsyncRequestSequence");
+        System.out.println("[=====] src Name:" + request.getSourceName());
+        System.out.println("[=====] svc Name:" + request.getSvcList().size());
+
+        return apiService.setAsyncRequestsSequenceWithSource(request);
     }
 
     //Set the replicas of running service

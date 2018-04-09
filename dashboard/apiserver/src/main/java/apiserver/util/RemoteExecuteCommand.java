@@ -176,6 +176,8 @@ public class RemoteExecuteCommand {
             if(login()) {
                 //先删除文件，再传入数据
                 rmFile(fileName);
+
+                System.out.println("modifyFileWithSourceSvcName:  " + svcName + " = " + srcSvcName);
                 String data = fillLongRuleFileWithSource(svcName,srcSvcName);
 
                 login();
@@ -222,13 +224,13 @@ public class RemoteExecuteCommand {
                 "    name: svcName\n" +
                 "  match:\n" +
                 "    source:\n" +
-                "      name: sourceSvcName" +
+                "      name: sourceSvcName \n" +
                 "  httpFault:\n" +
                 "    delay:\n" +
                 "      percent: 100\n" +
                 "      fixedDelay: 10000s";
         String fullLongRuleString = longRuleStr.replaceAll("svcName",svcName);
-        String fullLongRuleStringFinal = longRuleStr.replaceAll("sourceSvcName",sourceSvcName);
+        String fullLongRuleStringFinal = fullLongRuleString.replaceAll("sourceSvcName",sourceSvcName);
         System.out.println("[=====]fullLongRuleString");
         System.out.println(fullLongRuleStringFinal);
         return fullLongRuleStringFinal;
