@@ -74,6 +74,36 @@ $("#service_sequence_list_suspend_all").click(function() {
     }
 });
 
+$("#service_sequence_list_delete_all").click(function() {
+    var svcListStr = $("#service_sequence_list").val();
+    var svcList = svcListStr.split(",");
+
+    for (var i = 0;i < svcList.length;i ++) {
+        var SetUnsetServiceRequestSuspendRequest = new Object();
+        SetUnsetServiceRequestSuspendRequest.svc = svcList[i];
+        SetUnsetServiceRequestSuspendRequest.sourceSvcName = $("#source_service").val();
+        var data = JSON.stringify(SetUnsetServiceRequestSuspendRequest);
+        $.ajax({
+            type: "post",
+            url: "http://10.141.212.24:18898/api/unsetServiceRequestSuspend",
+            contentType: "application/json",
+            dataType: "json",
+            data:data,
+            xhrFields: {
+                withCredentials: true
+            },
+            success: function(result){
+                if(result["status"] == true){
+                    alert(result["message"])
+                }
+            },
+            complete: function(){
+            }
+        });
+    }
+});
+
+
 $("#service_sequence_list_check_and_unsuspend").click(function() {
     var SetAsyncRequestSequenceRequest = new Object();
     var svcList = $("#service_sequence_list").val();
