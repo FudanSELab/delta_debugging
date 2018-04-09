@@ -164,4 +164,18 @@ public class ApiController {
     public DeltaCMResourceResponse deltaCMResource(@RequestBody DeltaCMResourceRequest deltaCMResourceRequest){
         return apiService.deltaCMResource(deltaCMResourceRequest);
     }
+
+    //Get the endpoints of all services
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/getServiceWithEndpoints", method= RequestMethod.GET)
+    public ServiceWithEndpointsResponse getServiceWithEndpoints(){
+        return apiService.getServiceWithEndpoints();
+    }
+
+    //Get the endpoints of specific services
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/getSpecificServiceWithEndpoints", method= RequestMethod.POST)
+    public ServiceWithEndpointsResponse getSpecificServiceWithEndpoints(@RequestBody ReserveServiceRequest reserveServiceRequest) {
+        return apiService.getSpecificServiceWithEndpoints(reserveServiceRequest);
+    }
 }

@@ -754,6 +754,7 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
+    //Delta the cpu and memory resource
     @Override
     public DeltaCMResourceResponse deltaCMResource(DeltaCMResourceRequest deltaCMResourceRequest) {
         DeltaCMResourceResponse response = new DeltaCMResourceResponse();
@@ -797,6 +798,124 @@ public class ApiServiceImpl implements ApiService {
         }
 
         return response;
+    }
+
+    //Get the service with endpoints
+    @Override
+    public ServiceWithEndpointsResponse getServiceWithEndpoints() {
+        ServiceWithEndpointsResponse response = new ServiceWithEndpointsResponse();
+        //Get the current endpoints list
+        V1EndpointsList endpointsList = getEndpointsList(NAMESPACE);
+        //Iterate the list and return the result
+        List<ServiceWithEndpoints> services = new ArrayList<ServiceWithEndpoints>();
+        for(V1Endpoints endpoints : endpointsList.getItems()){
+            ServiceWithEndpoints serviceWithEndpoints = new ServiceWithEndpoints();
+            //Set service name
+            serviceWithEndpoints.setServiceName(endpoints.getMetadata().getName());
+            //Set service endpoints
+            List<String> endpointsListOfService = new ArrayList<>();
+            if(endpoints.getSubsets().size() > 0){
+                V1EndpointSubset subset = endpoints.getSubsets().get(0);
+                for(V1EndpointAddress v1EndpointAddress : subset.getAddresses()){
+                    String ip = v1EndpointAddress.getIp();
+                    for(V1EndpointPort v1EndpointPort : subset.getPorts()){
+                        endpointsListOfService.add(ip + ":" + v1EndpointPort.getPort());
+                    }
+                }
+                serviceWithEndpoints.setEndPoints(endpointsListOfService);
+            }
+            services.add(serviceWithEndpoints);
+        }
+        System.out.println(String.format("The size of current service is %d",services.size()));
+        if(services.size() != 0){
+            response.setServices(services);
+            response.setMessage("Get the services and the corresponding endpoints successfully!");
+            response.setStatus(true);
+        }
+        else{
+            response.setStatus(false);
+            response.setMessage("Fail to get the services and the corresponding endpoints!");
+        }
+        return response;
+    }
+
+    @Override
+    public ServiceWithEndpointsResponse getSpecificServiceWithEndpoints(ReserveServiceRequest reserveServiceRequest) {
+        ServiceWithEndpointsResponse response = new ServiceWithEndpointsResponse();
+        List<ServiceWithEndpoints> services = new ArrayList<ServiceWithEndpoints>();
+        for(String serviceName : reserveServiceRequest.getServices()){
+            V1Endpoints endpoints = getSingleServiceEndpoints(NAMESPACE,serviceName);
+            ServiceWithEndpoints serviceWithEndpoints = new ServiceWithEndpoints();
+            //Set service name
+            serviceWithEndpoints.setServiceName(endpoints.getMetadata().getName());
+            //Set service endpoints
+            List<String> endpointsListOfService = new ArrayList<>();
+            if(endpoints.getSubsets().size() > 0){
+                V1EndpointSubset subset = endpoints.getSubsets().get(0);
+                for(V1EndpointAddress v1EndpointAddress : subset.getAddresses()){
+                    String ip = v1EndpointAddress.getIp();
+                    for(V1EndpointPort v1EndpointPort : subset.getPorts()){
+                        endpointsListOfService.add(ip + ":" + v1EndpointPort.getPort());
+                    }
+                }
+                serviceWithEndpoints.setEndPoints(endpointsListOfService);
+            }
+            services.add(serviceWithEndpoints);
+        }
+        response.setStatus(true);
+        response.setMessage("Successfully to get the endpoints list of specific services");
+        response.setServices(services);
+        return response;
+    }
+
+    //Get the endpoints list of specific service
+    private V1Endpoints getSingleServiceEndpoints(String namespace, String serviceName){
+        V1Endpoints endpoints = new V1Endpoints();
+        String filePath = "/app/get_endpoints_list_of_single_service.json";
+        String apiUrl = String.format("%s/api/v1/namespaces/%s/endpoints/%s",myConfig.getApiServer(),namespace,serviceName);
+        System.out.println(String.format("The constructed api url for getting the endpoints of specific service is %s", apiUrl));
+        String[] cmds ={
+                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+        };
+        ProcessBuilder pb = new ProcessBuilder(cmds);
+        pb.redirectErrorStream(true);
+        Process p;
+        try {
+            p = pb.start();
+            p.waitFor();
+            String json = readWholeFile(filePath);
+            endpoints = JSON.parseObject(json,V1Endpoints.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }catch(InterruptedException e){
+            e.printStackTrace();
+        }
+        return endpoints;
+    }
+
+    //Get the endpoints list of all services
+    private V1EndpointsList getEndpointsList(String namespace){
+        V1EndpointsList endpointsList = new V1EndpointsList();
+        String filePath = "/app/get_endpoints_list.json";
+        String apiUrl = String.format("%s/api/v1/namespaces/%s/endpoints",myConfig.getApiServer(),namespace);
+        System.out.println(String.format("The constructed api url for getting the endpoints list is %s", apiUrl));
+        String[] cmds ={
+                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+        };
+        ProcessBuilder pb = new ProcessBuilder(cmds);
+        pb.redirectErrorStream(true);
+        Process p;
+        try {
+            p = pb.start();
+            p.waitFor();
+            String json = readWholeFile(filePath);
+            endpointsList = JSON.parseObject(json,V1EndpointsList.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }catch(InterruptedException e){
+            e.printStackTrace();
+        }
+        return endpointsList;
     }
 
     //Delta the CPU and memory of service
@@ -1060,13 +1179,14 @@ public class ApiServiceImpl implements ApiService {
             p = pb.start();
             p.waitFor();
 
+            //Wait 2 seconds to ensure the existence of the file
+            Thread.sleep(2000);
+
             String json = readWholeFile(filePath);
             //Parse the response to the SetServicesReplicasResponseFromAPI Bean
 //            System.out.println(json);
             deploymentsList = JSON.parseObject(json,QueryDeploymentsListResponse.class);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }catch(InterruptedException e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return deploymentsList;
