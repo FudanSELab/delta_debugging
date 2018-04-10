@@ -1,7 +1,7 @@
 var config = angular.module('app.config-controller', []);
 
-config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList',  'getConfigService','getPodLogService', 'refreshPodsService',
-    function($scope, $http,$window,loadServiceList,  getConfigService, getPodLogService, refreshPodsService) {
+config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList',  'getConfigService','getPodLogService', 'refreshPodsService','loadTestCases',
+    function($scope, $http,$window,loadServiceList,  getConfigService, getPodLogService, refreshPodsService, loadTestCases) {
 
         $scope.test = function(){
             var checkedConfig = $("input[name='config']:checked");
@@ -20,13 +20,21 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
         };
 
         // 加载config
-        getConfigService.load().then(function (result) {
-            if(result.status){
-                // $scope.clusterConfig = result.data.clusterConfig;
-                $scope.serviceConfig = result.services;
-            } else {
-                alert(result.message);
-            }
+        $scope.refreshConfigs = function(){
+            getConfigService.load().then(function (result) {
+                if(result.status){
+                    // $scope.clusterConfig = result.data.clusterConfig;
+                    $scope.serviceConfig = result.services;
+                } else {
+                    alert(result.message);
+                }
+            });
+        };
+        $scope.refreshConfigs();
+
+        // 加载testcase列表
+        loadTestCases.loadTestList().then(function (result) {
+            $scope.testCases = result;
         });
 
         // $scope.test = function(){
@@ -65,6 +73,7 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
         //传递用户key值
         var loginId = new UUID().id;
         $scope.configDeltaResult = "config delta test...";
+        $scope.configDeltaResponse = [];
 
         function setConnected(connected) {
             if(connected){
@@ -81,13 +90,41 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
                 setConnected(true);
                 stompClient.subscribe('/user/topic/configDeltaResponse', function (data) {
                     var data = JSON.parse(data.body);
+                    console.log("\n get response:");
+                    console.log(data);
                     if(data.status){
-                        $scope.configDeltaResult = JSON.stringify(data.message);
-                        //todo:refresh
+                        var env = data.env;
+                        var result = data.result.deltaResults;
+                        var entry = {
+                            configs:"",
+                            tests: ""
+                        } ;
+                        for(var i = 0; i < env.length; i++){
+                            entry.configs += env[i].serviceName + ": " + env[i].type + ":{" + env[i].key + ": " + env[i].value + "};     ";
+                        }
+                        for(var j = 0; j < result.length; j++){
+                            entry.tests += result[j].className + ": " + result[j].status + ";   " ;
+                        }
+                        $scope.configDeltaResponse.push(entry);
                         $scope.$apply();
                     } else {
                         alert(data.message);
                     }
+                });
+
+                stompClient.subscribe('/user/topic/configDeltaEnd', function (data) {
+                    var data = JSON.parse(data.body);
+                    console.log("\n end:");
+                    console.log(data);
+                    if(data.status){
+                        alert("ddmingResult: " + data.ddminResult );
+                        $scope.configDeltaResult = data.ddminResult;
+                        // console.log("data.ddminResult: " + data.ddminResult);
+                        $scope.$apply();
+                    } else {
+                        alert(data.message);
+                    }
+                    $('#test-button').removeClass('disabled');
                 });
 
             });
@@ -95,27 +132,38 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
 
 
         $scope.sendDeltaData = function() {
-            $scope.configDeltaResult = "";
-            var checkedConfig = $("input[name='config']:checked");
+            $scope.configDeltaResponse = [];
+            var checkedConfig = $("input[name='serviceconfig']:checked");
             var configs = [];
             checkedConfig.each(function(){
-                configs.push($(this).val());
+                var temp = $(this).val().split(":");
+                configs.push({
+                    'serviceName': temp[0],
+                    'type': temp[1],
+                    'key': temp[2],
+                    'value': temp[3]
+                });
+            });
+
+            var checkedTest = $("input[name='testcase']:checked");
+            var tests = [];
+            checkedTest.each(function(){
+                tests.push($(this).val());
             });
 
             console.log("configs:\n" );
             console.log(configs);
 
-
-
-            if(configs.length > 0){
+            if(configs.length > 0 && tests.length > 0 ){
                 $('#test-button').addClass('disabled');
                 var data = {
                     'id': loginId,
-                   'configs': configs
+                   'configs': configs,
+                    'tests': tests
                 };
                 stompClient.send("/app/msg/configDelta", {}, JSON.stringify(data));
             } else {
-                alert("config delta failed!");
+                alert("Please select at least one config item and one test case!");
             }
 
         };
@@ -152,10 +200,10 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
                             $scope.configlogs += result.podLog.podName +  ":</br>" + result.podLog.logs + "</br>";
                             var height = $('#config-logs').prop('scrollHeight');
                             $('#config-logs').scrollTop(height);
-                            $('#inspectPodButton').removeClass('disabled');
                         } else {
                             alert(result.message);
                         }
+                        $('#inspectPodButton').removeClass('disabled');
                     });
                 } else {
                     alert("Please check at least one pod to show its logs!");

@@ -3,40 +3,66 @@
     <div class="admin-biaoge" style="float:left;padding-left: 10px;margin-top: 20px;width:46%;">
 
 
-        <div id="serviceTable" style="width:50%;float:left">
-            <h4 style="font-weight: bold;">Cluster</h4>
-            <div ng-repeat="cluster in clusterConfig" >
-                <fieldset>
-                    <legend style="font-size:18px;margin-bottom: 5px">{{cluster.system}}</legend>
-                    <p ng-repeat="config in cluster.configs" >
-                        <input type="checkbox" icheck  value="{{cluster.system}}:{{config.configName}}" name="config">
-                        <span style="font-size: 16px;margin-left: 10px; word-break: break-all">{{config.configName}} : {{config.value}}</span>
-                    </p>
-                </fieldset>
+        <!--<div id="serviceTable" style="width:50%;float:left">-->
+           <!---->
+            <!--&lt;!&ndash;<button  ng-click="test()"  class="btn btn-primary">test</button>&ndash;&gt;-->
+        <!--</div>-->
+
+        <div  style="width:50%; float:left">
+            <div>
+                <h4 style="font-weight: bold;">Cluster</h4>
+                <div ng-repeat="cluster in clusterConfig" >
+                    <fieldset>
+                        <legend style="font-size:18px;margin-bottom: 5px">{{cluster.system}}</legend>
+                        <p ng-repeat="config in cluster.configs" >
+                            <input type="checkbox" icheck  value="{{cluster.system}}:{{config.configName}}" name="clusterconfig">
+                            <span style="font-size: 16px;margin-left: 10px; word-break: break-all">{{config.configName}} : {{config.value}}</span>
+                        </p>
+                    </fieldset>
+                </div>
             </div>
-            <!--<button  ng-click="test()"  class="btn btn-primary">test</button>-->
+
+            <div>
+                <div>
+                    <h4 style="font-weight: bold; margin-bottom: 30px;float: left">Services</h4>
+                    <button  class="btn btn-primary " style="float: right;margin-right: 10px" ng-click="refreshConfigs()">Refresh</button>
+                </div>
+                <div style="clear:both"></div>
+                <div ng-repeat="service in serviceConfig" style="margin-bottom: 8px">
+                    <div ng-if="service.requests || service.limits">
+                        <fieldset>
+                            <legend style="font-size: 18px;margin-bottom: 5px">{{service.serviceName}}</legend>
+                            <div ng-if="service.requests" >
+                                <h5>Requests</h5>
+                                <p ng-repeat="(request, value) in service.requests " style="margin-left: 10px">
+                                    <input type="checkbox" icheck value="{{service.serviceName}}:requests:{{request}}:{{value}}" name="serviceconfig">
+                                    <span style="font-size: 16px;margin-left: 10px">{{request}} : {{value}}</span>
+                                </p>
+                            </div>
+
+                            <div ng-if="service.limits">
+                                <h5>Limits</h5>
+                                <p ng-repeat="(limit, value) in service.limits "  style="margin-left: 10px">
+                                    <input type="checkbox" icheck value="{{service.serviceName}}:limits:{{limit}}:{{value}}" name="serviceconfig">
+                                    <span style="font-size: 16px;margin-left: 10px">{{limit}} : {{value}}</span>
+                                </p>
+                            </div>
+                        </fieldset>
+                    </div>
+
+                </div>
+            </div>
         </div>
 
         <div id="case-names"  style="width:49%; float:right">
-            <h4 style="font-weight: bold; ">Services</h4>
-            <div ng-repeat="service in serviceConfig" style="margin-bottom: 8px">
+            <h4 style="font-weight: bold; margin-bottom: 30px">TestCases</h4>
+            <div ng-repeat="(key, names) in testCases" style="margin-bottom: 8px">
                 <fieldset>
-                    <legend style="font-size: 18px;margin-bottom: 5px">{{service.serviceName}}</legend>
-                    <!--<div ng-if="service.requests" >-->
-                        <h5>Requests</h5>
-                        <p ng-repeat="(request, value) in service.requests " style="margin-left: 10px">
-                            <input type="checkbox" icheck value="{{service.serviceName}}:{{request}}:{{value}}" name="config">
-                            <span style="font-size: 16px;margin-left: 10px">{{request}} : {{value}}</span>
-                        </p>
-                    <!--</div>-->
-
-                    <!--<div ng-if="service.limits">-->
-                        <h5>Limits</h5>
-                        <p ng-repeat="(limit, value) in service.limits "  style="margin-left: 10px">
-                            <input type="checkbox" icheck value="{{service.serviceName}}:{{limit}}:{{value}}" name="config">
-                            <span style="font-size: 16px;margin-left: 10px">{{limit}} : {{value}}</span>
-                        </p>
-                    <!--</div>-->
+                    <legend style="font-size:18px;margin-bottom: 5px">{{key}}</legend>
+                    <p ng-repeat="name in names">
+                        <input type="checkbox" icheck value="{{name}}" name="testcase">
+                        <span style="font-size: 16px;margin-left: 10px">{{name}}</span>
+                    </p>
                 </fieldset>
             </div>
             <!--<button ng-click="test()">2333</button>-->
@@ -55,6 +81,23 @@
             </button>
             <div style="clear: both"></div>
         </div>
+
+
+        <table class="table table-hover table-bordered" style="margin-top: 50px;width:100%">
+            <thead >
+            <tr style="background-color: #aeb2b7;color:#fff;">
+                <th style="text-align: center"><span style="font-size:18px;font-weight: bold">Config Env</span></th>
+                <th style="text-align: center"><span style="font-size:18px;font-weight: bold">Test Result</span></th>
+            </tr>
+            </thead>
+            <tbody>
+                <tr  ng-repeat=" result in configDeltaResponse">
+                    <td>{{result.configs}}</td>
+                    <td>{{result.tests}}</td>
+                </tr>
+            </tbody>
+        </table>
+
 
         <div style="margin-top:30px;margin-left: 20px;padding:10px;border:2px #a2abb6 solid;border-radius: 4px;background-color: #FFFFFF; min-height:80px">
             <span ng-model="configDeltaResult">{{configDeltaResult}}</span>

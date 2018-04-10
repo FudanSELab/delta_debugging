@@ -127,10 +127,10 @@ node.controller('NodeCtrl', ['$scope', '$http','$window','loadNodeList', 'refres
                         $scope.nodelogs += result.podLog.podName +  ":</br>" + result.podLog.logs + "</br>";
                         var height = $('#node-logs').prop('scrollHeight');
                         $('#node-logs').scrollTop(height);
-                        $('#inspectPodButton').removeClass('disabled');
                     } else {
                         alert(result.message);
                     }
+                    $('#inspectPodButton').removeClass('disabled');
                 })
             } else {
                 alert("Please check at least one pod to show the logs!");
