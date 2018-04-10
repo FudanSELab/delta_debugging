@@ -201,10 +201,10 @@ sequence.controller('SequenceCtrl', ['$scope', '$http','$window','loadTestCases'
                             $scope.instancelogs += result.podLog.podName +  ":</br>" + result.podLog.logs + "</br>";
                             var height = $('#instance-logs').prop('scrollHeight');
                             $('#instance-logs').scrollTop(height);
-                            $('#inspectPodButton').removeClass('disabled');
                         } else {
                             alert(result.message);
                         }
+                        $('#inspectPodButton').removeClass('disabled');
                     });
                 } else {
                     alert("Please check at least one pod to show its logs!");

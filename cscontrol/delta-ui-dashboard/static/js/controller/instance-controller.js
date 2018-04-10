@@ -17,16 +17,6 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
                         if($scope.services[i].serviceName.indexOf("service") !== -1){
                             $scope.serviceGroup.push($scope.services[i]);
                         }
-                        // for(var j = 0; j < 5 && i < $scope.services.length; ){
-                        //     if($scope.services[i].serviceName.indexOf("service") !== -1){
-                        //         // $scope.services[i].checked = false;
-                        //         $scope.serviceGroup.push($scope.services[i]);
-                        //         i++;
-                        //         j++;
-                        //     } else {
-                        //         i++;
-                        //     }
-                        // }
                     }
                 } else {
                     alert(result.message);
@@ -186,10 +176,10 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
                             $scope.instancelogs += result.podLog.podName +  ":</br>" + result.podLog.logs + "</br>";
                             var height = $('#instance-logs').prop('scrollHeight');
                             $('#instance-logs').scrollTop(height);
-                            $('#inspectPodButton').removeClass('disabled');
                         } else {
                             alert(result.message);
                         }
+                        $('#inspectPodButton').removeClass('disabled');
                     });
                 } else {
                     alert("Please check at least one pod to show its logs!");
