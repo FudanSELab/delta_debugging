@@ -68,7 +68,7 @@ public class ApiController {
     }
 
     @CrossOrigin(origins = "*")
-    @RequestMapping(value="/api/setAsyncRequestSequenceWithSrc", method= RequestMethod.POST)
+    @RequestMapping(value="/api/setAsyncRequestSequenceWithSrc", method = RequestMethod.POST)
     public SetAsyncRequestSequenceResponse setAsyncRequestSequenceResponseWithSrc(
             @RequestBody SetAsyncRequestSequenceRequestWithSource request){
 

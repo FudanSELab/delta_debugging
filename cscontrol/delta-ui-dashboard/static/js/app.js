@@ -589,3 +589,78 @@ app.directive('icheck', ['$timeout', '$parse', function($timeout, $parse) {
 }]);
 
 
+//---------------------------------------------------------------------------
+//---------------------------- Add by jichao --------------------------------
+//---------------------------------------------------------------------------
+app.factory('suspendServiceWithSource', function ($http, $q) {
+    var service = {};
+    service.load = function (sourceSvcName, svcName) {
+        $http({
+            method: "post",
+            url: "/api/setServiceRequestSuspendWithSourceSvc",
+            contentType: "application/json",
+            dataType: "json",
+            data:{
+                sourceSvcName: sourceSvcName,
+                svc: svcName
+            },
+            withCredentials: true
+        }).success(function (data) {
+            if (data.status) {
+                alert(data.message);
+            } else{
+                alert("SuspendServiceWithSource fail!" + data.message);
+            }
+        });
+    };
+    return service;
+});
+
+app.factory('unsuspendServiceWithSource', function ($http, $q) {
+    var service = {};
+    service.load = function (sourceSvcName, svcName) {
+        $http({
+            method: "post",
+            url: "/api/unsetServiceRequestSuspend",
+            contentType: "application/json",
+            dataType: "json",
+            data:{
+                sourceSvcName: sourceSvcName,
+                svc: svcName
+            },
+            withCredentials: true
+        }).success(function (data) {
+            if (data.status) {
+                alert(data.message);
+            } else{
+                alert("UnsuspendServiceWithSource fail!" + data.message);
+            }
+        });
+    };
+    return service;
+});
+
+app.factory('setAsyncRequestSequenceWithSrc', function ($http, $q) {
+    var service = {};
+    service.load = function (sourceSvcName, svcListString) {
+        $http({
+            method: "post",
+            url: "/api/setAsyncRequestSequenceWithSrc",
+            contentType: "application/json",
+            dataType: "json",
+            data:{
+                sourceSvcName: sourceSvcName,
+                svc: svcListString.split(",")
+            },
+            withCredentials: true
+        }).success(function (data) {
+            if (data.status) {
+                alert(data.message);
+            } else{
+                alert("Sequence Control fail!" + data.message);
+            }
+        });
+    };
+    return service;
+});
+
