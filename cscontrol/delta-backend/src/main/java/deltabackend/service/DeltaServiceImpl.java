@@ -7,7 +7,10 @@ import deltabackend.domain.api.GetServiceReplicasRequest;
 import deltabackend.domain.api.GetServiceReplicasResponse;
 import deltabackend.domain.api.SetServiceReplicasRequest;
 import deltabackend.domain.api.SetServiceReplicasResponse;
+import deltabackend.domain.configDelta.ConfigDDMinResponse;
 import deltabackend.domain.configDelta.ConfigDeltaRequest;
+import deltabackend.domain.configDelta.SingleDeltaCMResourceRequest;
+import deltabackend.domain.ddmin.ConfigDDMinDeltaExt;
 import deltabackend.domain.ddmin.InstanceDDMinDeltaExt;
 import deltabackend.domain.ddmin.InstanceDDMinResponse;
 import deltabackend.domain.instanceDelta.DeltaRequest;
@@ -52,7 +55,7 @@ public class DeltaServiceImpl implements DeltaService{
     @Override
     public void delta(DeltaRequest message) {
         if ( ! webAgentSessionRegistry.getSessionIds(message.getId()).isEmpty()){
-            System.out.println("=============Get one delta request=============");
+            System.out.println("=============Get one Instance Delta Request=============");
             String sessionId=webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
             System.out.println("sessionid = " + sessionId);
             List<String> envStrings= message.getEnv();
@@ -167,7 +170,6 @@ public class DeltaServiceImpl implements DeltaService{
         return result;
     }
 
-
     //query for the env services' instance number
     private GetServiceReplicasResponse queryServicesReplicas(List<String> envStrings){
         GetServiceReplicasRequest gsrr = new GetServiceReplicasRequest();
@@ -212,7 +214,6 @@ public class DeltaServiceImpl implements DeltaService{
             }
         }
     }
-
 
 
     private boolean judgeDiffer(DeltaTestResponse first, DeltaTestResponse dtr){
@@ -343,12 +344,36 @@ public class DeltaServiceImpl implements DeltaService{
     }
 
 
-    ///////////////////////////////////////To do///////////////////////////////////////////////////
     ///////////////////////////////////////Config Delta/////////////////////////////////////////////
     @Override
     public void configDelta(ConfigDeltaRequest message) {
         if ( ! webAgentSessionRegistry.getSessionIds(message.getId()).isEmpty()){
+            System.out.println("=============Get one Instance Delta Request=============");
+            String sessionId=webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
+            System.out.println("sessionid = " + sessionId);
+            List<SingleDeltaCMResourceRequest> configs = message.getConfigs();
 
+            DDMinAlgorithm ddmin = new DDMinAlgorithm();
+            DDMinDelta ddmin_delta = new ConfigDDMinDeltaExt(message.getTests(),configs, sessionId, template);
+            ddmin.setDdmin_delta(ddmin_delta);
+            List<String> ddminResult = ddmin.ddmin(ddmin_delta.deltas_all);
+
+            ConfigDDMinResponse r = new ConfigDDMinResponse();
+            if(null != ddminResult){
+                for(String s: ddminResult){
+                    System.out.println("######## ddminResult: " + s);
+                    r.setStatus(true);
+                    r.setMessage("Success");
+                    r.setDdminResult(ddminResult);
+                }
+            } else {
+                r.setStatus(false);
+                r.setMessage("Failed");
+                r.setDdminResult(null);
+            }
+
+            template.convertAndSendToUser(sessionId,"/topic/configDeltaEnd" ,r, createHeaders(sessionId));
+            ((ConfigDDMinDeltaExt)ddmin_delta).recoverEnv();
         }
     }
 

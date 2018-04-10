@@ -79,7 +79,6 @@ public class ApiServiceImpl implements ApiService {
         return executeResult;
     }
 
-
     @Override
     public SetUnsetServiceRequestSuspendResponse unsetServiceRequestSuspend(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
         String svcName = setUnsetServiceRequestSuspendRequest.getSvc();
@@ -142,6 +141,16 @@ public class ApiServiceImpl implements ApiService {
         SetAsyncRequestSequenceResponse response = new SetAsyncRequestSequenceResponse(true," setAsyncRequestsSequence Complete");
         return response;
     }
+
+    @Override
+    public SetAsyncRequestSequenceResponse setAsyncRequestSequenceWithSrcCombineWithFullSuspend(SetAsyncRequestSequenceRequestWithSource request){
+        for(int i = 0;i < request.getSvcList().size();i++){
+            String executeResult = doSetServiceRequestSuspendWithSourceFile(request.getSvcList().get(i),request.getSourceName());
+            System.out.println(executeResult);
+        }
+        return setAsyncRequestsSequenceWithSource(request);
+    }
+
 
     private boolean waitForComplete(String svcName){
         //根据svc的名称，获取svc下的所有pod

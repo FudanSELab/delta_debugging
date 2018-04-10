@@ -112,7 +112,8 @@ $("#service_sequence_list_check_and_unsuspend").click(function() {
     var data = JSON.stringify(SetAsyncRequestSequenceRequest);
     $.ajax({
         type: "post",
-        url: "http://10.141.212.24:18898/api/setAsyncRequestSequenceWithSrc",
+        //url: "http://10.141.212.24:18898/api/setAsyncRequestSequenceWithSrc",
+        url: "http://10.141.212.24:18898/api/setAsyncRequestSequenceWithSrcCombineWithFullSuspend",
         contentType: "application/json",
         dataType: "json",
         data:data,
