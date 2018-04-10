@@ -79,6 +79,20 @@ public class ApiController {
         return apiService.setAsyncRequestsSequenceWithSource(request);
     }
 
+
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/setAsyncRequestSequenceWithSrcCombineWithFullSuspend", method = RequestMethod.POST)
+    public SetAsyncRequestSequenceResponse setAsyncRequestSequenceWithSrcCombineWithFullSuspend(
+            @RequestBody SetAsyncRequestSequenceRequestWithSource request){
+
+        System.out.println("[=====] /api/setAsyncRequestSequence");
+        System.out.println("[=====] src Name:" + request.getSourceName());
+        System.out.println("[=====] svc Name:" + request.getSvcList().size());
+
+        return apiService.setAsyncRequestSequenceWithSrcCombineWithFullSuspend(request);
+    }
+
+
     //Set the replicas of running service
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/setReplicas", method= RequestMethod.POST)

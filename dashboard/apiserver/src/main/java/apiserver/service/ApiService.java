@@ -2,6 +2,7 @@ package apiserver.service;
 
 import apiserver.request.*;
 import apiserver.response.*;
+import org.springframework.web.bind.annotation.RequestBody;
 
 public interface ApiService {
     SetServiceReplicasResponse setServiceReplica(SetServiceReplicasRequest setServiceReplicasRequest);
@@ -25,4 +26,5 @@ public interface ApiService {
     ServiceWithEndpointsResponse getServiceWithEndpoints();
     ServiceWithEndpointsResponse getSpecificServiceWithEndpoints(ReserveServiceRequest reserveServiceRequest);
     SetAsyncRequestSequenceResponse setAsyncRequestsSequenceWithSource(SetAsyncRequestSequenceRequestWithSource setAsyncRequestSequenceRequest);
+    SetAsyncRequestSequenceResponse setAsyncRequestSequenceWithSrcCombineWithFullSuspend(SetAsyncRequestSequenceRequestWithSource request);
 }
