@@ -285,8 +285,10 @@ public class ApiServiceImpl implements ApiService {
     @Override
     public SetServiceReplicasResponse setServiceReplica(SetServiceReplicasRequest setServiceReplicasRequest) {
         SetServiceReplicasResponse response = new SetServiceReplicasResponse();
+        List<String> serviceNames = new ArrayList<>();
         //Set the desired number of service replicas
         for(ServiceReplicasSetting setting : setServiceReplicasRequest.getServiceReplicasSettings()){
+            serviceNames.add(setting.getServiceName());
             String apiUrl = String.format("%s/apis/extensions/v1beta1/namespaces/%s/deployments/%s/scale",myConfig.getApiServer() ,NAMESPACE,setting.getServiceName());
             System.out.println(String.format("The constructed api url is %s", apiUrl));
             String data ="'[{ \"op\": \"replace\", \"path\": \"/spec/replicas\", \"value\":" +  setting.getNumOfReplicas() + " }]'";
@@ -323,7 +325,7 @@ public class ApiServiceImpl implements ApiService {
                 e.printStackTrace();
             }
         }
-        //Check if all the required replicas are ready
+        //Check if all the required replicas are ready: running status
         while(!isAllReady(setServiceReplicasRequest)){
             try{
                 //Check every 10 seconds
@@ -331,6 +333,13 @@ public class ApiServiceImpl implements ApiService {
             }catch(Exception e){
                 e.printStackTrace();
             }
+        }
+        //Check if all the pods are able to serve
+        boolean result = isAllAbleToServe(serviceNames);
+        if(result){
+            System.out.println("All the services are able to serve");
+        }else{
+            System.out.println("There are still some services not able to serve");
         }
         response.setStatus(true);
         response.setMessage("All the required service replicas have been already set!");
@@ -470,6 +479,16 @@ public class ApiServiceImpl implements ApiService {
                     e.printStackTrace();
                 }
             }
+            //Check if all the service are able to serve
+            while(!isAllServiceReadyToServe(NAMESPACE)){
+                try{
+                    //Check every 10 seconds
+                    Thread.sleep(10000);
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
+            }
+
             response.setStatus(true);
             response.setMessage("The system are now run on single node");
         }
@@ -571,6 +590,17 @@ public class ApiServiceImpl implements ApiService {
                 e.printStackTrace();
             }
         }
+
+        //Check if all the service are able to serve
+        while(!isAllServiceReadyToServe(NAMESPACE)){
+            try{
+                //Check every 10 seconds
+                Thread.sleep(10000);
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+
         return response;
     }
 
@@ -615,6 +645,17 @@ public class ApiServiceImpl implements ApiService {
                 e.printStackTrace();
             }
         }
+
+        //Check if all the service are able to serve
+        while(!isAllServiceReadyToServe(NAMESPACE)){
+            try{
+                //Check every 10 seconds
+                Thread.sleep(10000);
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+
         return response;
     }
 
@@ -840,8 +881,10 @@ public class ApiServiceImpl implements ApiService {
         //Get the current deployments information
         QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE);
 
+        List<String> serviceNames = new ArrayList<>();
         //Check if the resource setting exists
         for(SingleDeltaCMResourceRequest request : deltaCMResourceRequest.getDeltaRequests()){
+            serviceNames.add(request.getServiceName());
             for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
                 if(singleDeploymentInfo.getMetadata().getName().equals(request.getServiceName())){
                     V1ResourceRequirements resourceRequirements = singleDeploymentInfo.getSpec().getTemplate().getSpec().getContainers().get(0).getResources();
@@ -871,6 +914,15 @@ public class ApiServiceImpl implements ApiService {
             try{
                 //Check every 2 seconds
                 Thread.sleep(2000);
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+        //Check if all the pods are able to serve
+        while(!isAllAbleToServe(serviceNames)){
+            try{
+                //Check every 10 seconds
+                Thread.sleep(10000);
             }catch(Exception e){
                 e.printStackTrace();
             }
@@ -945,6 +997,66 @@ public class ApiServiceImpl implements ApiService {
         response.setMessage("Successfully to get the endpoints list of specific services");
         response.setServices(services);
         return response;
+    }
+
+    //Check if all the services in the list are able to serve
+    private boolean isAllAbleToServe(List<String> serviceNames){
+        System.out.println(String.format("The service list to be checked are %s", serviceNames.toString()));
+        boolean symbol, result = true;
+        for(String serviceName : serviceNames){
+            System.out.println(String.format("The service to be checked is %s", serviceName));
+            V1Endpoints endpoints = getSingleServiceEndpoints(NAMESPACE,serviceName);
+            //Get service endpoints
+            List<String> endpointsListOfService = new ArrayList<>();
+            if(endpoints.getSubsets().size() > 0){
+                V1EndpointSubset subset = endpoints.getSubsets().get(0);
+                for(V1EndpointAddress v1EndpointAddress : subset.getAddresses()){
+                    String ip = v1EndpointAddress.getIp();
+                    for(V1EndpointPort v1EndpointPort : subset.getPorts()){
+                        endpointsListOfService.add(ip + ":" + v1EndpointPort.getPort());
+                    }
+                }
+            }
+            //Check if all the endpoints in the list are able to serve
+            int count = 3;
+            symbol = isAllEndpointsAbleToServe(endpointsListOfService);
+            while(!symbol && count > 0){
+                try{
+                    //Check every 10 seconds
+                    Thread.sleep(10000);
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
+                count--;
+                symbol = isAllEndpointsAbleToServe(endpointsListOfService);
+            }
+            if(symbol){
+                System.out.println(String.format("All of the endpoints of service:%s are able to serve.", serviceName));
+            }else{
+                result = false;
+                System.out.println(String.format("Timeout! The endpoints of service:%s still have problem.", serviceName));
+            }
+        }
+        return result;
+    }
+
+    //Check if all the endpoints in the list are able to serve
+    private boolean isAllEndpointsAbleToServe(List<String> endpointsList){
+        boolean result = true;
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(myConfig.getMasterIp(), myConfig.getUsername(),myConfig.getPasswd());
+        for(String endpoints : endpointsList){
+            String command = String.format("curl -X GET %s/welcome", endpoints);
+            System.out.println(String.format("The command to check the endpoints is %s", command));
+            String executeResult = rec.execute(command);
+            System.out.println(String.format("The return string is %s", executeResult));
+            if(executeResult != null && !executeResult.equals("") && (executeResult.contains("welcome") || executeResult.contains("Welcome"))){
+
+            }else{
+                System.out.println(String.format("The endpoints:%s is not ready to serve", endpoints));
+                return false;
+            }
+        }
+        return result;
     }
 
     //Get the endpoints list of specific service
@@ -1224,6 +1336,23 @@ public class ApiServiceImpl implements ApiService {
             }
         }
         return isAllReady;
+    }
+
+    //Check if all the services are able to serve
+    private boolean isAllServiceReadyToServe(String namespace){
+        System.out.println("Check if all the services are able to serve");
+        boolean result;
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(namespace);
+        List<String> serviceNames = new ArrayList<>();
+        for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
+            String serviceName = singleDeploymentInfo.getMetadata().getName();
+            if(serviceName.contains("service")){
+                serviceNames.add(serviceName);
+            }
+        }
+        System.out.println(String.format("The service list to be checked is %s", serviceNames.toString()));
+        result = isAllAbleToServe(serviceNames);
+        return result;
     }
 
     //Check if all the required deployment replicas are ready
