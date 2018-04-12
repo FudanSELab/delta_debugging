@@ -3,6 +3,7 @@ package apiserver.request;
 import java.util.ArrayList;
 
 public class SetAsyncRequestSequenceRequestWithSource {
+    private String clusterName;
 
     private String sourceName;
 
@@ -12,9 +13,18 @@ public class SetAsyncRequestSequenceRequestWithSource {
         //do nothing
     }
 
-    public SetAsyncRequestSequenceRequestWithSource(String sourceName, ArrayList<String> svcList) {
+    public SetAsyncRequestSequenceRequestWithSource(String clusterName, String sourceName, ArrayList<String> svcList) {
+        this.clusterName = clusterName;
         this.sourceName = sourceName;
         this.svcList = svcList;
+    }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
     }
 
     public String getSourceName() {

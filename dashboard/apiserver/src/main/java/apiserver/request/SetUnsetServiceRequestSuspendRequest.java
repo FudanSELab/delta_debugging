@@ -6,6 +6,8 @@ public class SetUnsetServiceRequestSuspendRequest {
 
     public static final int UNSET_SUSPEND = 2;
 
+    private String clusterName;
+
     private String sourceSvcName;
 
     private String svc;
@@ -15,9 +17,18 @@ public class SetUnsetServiceRequestSuspendRequest {
         //do nothing
     }
 
-    public SetUnsetServiceRequestSuspendRequest(String sourceSvcName, String svc) {
+    public SetUnsetServiceRequestSuspendRequest(String clusterName, String sourceSvcName, String svc) {
+        this.clusterName = clusterName;
         this.sourceSvcName = sourceSvcName;
         this.svc = svc;
+    }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
     }
 
     public String getSourceSvcName() {

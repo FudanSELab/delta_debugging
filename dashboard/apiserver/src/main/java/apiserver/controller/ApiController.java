@@ -13,12 +13,17 @@ public class ApiController {
     @Autowired
     private ApiService apiService;
 
-    //Set the replicas of running service
-
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/hello", method= RequestMethod.GET)
     public String hello(){
         return "hello api-server";
+    }
+
+    //Get the available clusters
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/getClusters", method= RequestMethod.GET)
+    public GetClustersResponse getClusters(){
+        return apiService.getClusters();
     }
 
     @CrossOrigin(origins = "*")
@@ -102,16 +107,16 @@ public class ApiController {
 
     //Get the list of all current services: include name and replicas
     @CrossOrigin(origins = "*")
-    @RequestMapping(value="/api/getServicesList", method= RequestMethod.GET)
-    public GetServicesListResponse getServicesList(){
-        return apiService.getServicesList();
+    @RequestMapping(value="/api/getServicesList/{clusterName}", method= RequestMethod.GET)
+    public GetServicesListResponse getServicesList(@PathVariable String clusterName){
+        return apiService.getServicesList(clusterName);
     }
 
     //Get the service config: currently cpu and memory only
     @CrossOrigin(origins = "*")
-    @RequestMapping(value="/api/getServicesAndConfig", method= RequestMethod.GET)
-    public GetServicesAndConfigResponse getServicesAndConfig(){
-        return apiService.getServicesAndConfig();
+    @RequestMapping(value="/api/getServicesAndConfig/{clusterName}", method= RequestMethod.GET)
+    public GetServicesAndConfigResponse getServicesAndConfig(@PathVariable String clusterName){
+        return apiService.getServicesAndConfig(clusterName);
     }
 
     //Get the number of replicas of services
@@ -130,16 +135,16 @@ public class ApiController {
 
     //Node delta: Set to run on single node
     @CrossOrigin(origins = "*")
-    @RequestMapping(value="/api/runOnSingleNode", method= RequestMethod.GET)
-    public SetRunOnSingleNodeResponse setRunOnSingleNode(){
-        return apiService.setRunOnSingleNode();
+    @RequestMapping(value="/api/runOnSingleNode/{clusterName}", method= RequestMethod.GET)
+    public SetRunOnSingleNodeResponse setRunOnSingleNode(@PathVariable String clusterName){
+        return apiService.setRunOnSingleNode(clusterName);
     }
 
     //Get the list of all current nodes info
     @CrossOrigin(origins = "*")
-    @RequestMapping(value="/api/getNodesList", method= RequestMethod.GET)
-    public GetNodesListResponse getNodesList(){
-        return apiService.getNodesList();
+    @RequestMapping(value="/api/getNodesList/{clusterName}", method= RequestMethod.GET)
+    public GetNodesListResponse getNodesList(@PathVariable String clusterName){
+        return apiService.getNodesList(clusterName);
     }
 
     //Delete the node in the list
@@ -158,16 +163,16 @@ public class ApiController {
 
     //Get the list of all current pods info
     @CrossOrigin(origins = "*")
-    @RequestMapping(value="/api/getPodsList", method= RequestMethod.GET)
-    public GetPodsListResponse getPodsList(){
-        return apiService.getPodsList();
+    @RequestMapping(value="/api/getPodsList/{clusterName}", method= RequestMethod.GET)
+    public GetPodsListResponse getPodsList(@PathVariable String clusterName){
+        return apiService.getPodsListAPI(clusterName);
     }
 
     //Get all of the log of current pods
     @CrossOrigin(origins = "*")
-    @RequestMapping(value="/api/getPodsLog", method= RequestMethod.GET)
-    public GetPodsLogResponse getPodsLog(){
-        return apiService.getPodsLog();
+    @RequestMapping(value="/api/getPodsLog/{clusterName}", method= RequestMethod.GET)
+    public GetPodsLogResponse getPodsLog(@PathVariable String clusterName){
+        return apiService.getPodsLog(clusterName);
     }
 
     //Get the log of the specific pod
@@ -179,9 +184,9 @@ public class ApiController {
 
     //Restart the zipkin pod
     @CrossOrigin(origins = "*")
-    @RequestMapping(value="/api/restartService", method= RequestMethod.GET)
-    public RestartServiceResponse restartService(){
-        return apiService.restartService();
+    @RequestMapping(value="/api/restartService/{clusterName}", method= RequestMethod.GET)
+    public RestartServiceResponse restartService(@PathVariable String clusterName){
+        return apiService.restartService(clusterName);
     }
 
     //Config the container resource
@@ -193,9 +198,9 @@ public class ApiController {
 
     //Get the endpoints of all services
     @CrossOrigin(origins = "*")
-    @RequestMapping(value="/api/getServiceWithEndpoints", method= RequestMethod.GET)
-    public ServiceWithEndpointsResponse getServiceWithEndpoints(){
-        return apiService.getServiceWithEndpoints();
+    @RequestMapping(value="/api/getServiceWithEndpoints/{clusterName}", method= RequestMethod.GET)
+    public ServiceWithEndpointsResponse getServiceWithEndpoints(@PathVariable String clusterName){
+        return apiService.getServiceWithEndpoints(clusterName);
     }
 
     //Get the endpoints of specific services

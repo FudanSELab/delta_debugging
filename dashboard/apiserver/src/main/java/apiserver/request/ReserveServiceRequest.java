@@ -3,10 +3,19 @@ package apiserver.request;
 import java.util.List;
 
 public class ReserveServiceRequest {
+    private String clusterName;
     private List<String> services;
 
     public ReserveServiceRequest(){
 
+    }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
     }
 
     public List<String> getServices() {
