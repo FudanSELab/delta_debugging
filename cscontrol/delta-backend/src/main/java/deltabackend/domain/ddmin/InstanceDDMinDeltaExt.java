@@ -81,12 +81,12 @@ public class InstanceDDMinDeltaExt extends DDMinDelta {
 
     public String processAndGetResult(List<String> deltas, List<String> testcases) {
         // execute testcases
-        try {
-            Thread.sleep(30000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            System.out.println();
-        }
+//        try {
+//            Thread.sleep(30000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//            System.out.println();
+//        }
 
         DeltaTestResponse result = deltaTests(testcases);
         List<EnvParameter> env = new ArrayList<EnvParameter>();

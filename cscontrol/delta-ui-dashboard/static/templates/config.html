@@ -29,16 +29,16 @@
                 </div>
                 <div style="clear:both"></div>
                 <div ng-repeat="service in serviceConfig" style="margin-bottom: 8px">
-                    <div ng-if="service.requests || service.limits">
+                    <div ng-if="service.limits">
                         <fieldset>
                             <legend style="font-size: 18px;margin-bottom: 5px">{{service.serviceName}}</legend>
-                            <div ng-if="service.requests" >
-                                <h5>Requests</h5>
-                                <p ng-repeat="(request, value) in service.requests " style="margin-left: 10px">
-                                    <input type="checkbox" icheck value="{{service.serviceName}}:requests:{{request}}:{{value}}" name="serviceconfig">
-                                    <span style="font-size: 16px;margin-left: 10px">{{request}} : {{value}}</span>
-                                </p>
-                            </div>
+                            <!--<div ng-if="service.requests" >-->
+                                <!--<h5>Requests</h5>-->
+                                <!--<p ng-repeat="(request, value) in service.requests " style="margin-left: 10px">-->
+                                    <!--<input type="checkbox" icheck value="{{service.serviceName}}:requests:{{request}}:{{value}}" name="serviceconfig">-->
+                                    <!--<span style="font-size: 16px;margin-left: 10px">{{request}} : {{value}}</span>-->
+                                <!--</p>-->
+                            <!--</div>-->
 
                             <div ng-if="service.limits">
                                 <h5>Limits</h5>

@@ -2,6 +2,8 @@ package deltabackend.service;
 
 import com.baeldung.algorithms.ddmin.DDMinAlgorithm;
 import com.baeldung.algorithms.ddmin.DDMinDelta;
+import com.baeldung.algorithms.ddmin.ParallelDDMinAlgorithm;
+import com.baeldung.algorithms.ddmin.ParallelDDMinDelta;
 import deltabackend.domain.*;
 import deltabackend.domain.api.GetServiceReplicasRequest;
 import deltabackend.domain.api.GetServiceReplicasResponse;
@@ -12,9 +14,9 @@ import deltabackend.domain.configDelta.ConfigDeltaRequest;
 import deltabackend.domain.configDelta.SingleDeltaCMResourceRequest;
 import deltabackend.domain.ddmin.ConfigDDMinDeltaExt;
 import deltabackend.domain.ddmin.InstanceDDMinDeltaExt;
-import deltabackend.domain.ddmin.InstanceDDMinResponse;
+import deltabackend.domain.ddmin.SequenceDDMinDeltaExt;
+import deltabackend.domain.instanceDelta.InstanceDDMinResponse;
 import deltabackend.domain.instanceDelta.DeltaRequest;
-import deltabackend.domain.instanceDelta.DeltaResponse;
 import deltabackend.domain.instanceDelta.SimpleInstanceRequest;
 import deltabackend.domain.nodeDelta.DeltaNodeByListResponse;
 import deltabackend.domain.nodeDelta.DeltaNodeRequest;
@@ -32,8 +34,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 @Service
 public class DeltaServiceImpl implements DeltaService{
@@ -49,6 +53,8 @@ public class DeltaServiceImpl implements DeltaService{
 
     @Autowired
     private MyConfig myConfig;
+
+    private List<String> clusters = Arrays.asList("cluster1", "cluster2", "cluster3");
 
 
     //////////////////////////////////////////Instance Delta////////////////////////////////////////////////////
@@ -381,7 +387,35 @@ public class DeltaServiceImpl implements DeltaService{
     ////////////////////////////////////////Sequence Delta/////////////////////////////////////////////////
 
     @Override
-    public void sequenceDelta(SequenceDeltaRequest message) {
+    public void sequenceDelta(SequenceDeltaRequest message) throws ExecutionException, InterruptedException {
+        if ( ! webAgentSessionRegistry.getSessionIds(message.getId()).isEmpty()){
+            System.out.println("=============Get one Instance Delta Request=============");
+            String sessionId=webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
+            System.out.println("sessionid = " + sessionId);
+
+            ParallelDDMinAlgorithm ddmin = new ParallelDDMinAlgorithm();
+            ParallelDDMinDelta ddmin_delta = new SequenceDDMinDeltaExt(clusters, message.getTests(),message.getSender(), message.getReceivers(), sessionId, template);
+            ddmin.setDdmin_delta(ddmin_delta);
+            ddmin.initEnv();
+            List<String> ddminResult = ddmin.ddmin(ddmin_delta.deltas_all);
+
+            ConfigDDMinResponse r = new ConfigDDMinResponse();
+            if(null != ddminResult){
+                for(String s: ddminResult){
+                    System.out.println("######## ddminResult: " + s);
+                    r.setStatus(true);
+                    r.setMessage("Success");
+                    r.setDdminResult(ddminResult);
+                }
+            } else {
+                r.setStatus(false);
+                r.setMessage("Failed");
+                r.setDdminResult(null);
+            }
+
+            template.convertAndSendToUser(sessionId,"/topic/sequenceDeltaEnd" ,r, createHeaders(sessionId));
+//            ((ConfigDDMinDeltaExt)ddmin_delta).recoverEnv();
+        }
 
     }
 

@@ -18,7 +18,7 @@ public class ApiServiceImpl implements ApiService {
 
     private final String NAMESPACE = "default";
 
-    private String masterIp = "10.141.212.21";
+    private String masterIp = "10.141.211.181";
 
     private String username = "root";
 

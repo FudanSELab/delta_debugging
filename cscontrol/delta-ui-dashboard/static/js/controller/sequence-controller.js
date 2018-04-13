@@ -55,34 +55,35 @@ sequence.controller('SequenceCtrl', ['$scope', '$http','$window','loadTestCases'
             });
         };
 
-        $scope.test = function(){
-            var checkedTest = $("input[name='testcase']:checked");
-            var tests = [];
-            checkedTest.each(function(){
-                tests.push($(this).val());
-            });
-            var checkedSenderServices = $("input[name='sender']:checked");
-            var senders = [];
-            checkedSenderServices.each(function(){
-                senders.push($(this).val());
-            });
-            var checkedReceiverServices = $("input[name='receiver']:checked");
-            var receivers = [];
-            checkedReceiverServices.each(function(){
-                receivers.push($(this).val());
-            });
-
-            console.log(tests);
-            console.log(senders);
-            console.log(receivers);
-
-        };
+        // $scope.test = function(){
+        //     var checkedTest = $("input[name='testcase']:checked");
+        //     var tests = [];
+        //     checkedTest.each(function(){
+        //         tests.push($(this).val());
+        //     });
+        //     var checkedSenderServices = $("input[name='sender']:checked");
+        //     var senders = [];
+        //     checkedSenderServices.each(function(){
+        //         senders.push($(this).val());
+        //     });
+        //     var checkedReceiverServices = $("input[name='receiver']:checked");
+        //     var receivers = [];
+        //     checkedReceiverServices.each(function(){
+        //         receivers.push($(this).val());
+        //     });
+        //
+        //     console.log(tests);
+        //     console.log(senders);
+        //     console.log(receivers);
+        //
+        // };
 
 
         var stompClient = null;
         //传递用户key值
         var loginId = new UUID().id;
         $scope.deltaResults = [];
+        $scope.sequenceDeltaResult = "sequence delta testing...";
 
         function setConnected(connected) {
             if(connected){
@@ -100,18 +101,20 @@ sequence.controller('SequenceCtrl', ['$scope', '$http','$window','loadTestCases'
                 stompClient.subscribe('/user/topic/sequenceDeltaResponse', function (data) {
                     var data = JSON.parse(data.body);
                     if(data.status){
-                        var env = data.env;
                         var result = data.result.deltaResults;
+                        var sender = data.sender;
+                        var receivers = data.receiversInOrder;
                         var entry = {
-                            services:"",
+                            sender: sender,
+                            receivers:"",
                             tests: "",
                             diff:false
                         } ;
                         if(data.diffFromFirst){
                             entry.diff = true;
                         }
-                        for(var i = 0; i < env.length; i++){
-                            entry.services += env[i].serviceName + ": " + env[i].numOfReplicas + "   ";
+                        for(var i = 0; i < receivers.length; i++){
+                            entry.receivers += receivers[i] + " ";
                         }
                         for(var j = 0; j < result.length; j++){
                             entry.tests += result[j].className + ": " + result[j].status + ";   " ;
@@ -124,17 +127,25 @@ sequence.controller('SequenceCtrl', ['$scope', '$http','$window','loadTestCases'
 
                 });
 
-                // stompClient.subscribe('/user/topic/sequencedeltaend', function (data) {
-                //     $('#test-button').removeClass('disabled');
-                //     console.log( "deltaend" + data.body);
-                // });
+                stompClient.subscribe('/user/topic/sequenceDeltaEnd', function (data) {
+                    var data = JSON.parse(data.body);
+                    console.log("\n end:");
+                    console.log(data);
+                    if(data.status){
+                        alert("ddmingResult: " + data.ddminResult );
+                        $scope.sequenceDeltaResult = data.ddminResult;
+                        $scope.$apply();
+                    } else {
+                        alert(data.message);
+                    }
+                    $('#test-button').removeClass('disabled');
+                });
 
             });
         }
 
 
         $scope.sendDeltaData = function() {
-            $scope.deltaResults = [];
             var checkedTest = $("input[name='testcase']:checked");
             var tests = [];
             checkedTest.each(function(){
@@ -151,20 +162,19 @@ sequence.controller('SequenceCtrl', ['$scope', '$http','$window','loadTestCases'
                 receivers.push($(this).val());
             });
 
-            // console.log("tests:" + tests);
-            // console.log("env:" + env);
-
-            if(tests.length > 0 && senders.length > 0 && receivers.length > 0){
+            if(tests.length > 0 && senders.length === 1 && receivers.length > 1){
                 $('#test-button').addClass('disabled');
+                $scope.deltaResults = [];
+                $scope.sequenceDeltaResult = "sequence delta testing...";
                 var data = {
                     'id': loginId,
-                    'senders': senders,
+                    'sender': senders[0],
                     'receivers': receivers,
                     'tests': tests
                 };
                 stompClient.send("/app/msg/sequenceDelta", {}, JSON.stringify(data));
             } else {
-                alert("Please choose at least one testcase, one sender and one receiver.");
+                alert("Please choose at least one testcase, one sender and two receivers.");
             }
 
         };

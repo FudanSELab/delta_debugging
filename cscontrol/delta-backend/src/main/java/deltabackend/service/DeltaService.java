@@ -15,6 +15,7 @@ import deltabackend.domain.serviceDelta.ReserveServiceResponse;
 import deltabackend.domain.serviceDelta.ServiceDeltaRequest;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public interface DeltaService {
 
@@ -31,7 +32,7 @@ public interface DeltaService {
 
     void configDelta(ConfigDeltaRequest message);
 
-    void sequenceDelta(SequenceDeltaRequest message);
+    void sequenceDelta(SequenceDeltaRequest message) throws ExecutionException, InterruptedException;
 
     ReserveServiceResponse extractServices(ExtractServiceRequest testCases);
 

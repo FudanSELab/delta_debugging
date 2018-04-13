@@ -1,4 +1,4 @@
-package deltabackend.domain.ddmin;
+package deltabackend.domain.instanceDelta;
 
 import java.util.List;
 

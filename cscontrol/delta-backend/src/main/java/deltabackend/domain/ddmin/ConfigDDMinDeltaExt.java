@@ -44,9 +44,8 @@ public class ConfigDDMinDeltaExt extends DDMinDelta {
 
     public ConfigDDMinDeltaExt(List<String> tests, List<SingleDeltaCMResourceRequest> env, String id, SimpMessagingTemplate t) {
         super();
-
-        unlimitMap.put("memory", "1Gi");
-        unlimitMap.put("cpu", "1000m");
+        unlimitMap.put("memory", "800Mi");
+        unlimitMap.put("cpu", "500m");
         unlimitEnv = new ArrayList<SingleDeltaCMResourceRequest>();
         for(SingleDeltaCMResourceRequest s : env){
             SingleDeltaCMResourceRequest a = new SingleDeltaCMResourceRequest();
@@ -108,12 +107,12 @@ public class ConfigDDMinDeltaExt extends DDMinDelta {
 
     public String processAndGetResult(List<String> deltas, List<String> testcases) {
         // execute testcases
-        try {
-            Thread.sleep(120000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            System.out.println();
-        }
+//        try {
+//            Thread.sleep(120000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//            System.out.println();
+//        }
 
         DeltaTestResponse result = deltaTests(testcases);
         List<SingleDeltaCMResourceRequest> env = new ArrayList<SingleDeltaCMResourceRequest>();

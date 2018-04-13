@@ -130,13 +130,13 @@ public class TestBookErrorConfig {
         if(ticketsList.size() > 0) {
             //Pick up a train at random and book tickets
             System.out.printf("Success to search tickets，the tickets list size is:%d%n",ticketsList.size());
-            Random rand = new Random();
-            int i = rand.nextInt(2000) % ticketsList.size();
-            WebElement elementBookingSeat = ticketsList.get(i).findElement(By.xpath("td[10]/select"));
-            Select selSeat = new Select(elementBookingSeat);
-            selSeat.selectByValue("3"); //2st
-            ticketsList.get(i).findElement(By.xpath("td[13]/button")).click();
-            Thread.sleep(10000);
+//            Random rand = new Random();
+//            int i = rand.nextInt(2000) % ticketsList.size();
+//            WebElement elementBookingSeat = ticketsList.get(i).findElement(By.xpath("td[10]/select"));
+//            Select selSeat = new Select(elementBookingSeat);
+//            selSeat.selectByValue("3"); //2st
+//            ticketsList.get(i).findElement(By.xpath("td[13]/button")).click();
+//            Thread.sleep(10000);
         }
         else
             System.out.println("Tickets search failed!!!");

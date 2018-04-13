@@ -5,10 +5,10 @@
         <div  style="width:35%;float:left">
             <h4 style="font-weight: bold; margin-bottom: 30px">Senders</h4>
             <div ng-repeat="sender in senderGroup" style="margin-bottom: 8px">
-                <input type="checkbox" icheck  value="{{sender.serviceName}}" name="sender">
+                <input type="radio" icheck  value="{{sender.serviceName}}" name="sender">
                 <span style="font-size: 12px">{{sender.serviceName}} : {{sender.numOfReplicas}}</span>
             </div>
-            <button ng-click="test()">test</button>
+            <!--<button ng-click="test()">test</button>-->
         </div>
 
         <div  style="width:35%;float:left">
@@ -55,23 +55,21 @@
             </thead>
             <tbody>
                 <tr  ng-repeat=" result in deltaResults">
-                    <td>{{result.services}}</td>
+                    <td>{{result.sender}}</td>
+                    <td>{{result.receivers}}</td>
                     <td>
                         {{result.tests}}
                         <span ng-if="result.diff" style="color: red">
                             different from the first test!
                         </span>
                     </td>
-                    <!--<td >-->
-                    <!--<img ng-if="result.status == 'SUCCESS'" ng-src="img/pass.png">-->
-                    <!--<img ng-if="result.status == 'FAILURE'" ng-src="img/failed.png">-->
-                    <!--<img ng-if="result.status == 'SKIP'" ng-src="img/skip.png">-->
-                    <!--</td>-->
-                    <!--<td>{{result.startTime}}</td>-->
                  </tr>
-
             </tbody>
         </table>
+
+        <div style="margin-top:30px;margin-left: 20px;padding:10px;border:2px #a2abb6 solid;border-radius: 4px;background-color: #FFFFFF; min-height:80px">
+            <span ng-model="sequenceDeltaResult">{{sequenceDeltaResult}}</span>
+        </div>
 
         <div style="border: 2px #a2abb6 dashed; margin-top: 20px;"></div>
 
