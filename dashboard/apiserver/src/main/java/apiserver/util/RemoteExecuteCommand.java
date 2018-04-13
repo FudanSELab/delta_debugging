@@ -225,6 +225,10 @@ public class RemoteExecuteCommand {
                 "  match:\n" +
                 "    source:\n" +
                 "      name: sourceSvcName \n" +
+                "    request:\n" +
+                "      headers:\n" +
+                "        cookie: \n" +
+                "          regex: \"^(.*?;)?(jichao=dododo)(;.*)?$\" \n" +
                 "  httpFault:\n" +
                 "    delay:\n" +
                 "      percent: 100\n" +

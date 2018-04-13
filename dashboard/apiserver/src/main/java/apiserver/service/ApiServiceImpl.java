@@ -3,6 +3,7 @@ package apiserver.service;
 import apiserver.bean.*;
 import apiserver.request.*;
 import apiserver.response.*;
+import apiserver.util.Cluster;
 import apiserver.util.MyConfig;
 import apiserver.util.RemoteExecuteCommand;
 import com.alibaba.fastjson.JSON;
@@ -24,14 +25,31 @@ public class ApiServiceImpl implements ApiService {
 
     private String password = "root";
 
+
     @Autowired
     private MyConfig myConfig;
 
+    //Return all the clusters able to control
+    @Override
+    public GetClustersResponse getClusters() {
+        GetClustersResponse response = new GetClustersResponse();
+        response.setStatus(false);
+        response.setMessage("There is no any clusters now.");
+        response.setClusters(null);
+        if(myConfig.getClusters().size() > 0){
+            response.setStatus(true);
+            response.setMessage("Successfully to get the clusters information!");
+            response.setClusters(myConfig.getClusters());
+        }
+        return response;
+    }
+
     @Override
     public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspend(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
-
         String svcName = setUnsetServiceRequestSuspendRequest.getSvc();
-        String executeResult = doSetServiceRequestSuspend(svcName);
+        Cluster cluster = getClusterByName(setUnsetServiceRequestSuspendRequest.getClusterName());
+        System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
+        String executeResult = doSetServiceRequestSuspend(svcName,cluster);
         System.out.println(executeResult);
         boolean status = (executeResult != null);
         SetUnsetServiceRequestSuspendResponse response = new SetUnsetServiceRequestSuspendResponse(status,executeResult);
@@ -40,10 +58,11 @@ public class ApiServiceImpl implements ApiService {
 
     @Override
     public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspendWithSource(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
-
+        Cluster cluster = getClusterByName(setUnsetServiceRequestSuspendRequest.getClusterName());
+        System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
         String svcName = setUnsetServiceRequestSuspendRequest.getSvc();
         String sourceSvcName = setUnsetServiceRequestSuspendRequest.getSourceSvcName();
-        String executeResult = doSetServiceRequestSuspendWithSourceFile(svcName,sourceSvcName);
+        String executeResult = doSetServiceRequestSuspendWithSourceFile(svcName,sourceSvcName,cluster);
         System.out.println(executeResult);
         boolean status = (executeResult != null);
         SetUnsetServiceRequestSuspendResponse response = new SetUnsetServiceRequestSuspendResponse(status,executeResult);
@@ -51,74 +70,78 @@ public class ApiServiceImpl implements ApiService {
 
     }
 
-    private String doSetServiceRequestSuspend(String svcName){
+    private String doSetServiceRequestSuspend(String svcName,Cluster cluster){
         String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
 
 //        FileOperation.clearAndWriteFile(svcLongDelayFilePath,svcName);
-        RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(cluster.getMasterIp(), cluster.getUsername(),cluster.getPasswd());
         rec.modifyFile(svcLongDelayFilePath,svcName);
 //        rec.uploadFile(svcLongDelayFilePath);
 
         String serLongDelayRequest = "kubectl apply -f " + svcLongDelayFilePath;
-        //执行脚本
+        //Execute the script
         String executeResult = rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
         return executeResult;
     }
 
-    private String doSetServiceRequestSuspendWithSourceFile(String svcName, String sourceSvcName){
+    private String doSetServiceRequestSuspendWithSourceFile(String svcName, String sourceSvcName,Cluster cluster){
         String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
 
 //        FileOperation.clearAndWriteFile(svcLongDelayFilePath,svcName);
-        RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(cluster.getMasterIp(), cluster.getUsername(),cluster.getPasswd());
         rec.modifyFileWithSourceSvcName(svcLongDelayFilePath,svcName,sourceSvcName);
 //        rec.uploadFile(svcLongDelayFilePath);
 
         String serLongDelayRequest = "kubectl apply -f " + svcLongDelayFilePath;
-        //执行脚本
+        //Execute the script
         String executeResult = rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
         return executeResult;
     }
 
     @Override
     public SetUnsetServiceRequestSuspendResponse unsetServiceRequestSuspend(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+        Cluster cluster = getClusterByName(setUnsetServiceRequestSuspendRequest.getClusterName());
+        System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
         String svcName = setUnsetServiceRequestSuspendRequest.getSvc();
-        String executeResult = doUnsetServiceRequestSuspend(svcName);
+        String executeResult = doUnsetServiceRequestSuspend(svcName,cluster);
         System.out.println(executeResult);
         boolean status = (executeResult != null);
         SetUnsetServiceRequestSuspendResponse response = new SetUnsetServiceRequestSuspendResponse(status,executeResult);
         return response;
     }
 
-    private String doUnsetServiceRequestSuspend(String svcName){
+    private String doUnsetServiceRequestSuspend(String svcName,Cluster cluster){
         String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
         String serLongDelayRequest = "kubectl delete -f " + svcLongDelayFilePath;
-        RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(cluster.getMasterIp(), cluster.getUsername(),cluster.getPasswd());
         //执行脚本
         return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
     }
 
-    private String applyYml(String fileName){
+    private String applyYml(String fileName, Cluster cluster){
         String applyRequest = "kubectl apply -f " + fileName;
-        RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(cluster.getMasterIp(), cluster.getUsername(),cluster.getPasswd());
         //执行脚本
         return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + applyRequest);
     }
 
-    private String deleteYml(String fileName){
+    private String deleteYml(String fileName, Cluster cluster){
         String applyRequest = "kubectl delete -f " + fileName;
-        RemoteExecuteCommand rec = new RemoteExecuteCommand(masterIp, username,password);
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(cluster.getMasterIp(), cluster.getUsername(),cluster.getPasswd());
         //执行脚本
         return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + applyRequest);
     }
 
     @Override
     public SetAsyncRequestSequenceResponse setAsyncRequestsSequence(SetAsyncRequestSequenceRequest setAsyncRequestSequenceRequest){
+        Cluster cluster = getClusterByName(setAsyncRequestSequenceRequest.getClusterName());
+        System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
         ArrayList<String> svcList = setAsyncRequestSequenceRequest.getSvcList();
         for(int i = 0;i < svcList.size(); i++){
             String svcName = svcList.get(i);
-            System.out.println("[=====]释放 " + svcName + ": " + doUnsetServiceRequestSuspend(svcName));
+            System.out.println("[=====]Release " + svcName + ": " + doUnsetServiceRequestSuspend(svcName,cluster));
             //waitForComplete是阻塞式的 会一直等待直到请求返回
-            if(waitForComplete(svcName) == true) {
+            if(waitForComplete(svcName, cluster) == true) {
                 System.out.println("[===== Complete =====] " + svcName);
             }
         }
@@ -128,13 +151,15 @@ public class ApiServiceImpl implements ApiService {
 
     @Override
     public SetAsyncRequestSequenceResponse setAsyncRequestsSequenceWithSource(SetAsyncRequestSequenceRequestWithSource request){
+        Cluster cluster = getClusterByName(request.getClusterName());
+        System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
         ArrayList<String> svcList = request.getSvcList();
         String srcName = request.getSourceName();
         for(int i = 0;i < svcList.size(); i++){
             String svcName = svcList.get(i);
-            System.out.println("[=====]释放 " + svcName + ": " + doUnsetServiceRequestSuspend(svcName));
+            System.out.println("[=====]Release " + svcName + ": " + doUnsetServiceRequestSuspend(svcName, cluster));
             //waitForComplete是阻塞式的 会一直等待直到请求返回
-            if(waitForCompleteWithSource(srcName,svcName) == true) {
+            if(waitForCompleteWithSource(srcName,svcName,cluster) == true) {
                 System.out.println("[===== Complete =====] " + svcName);
             }
         }
@@ -144,17 +169,19 @@ public class ApiServiceImpl implements ApiService {
 
     @Override
     public SetAsyncRequestSequenceResponse setAsyncRequestSequenceWithSrcCombineWithFullSuspend(SetAsyncRequestSequenceRequestWithSource request){
+        Cluster cluster = getClusterByName(request.getClusterName());
+        System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
         for(int i = 0;i < request.getSvcList().size();i++){
-            String executeResult = doSetServiceRequestSuspendWithSourceFile(request.getSvcList().get(i),request.getSourceName());
+            String executeResult = doSetServiceRequestSuspendWithSourceFile(request.getSvcList().get(i),request.getSourceName(), cluster);
             System.out.println(executeResult);
         }
         return setAsyncRequestsSequenceWithSource(request);
     }
 
 
-    private boolean waitForComplete(String svcName){
+    private boolean waitForComplete(String svcName, Cluster cluster){
         //根据svc的名称，获取svc下的所有pod
-        GetPodsListResponse podsListResponse = getPodsList("default");
+        GetPodsListResponse podsListResponse = getPodsList("default",cluster);
         ArrayList<PodInfo> podInfoList = new ArrayList<>(podsListResponse.getPods());
         ArrayList<PodInfo> targetPodInfoList = new ArrayList<>();
         for(PodInfo podInfo : podInfoList){
@@ -186,7 +213,7 @@ public class ApiServiceImpl implements ApiService {
                     break;
                 }
                 System.out.println("[=====] We are now checking POD-LOG:" + podInfo.getName());
-                String podLog = getPodLog(podInfo.getName(),"istio-proxy");
+                String podLog = getPodLog(podInfo.getName(),"istio-proxy",cluster);
                 String[] logsFormatted = podLog.split("\n");
                 ArrayList<String> arrayList = new ArrayList<>(Arrays.asList(logsFormatted));
                 ArrayList<String> lastSeveralLogs = new ArrayList<>(arrayList.subList(arrayList.size() - 5,arrayList.size()));
@@ -207,9 +234,9 @@ public class ApiServiceImpl implements ApiService {
         return isRequestComplete;
     }
 
-    private boolean waitForCompleteWithSource(String srcName, String svcName){
+    private boolean waitForCompleteWithSource(String srcName, String svcName, Cluster cluster){
         //根据svc的名称，获取svc下的所有pod
-        GetPodsListResponse podsListResponse = getPodsList("default");
+        GetPodsListResponse podsListResponse = getPodsList("default", cluster);
         ArrayList<PodInfo> podInfoList = new ArrayList<>(podsListResponse.getPods());
         ArrayList<PodInfo> targetPodInfoList = new ArrayList<>();
         for(PodInfo podInfo : podInfoList){
@@ -241,7 +268,7 @@ public class ApiServiceImpl implements ApiService {
                     break;
                 }
                 System.out.println("[=====] We are now checking POD-LOG:" + podInfo.getName());
-                String podLog = getPodLog(podInfo.getName(),"istio-proxy");
+                String podLog = getPodLog(podInfo.getName(),"istio-proxy",cluster);
                 String[] logsFormatted = podLog.split("\n");
                 ArrayList<String> arrayList = new ArrayList<>(Arrays.asList(logsFormatted));
                 ArrayList<String> lastSeveralLogs = new ArrayList<>(arrayList.subList(arrayList.size() - 5,arrayList.size()));
@@ -284,17 +311,19 @@ public class ApiServiceImpl implements ApiService {
     //Set the required number of service replicas
     @Override
     public SetServiceReplicasResponse setServiceReplica(SetServiceReplicasRequest setServiceReplicasRequest) {
+        Cluster cluster = getClusterByName(setServiceReplicasRequest.getClusterName());
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
         SetServiceReplicasResponse response = new SetServiceReplicasResponse();
         List<String> serviceNames = new ArrayList<>();
         //Set the desired number of service replicas
         for(ServiceReplicasSetting setting : setServiceReplicasRequest.getServiceReplicasSettings()){
             serviceNames.add(setting.getServiceName());
-            String apiUrl = String.format("%s/apis/extensions/v1beta1/namespaces/%s/deployments/%s/scale",myConfig.getApiServer() ,NAMESPACE,setting.getServiceName());
+            String apiUrl = String.format("%s/apis/extensions/v1beta1/namespaces/%s/deployments/%s/scale",cluster.getApiServer() ,NAMESPACE,setting.getServiceName());
             System.out.println(String.format("The constructed api url is %s", apiUrl));
             String data ="'[{ \"op\": \"replace\", \"path\": \"/spec/replicas\", \"value\":" +  setting.getNumOfReplicas() + " }]'";
 
             String[] cmds ={
-                    "/bin/sh","-c",String.format("curl -X PATCH -d%s -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure",data,apiUrl,myConfig.getToken())
+                    "/bin/sh","-c",String.format("curl -X PATCH -d%s -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure",data,apiUrl,cluster.getToken())
             };
             ProcessBuilder pb = new ProcessBuilder(cmds);
             pb.redirectErrorStream(true);
@@ -326,7 +355,7 @@ public class ApiServiceImpl implements ApiService {
             }
         }
         //Check if all the required replicas are ready: running status
-        while(!isAllReady(setServiceReplicasRequest)){
+        while(!isAllReady(setServiceReplicasRequest, cluster)){
             try{
                 //Check every 10 seconds
                 Thread.sleep(10000);
@@ -335,7 +364,7 @@ public class ApiServiceImpl implements ApiService {
             }
         }
         //Check if all the pods are able to serve
-        boolean result = isAllAbleToServe(serviceNames);
+        boolean result = isAllAbleToServe(serviceNames,cluster);
         if(result){
             System.out.println("All the services are able to serve");
         }else{
@@ -348,10 +377,12 @@ public class ApiServiceImpl implements ApiService {
 
     //Get all of the services name
     @Override
-    public GetServicesListResponse getServicesList() {
+    public GetServicesListResponse getServicesList(String clusterName) {
+        Cluster cluster = getClusterByName(clusterName);
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
         GetServicesListResponse response = new GetServicesListResponse();
         //Get the current deployments information
-        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE);
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE,cluster);
         //Iterate the list and return the result
         List<ServiceWithReplicas> services = new ArrayList<ServiceWithReplicas>();
         for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
@@ -376,9 +407,11 @@ public class ApiServiceImpl implements ApiService {
     //Get the replicas num of the specific services
     @Override
     public GetServiceReplicasResponse getServicesReplicas(GetServiceReplicasRequest getServiceReplicasRequest) {
+        Cluster cluster = getClusterByName(getServiceReplicasRequest.getClusterName());
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
         GetServiceReplicasResponse response = new GetServiceReplicasResponse();
         //Get the current deployments information
-        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE);
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE,cluster);
         //Iterate the list and return the result
         List<ServiceWithReplicas> services = new ArrayList<ServiceWithReplicas>();
         for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
@@ -408,11 +441,13 @@ public class ApiServiceImpl implements ApiService {
     //Reserve the services included in the list and delete the others
     @Override
     public ReserveServiceByListResponse reserveServiceByList(ReserveServiceRequest reserveServiceRequest) {
+        Cluster cluster = getClusterByName(reserveServiceRequest.getClusterName());
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
         ReserveServiceByListResponse response = new ReserveServiceByListResponse();
         response.setStatus(true);
         response.setMessage("Succeed to delete all of the services not contained in the list");
         //Get the current deployments information
-        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE);
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE, cluster);
 
         for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
             //Delete the services not contained in the list
@@ -420,9 +455,9 @@ public class ApiServiceImpl implements ApiService {
             if(isDeleted(deploymentName,reserveServiceRequest.getServices())){
                 System.out.println(String.format("The service %s isn't contained in the reserved list. To be deleted",deploymentName ));
                 //Delete the service first
-                deleteService(deploymentName);
+                deleteService(deploymentName,cluster);
                 //Delete the corresponding pod by set the number of replica to 0
-                boolean result = setServiceReplica(deploymentName, 0);
+                boolean result = setServiceReplica(deploymentName, 0,cluster);
                 if(!result){
                     response.setStatus(false);
                     response.setMessage(String.format("Fail to delete the service %s", deploymentName));
@@ -437,13 +472,15 @@ public class ApiServiceImpl implements ApiService {
 
     //Set the system to run on single node
     @Override
-    public SetRunOnSingleNodeResponse setRunOnSingleNode() {
+    public SetRunOnSingleNodeResponse setRunOnSingleNode(String clusterName) {
+        Cluster cluster = getClusterByName(clusterName);
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
         SetRunOnSingleNodeResponse response = new SetRunOnSingleNodeResponse();
         //Set the default information
         response.setStatus(false);
         response.setMessage("There is no message now!");
 
-        V1NodeList nodeList = getNodeList();
+        V1NodeList nodeList = getNodeList(cluster);
         List<V1Node> workingNodeList = new ArrayList<V1Node>();
 
         //Construct the working node list
@@ -461,7 +498,7 @@ public class ApiServiceImpl implements ApiService {
             for(int i = 1; i < workingNodeList.size(); i++){
                 V1Node node = workingNodeList.get(i);
                 System.out.println(String.format("The node %s is to be deleted",node.getMetadata().getName()));
-                deleteNode(node.getMetadata().getName());
+                deleteNode(node.getMetadata().getName(),cluster);
             }
             //Sleep to let the kubernetes has time to refresh the status
             //TODO: time value to be determined. It seems that 10s is too short。 30s is enough
@@ -471,7 +508,7 @@ public class ApiServiceImpl implements ApiService {
                 e.printStackTrace();
             }
             //Check whether all of the services are available again in certain internals
-            while(!isAllReady(NAMESPACE)){
+            while(!isAllReady(NAMESPACE,cluster)){
                 try{
                     //Check every 10 seconds
                     Thread.sleep(10000);
@@ -480,7 +517,7 @@ public class ApiServiceImpl implements ApiService {
                 }
             }
             //Check if all the service are able to serve
-            while(!isAllServiceReadyToServe(NAMESPACE)){
+            while(!isAllServiceReadyToServe(NAMESPACE, cluster)){
                 try{
                     //Check every 10 seconds
                     Thread.sleep(10000);
@@ -497,9 +534,11 @@ public class ApiServiceImpl implements ApiService {
 
     //Get the node list
     @Override
-    public GetNodesListResponse getNodesList() {
+    public GetNodesListResponse getNodesList(String clusterName) {
+        Cluster cluster = getClusterByName(clusterName);
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
         GetNodesListResponse response = new GetNodesListResponse();
-        V1NodeList nodeList = getNodeList();
+        V1NodeList nodeList = getNodeList(cluster);
         System.out.println(String.format("There are now %d nodes in the cluster now", nodeList.getItems().size()));
         if(nodeList.getItems().size() < 1){
             response.setStatus(false);
@@ -560,11 +599,13 @@ public class ApiServiceImpl implements ApiService {
     //Delete the nodes contained in the list
     @Override
     public DeltaNodeByListResponse deleteNodeByList(DeltaNodeRequest deltaNodeRequest) {
+        Cluster cluster = getClusterByName(deltaNodeRequest.getClusterName());
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
         DeltaNodeByListResponse response = new DeltaNodeByListResponse();
         List<String> nodeNames = deltaNodeRequest.getNodeNames();
         boolean isSuccess =true;
         for(String nodeName : nodeNames){
-            if(!deleteNode(nodeName))
+            if(!deleteNode(nodeName,cluster))
                 isSuccess = false;
         }
         if(isSuccess){
@@ -582,7 +623,7 @@ public class ApiServiceImpl implements ApiService {
             e.printStackTrace();
         }
         //Check whether all of the services are available again in certain internals
-        while(!isAllReady(NAMESPACE)){
+        while(!isAllReady(NAMESPACE,cluster)){
             try{
                 //Check every 10 seconds
                 Thread.sleep(10000);
@@ -592,7 +633,7 @@ public class ApiServiceImpl implements ApiService {
         }
 
         //Check if all the service are able to serve
-        while(!isAllServiceReadyToServe(NAMESPACE)){
+        while(!isAllServiceReadyToServe(NAMESPACE,cluster)){
             try{
                 //Check every 10 seconds
                 Thread.sleep(10000);
@@ -607,9 +648,11 @@ public class ApiServiceImpl implements ApiService {
     //Reserve the nodes contained in the list
     @Override
     public DeltaNodeByListResponse reserveNodeByList(DeltaNodeRequest deltaNodeRequest) {
+        Cluster cluster = getClusterByName(deltaNodeRequest.getClusterName());
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
         DeltaNodeByListResponse response = new DeltaNodeByListResponse();
         List<String> nodeNames = deltaNodeRequest.getNodeNames();
-        V1NodeList nodeList = getNodeList();
+        V1NodeList nodeList = getNodeList(cluster);
         boolean isSuccess =true;
         for(V1Node node : nodeList.getItems()){
             if(node.getSpec().getTaints() != null){
@@ -618,7 +661,7 @@ public class ApiServiceImpl implements ApiService {
             }
             String nodeName = node.getMetadata().getName();
             if(!isExistInNodeList(nodeName,nodeNames)){
-                if(!deleteNode(nodeName))
+                if(!deleteNode(nodeName, cluster))
                     isSuccess = false;
             }
         }
@@ -637,7 +680,7 @@ public class ApiServiceImpl implements ApiService {
             e.printStackTrace();
         }
         //Check whether all of the services are available again in certain internals
-        while(!isAllReady(NAMESPACE)){
+        while(!isAllReady(NAMESPACE, cluster)){
             try{
                 //Check every 10 seconds
                 Thread.sleep(10000);
@@ -647,7 +690,7 @@ public class ApiServiceImpl implements ApiService {
         }
 
         //Check if all the service are able to serve
-        while(!isAllServiceReadyToServe(NAMESPACE)){
+        while(!isAllServiceReadyToServe(NAMESPACE, cluster)){
             try{
                 //Check every 10 seconds
                 Thread.sleep(10000);
@@ -661,9 +704,11 @@ public class ApiServiceImpl implements ApiService {
 
     //Get the pods info list
     @Override
-    public GetPodsListResponse getPodsList() {
+    public GetPodsListResponse getPodsListAPI(String clusterName) {
+        Cluster cluster = getClusterByName(clusterName);
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
         GetPodsListResponse response = new GetPodsListResponse();
-        V1PodList podList = getPodList("");
+        V1PodList podList = getPodList("",cluster);
         System.out.println(String.format("There are now %d pods in the cluster now", podList.getItems().size()));
         if(podList.getItems().size() < 1){
             response.setStatus(true);
@@ -688,9 +733,9 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
-    public GetPodsListResponse getPodsList(String namespace) {
+    public GetPodsListResponse getPodsList(String namespace, Cluster cluster) {
         GetPodsListResponse response = new GetPodsListResponse();
-        V1PodList podList = getPodList(namespace);
+        V1PodList podList = getPodList(namespace,cluster);
         System.out.println(String.format("There are now %d pods in the cluster now", podList.getItems().size()));
         if(podList.getItems().size() < 1){
             response.setStatus(true);
@@ -717,9 +762,11 @@ public class ApiServiceImpl implements ApiService {
 
     //Get the logs of all pods
     @Override
-    public GetPodsLogResponse getPodsLog() {
+    public GetPodsLogResponse getPodsLog(String clusterName) {
+        Cluster cluster = getClusterByName(clusterName);
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
         GetPodsLogResponse response = new GetPodsLogResponse();
-        V1PodList podList = getPodList("");
+        V1PodList podList = getPodList("",cluster);
         System.out.println(String.format("There are now %d pods in the cluster now", podList.getItems().size()));
         if(podList.getItems().size() < 1){
             response.setStatus(true);
@@ -743,7 +790,7 @@ public class ApiServiceImpl implements ApiService {
                 }
             }
             podLog.setPodName(podName);
-            String logs = getPodLog(podName,containerName);
+            String logs = getPodLog(podName,containerName,cluster);
             podLog.setLogs(logs);
             podLogs.add(podLog);
         }
@@ -756,6 +803,8 @@ public class ApiServiceImpl implements ApiService {
     //Get the log of the single pod
     @Override
     public GetSinglePodLogResponse getSinglePodLog(GetSinglePodLogRequest getSinglePodLogRequest) {
+        Cluster cluster = getClusterByName(getSinglePodLogRequest.getClusterName());
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
         GetSinglePodLogResponse response = new GetSinglePodLogResponse();
         response.setStatus(false);
         response.setMessage("Fail to get the corresponding pod's log!");
@@ -765,7 +814,7 @@ public class ApiServiceImpl implements ApiService {
         PodLog podLog = new PodLog();
         String podName = getSinglePodLogRequest.getPodName();
         String containerName = "";
-        V1Pod pod = getPodInfo(podName);
+        V1Pod pod = getPodInfo(podName,cluster);
         if(pod != null){
             List<V1Container> containers = pod.getSpec().getContainers();
             if(containers.size() > 0){
@@ -783,7 +832,7 @@ public class ApiServiceImpl implements ApiService {
             }
 
             //Get the log with the pod name and container name
-            String log = getPodLog(podName,containerName);
+            String log = getPodLog(podName,containerName,cluster);
             if(!log.equals("")){
                 podLog.setPodName(getSinglePodLogRequest.getPodName());
                 podLog.setLogs(log);
@@ -801,17 +850,19 @@ public class ApiServiceImpl implements ApiService {
 
     //Restart the service: current zipkin only
     @Override
-    public RestartServiceResponse restartService() {
+    public RestartServiceResponse restartService(String clusterName) {
+        Cluster cluster = getClusterByName(clusterName);
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
         boolean isExist = false;
         RestartServiceResponse response = new RestartServiceResponse();
-        V1PodList podList = getPodList("istio-system");
+        V1PodList podList = getPodList("istio-system",cluster);
         //Delete the zipkin pod
         for(V1Pod pod : podList.getItems()) {
             String podName = pod.getMetadata().getName();
             if(podName.contains("zipkin")){
                 isExist = true;
                 //Delete the pod corresponding to the service
-                boolean deleteResult = deletePod("istio-system",podName);
+                boolean deleteResult = deletePod("istio-system",podName,cluster);
                 if(!deleteResult){
                     response.setStatus(false);
                     response.setMessage("Fail to restart zipkin!");
@@ -828,7 +879,7 @@ public class ApiServiceImpl implements ApiService {
                 e.printStackTrace();
             }
             //Check whether all of the services are available again in certain internals
-            while(!isAllReady("istio-system")){
+            while(!isAllReady("istio-system",cluster)){
                 try{
                     //Check every 10 seconds
                     Thread.sleep(3000);
@@ -847,10 +898,12 @@ public class ApiServiceImpl implements ApiService {
 
     //Get the service list and the config settings
     @Override
-    public GetServicesAndConfigResponse getServicesAndConfig() {
+    public GetServicesAndConfigResponse getServicesAndConfig(String clusterName) {
+        Cluster cluster = getClusterByName(clusterName);
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
         GetServicesAndConfigResponse response = new GetServicesAndConfigResponse();
         //Get the current deployments information
-        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE);
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE,cluster);
         //Iterate the list and return the result
         List<ServiceWithConfig> services = new ArrayList<ServiceWithConfig>();
         for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
@@ -877,9 +930,11 @@ public class ApiServiceImpl implements ApiService {
     //Delta the cpu and memory resource
     @Override
     public DeltaCMResourceResponse deltaCMResource(DeltaCMResourceRequest deltaCMResourceRequest) {
+        Cluster cluster = getClusterByName(deltaCMResourceRequest.getClusterName());
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
         DeltaCMResourceResponse response = new DeltaCMResourceResponse();
         //Get the current deployments information
-        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE);
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE,cluster);
 
         List<String> serviceNames = new ArrayList<>();
         //Check if the resource setting exists
@@ -894,7 +949,7 @@ public class ApiServiceImpl implements ApiService {
                         //TODO: Add the config through add option
                     }
                     else{
-                        boolean result = deltaCMResource(NAMESPACE,request);
+                        boolean result = deltaCMResource(NAMESPACE,request, cluster);
                         if(result){
                             response.setStatus(true);
                             response.setMessage("The config has been deltaed successfully!");
@@ -910,7 +965,7 @@ public class ApiServiceImpl implements ApiService {
             e.printStackTrace();
         }
         //Check whether all of the services are available again in certain internals
-        while(!isAllReady(NAMESPACE)){
+        while(!isAllReady(NAMESPACE,cluster)){
             try{
                 //Check every 2 seconds
                 Thread.sleep(2000);
@@ -919,7 +974,7 @@ public class ApiServiceImpl implements ApiService {
             }
         }
         //Check if all the pods are able to serve
-        while(!isAllAbleToServe(serviceNames)){
+        while(!isAllAbleToServe(serviceNames,cluster)){
             try{
                 //Check every 10 seconds
                 Thread.sleep(10000);
@@ -933,10 +988,12 @@ public class ApiServiceImpl implements ApiService {
 
     //Get the service with endpoints
     @Override
-    public ServiceWithEndpointsResponse getServiceWithEndpoints() {
+    public ServiceWithEndpointsResponse getServiceWithEndpoints(String clusterName) {
+        Cluster cluster = getClusterByName(clusterName);
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
         ServiceWithEndpointsResponse response = new ServiceWithEndpointsResponse();
         //Get the current endpoints list
-        V1EndpointsList endpointsList = getEndpointsList(NAMESPACE);
+        V1EndpointsList endpointsList = getEndpointsList(NAMESPACE,cluster);
         //Iterate the list and return the result
         List<ServiceWithEndpoints> services = new ArrayList<ServiceWithEndpoints>();
         for(V1Endpoints endpoints : endpointsList.getItems()){
@@ -972,10 +1029,12 @@ public class ApiServiceImpl implements ApiService {
 
     @Override
     public ServiceWithEndpointsResponse getSpecificServiceWithEndpoints(ReserveServiceRequest reserveServiceRequest) {
+        Cluster cluster = getClusterByName(reserveServiceRequest.getClusterName());
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
         ServiceWithEndpointsResponse response = new ServiceWithEndpointsResponse();
         List<ServiceWithEndpoints> services = new ArrayList<ServiceWithEndpoints>();
         for(String serviceName : reserveServiceRequest.getServices()){
-            V1Endpoints endpoints = getSingleServiceEndpoints(NAMESPACE,serviceName);
+            V1Endpoints endpoints = getSingleServiceEndpoints(NAMESPACE,serviceName,cluster);
             ServiceWithEndpoints serviceWithEndpoints = new ServiceWithEndpoints();
             //Set service name
             serviceWithEndpoints.setServiceName(endpoints.getMetadata().getName());
@@ -1000,12 +1059,12 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Check if all the services in the list are able to serve
-    private boolean isAllAbleToServe(List<String> serviceNames){
+    private boolean isAllAbleToServe(List<String> serviceNames,Cluster cluster){
         System.out.println(String.format("The service list to be checked are %s", serviceNames.toString()));
         boolean symbol, result = true;
         for(String serviceName : serviceNames){
             System.out.println(String.format("The service to be checked is %s", serviceName));
-            V1Endpoints endpoints = getSingleServiceEndpoints(NAMESPACE,serviceName);
+            V1Endpoints endpoints = getSingleServiceEndpoints(NAMESPACE,serviceName,cluster);
             //Get service endpoints
             List<String> endpointsListOfService = new ArrayList<>();
             if(endpoints.getSubsets().size() > 0){
@@ -1019,7 +1078,7 @@ public class ApiServiceImpl implements ApiService {
             }
             //Check if all the endpoints in the list are able to serve
             int count = 3;
-            symbol = isAllEndpointsAbleToServe(endpointsListOfService);
+            symbol = isAllEndpointsAbleToServe(endpointsListOfService,cluster);
             while(!symbol && count > 0){
                 try{
                     //Check every 10 seconds
@@ -1028,7 +1087,7 @@ public class ApiServiceImpl implements ApiService {
                     e.printStackTrace();
                 }
                 count--;
-                symbol = isAllEndpointsAbleToServe(endpointsListOfService);
+                symbol = isAllEndpointsAbleToServe(endpointsListOfService, cluster);
             }
             if(symbol){
                 System.out.println(String.format("All of the endpoints of service:%s are able to serve.", serviceName));
@@ -1040,10 +1099,20 @@ public class ApiServiceImpl implements ApiService {
         return result;
     }
 
+    //Return the cluster info corresponding to the cluster name
+    private Cluster getClusterByName(String clusterName){
+        for(Cluster cluster : myConfig.getClusters()){
+            if(cluster.getName().equals(clusterName))
+                return cluster;
+        }
+        System.out.println(String.format("The cluster corresponding to the name [%s] doesn't exist! Please check."));
+        return null;
+    }
+
     //Check if all the endpoints in the list are able to serve
-    private boolean isAllEndpointsAbleToServe(List<String> endpointsList){
+    private boolean isAllEndpointsAbleToServe(List<String> endpointsList, Cluster cluster){
         boolean result = true;
-        RemoteExecuteCommand rec = new RemoteExecuteCommand(myConfig.getMasterIp(), myConfig.getUsername(),myConfig.getPasswd());
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(cluster.getMasterIp(), cluster.getUsername(),cluster.getPasswd());
         for(String endpoints : endpointsList){
             String command = String.format("curl -X GET %s/welcome", endpoints);
             System.out.println(String.format("The command to check the endpoints is %s", command));
@@ -1060,13 +1129,13 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Get the endpoints list of specific service
-    private V1Endpoints getSingleServiceEndpoints(String namespace, String serviceName){
+    private V1Endpoints getSingleServiceEndpoints(String namespace, String serviceName, Cluster cluster){
         V1Endpoints endpoints = new V1Endpoints();
         String filePath = "/app/get_endpoints_list_of_single_service.json";
-        String apiUrl = String.format("%s/api/v1/namespaces/%s/endpoints/%s",myConfig.getApiServer(),namespace,serviceName);
+        String apiUrl = String.format("%s/api/v1/namespaces/%s/endpoints/%s",cluster.getApiServer(),namespace,serviceName);
         System.out.println(String.format("The constructed api url for getting the endpoints of specific service is %s", apiUrl));
         String[] cmds ={
-                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,cluster.getToken(),filePath)
         };
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
@@ -1085,13 +1154,13 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Get the endpoints list of all services
-    private V1EndpointsList getEndpointsList(String namespace){
+    private V1EndpointsList getEndpointsList(String namespace, Cluster cluster){
         V1EndpointsList endpointsList = new V1EndpointsList();
         String filePath = "/app/get_endpoints_list.json";
-        String apiUrl = String.format("%s/api/v1/namespaces/%s/endpoints",myConfig.getApiServer(),namespace);
+        String apiUrl = String.format("%s/api/v1/namespaces/%s/endpoints",cluster.getApiServer(),namespace);
         System.out.println(String.format("The constructed api url for getting the endpoints list is %s", apiUrl));
         String[] cmds ={
-                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,cluster.getToken(),filePath)
         };
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
@@ -1110,18 +1179,18 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Delta the CPU and memory of service
-    private boolean deltaCMResource(String namespace,SingleDeltaCMResourceRequest request){
+    private boolean deltaCMResource(String namespace,SingleDeltaCMResourceRequest request, Cluster cluster){
         boolean isSuccess = true;
         SingleDeploymentInfo result;
         String filePath = "/app/delta_cmconfig_result.json";
-        String apiUrl = String.format("%s/apis/apps/v1beta1/namespaces/%s/deployments/%s",myConfig.getApiServer(),namespace, request.getServiceName());
+        String apiUrl = String.format("%s/apis/apps/v1beta1/namespaces/%s/deployments/%s",cluster.getApiServer(),namespace, request.getServiceName());
         System.out.println(String.format("The constructed api url for deltaing config is %s", apiUrl));
         String data = String.format("'[{ \"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/resources/%s/%s\", \"value\": \"%s\"}]'",
                 request.getType(),request.getKey(),request.getValue());
         System.out.println(String.format("The constructed data for deltaing config is %s", data));
         String[] cmds ={
                 "/bin/sh","-c",String.format("curl -X PATCH -d%s -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
-                data,apiUrl,myConfig.getToken(),filePath)
+                data,apiUrl,cluster.getToken(),filePath)
         };
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
@@ -1142,14 +1211,14 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Delete the specified pod
-    private boolean deletePod(String namespace, String podName){
+    private boolean deletePod(String namespace, String podName, Cluster cluster){
         boolean isSuccess = true;
         V1Pod result;
         String filePath = "/app/delete_pod_result.json";
-        String apiUrl = String.format("%s/api/v1/namespaces/%s/pods/%s",myConfig.getApiServer(),namespace, podName);
+        String apiUrl = String.format("%s/api/v1/namespaces/%s/pods/%s",cluster.getApiServer(),namespace, podName);
         System.out.println(String.format("The constructed api url for deleting node is %s", apiUrl));
         String[] cmds ={
-                "/bin/sh","-c",String.format("curl -X DELETE %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+                "/bin/sh","-c",String.format("curl -X DELETE %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,cluster.getToken(),filePath)
         };
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
@@ -1170,14 +1239,14 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Get the logs of a named pod
-    private String getPodLog(String podName,String containerName){
+    private String getPodLog(String podName,String containerName, Cluster cluster){
         String log = "";
 
         String filePath = "/app/get_pod_log.json";
-        String apiUrl = String.format("%s/api/v1/namespaces/%s/pods/%s/log?container=%s",myConfig.getApiServer(),NAMESPACE,podName,containerName);
+        String apiUrl = String.format("%s/api/v1/namespaces/%s/pods/%s/log?container=%s",cluster.getApiServer(),NAMESPACE,podName,containerName);
         System.out.println(String.format("The constructed api url for getting the pod log is %s", apiUrl));
         String[] cmds ={
-                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,cluster.getToken(),filePath)
         };
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
@@ -1212,16 +1281,16 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Set service to the target replicas number
-    private boolean setServiceReplica(String serviceName, int targetNum){
+    private boolean setServiceReplica(String serviceName, int targetNum, Cluster cluster){
         boolean status = false;
         SetServicesReplicasResponseFromAPI result;
         String filePath = "/app/set_service_replica.json";
-        String apiUrl = String.format("%s/apis/extensions/v1beta1/namespaces/%s/deployments/%s/scale",myConfig.getApiServer() ,NAMESPACE,serviceName);
+        String apiUrl = String.format("%s/apis/extensions/v1beta1/namespaces/%s/deployments/%s/scale",cluster.getApiServer() ,NAMESPACE,serviceName);
         System.out.println(String.format("The constructed api url is %s", apiUrl));
         String data ="'[{ \"op\": \"replace\", \"path\": \"/spec/replicas\", \"value\":" +  targetNum + " }]'";
 
         String[] cmds ={
-                "/bin/sh","-c",String.format("curl -X PATCH -d%s -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",data,apiUrl,myConfig.getToken(),filePath)
+                "/bin/sh","-c",String.format("curl -X PATCH -d%s -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",data,apiUrl,cluster.getToken(),filePath)
         };
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
@@ -1257,14 +1326,14 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Delete the node
-    private boolean deleteNode(String nodeName){
+    private boolean deleteNode(String nodeName, Cluster cluster){
         boolean isSuccess = true;
         DeleteNodeResult result;
         String filePath = "/app/delete_node_result.json";
-        String apiUrl = String.format("%s/api/v1/nodes/%s",myConfig.getApiServer(),nodeName );
+        String apiUrl = String.format("%s/api/v1/nodes/%s",cluster.getApiServer(),nodeName );
         System.out.println(String.format("The constructed api url for deleting node is %s", apiUrl));
         String[] cmds ={
-                "/bin/sh","-c",String.format("curl -X DELETE %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+                "/bin/sh","-c",String.format("curl -X DELETE %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,cluster.getToken(),filePath)
         };
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
@@ -1293,13 +1362,13 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Delete the service
-    private void deleteService(String serviceName){
+    private void deleteService(String serviceName, Cluster cluster){
         DeleteServiceResult result;
         String filePath = "/app/delete_service_result.json";
-        String apiUrl = String.format("%s/api/v1/namespaces/%s/services/%s",myConfig.getApiServer(), NAMESPACE,serviceName );
+        String apiUrl = String.format("%s/api/v1/namespaces/%s/services/%s",cluster.getApiServer(), NAMESPACE,serviceName );
         System.out.println(String.format("The constructed api url for deleting service is %s", apiUrl));
         String[] cmds ={
-                "/bin/sh","-c",String.format("curl -X DELETE %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+                "/bin/sh","-c",String.format("curl -X DELETE %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,cluster.getToken(),filePath)
         };
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
@@ -1326,9 +1395,9 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Check if all the services are available again after deleting the node
-    private boolean isAllReady(String namespace){
+    private boolean isAllReady(String namespace, Cluster cluster){
         boolean isAllReady = true;
-        QueryDeploymentsListResponse deploymentsList = getDeploymentList(namespace);
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(namespace, cluster);
         for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
             if(singleDeploymentInfo.getStatus().getReplicas() != singleDeploymentInfo.getStatus().getReadyReplicas()){
                 isAllReady = false;
@@ -1339,10 +1408,10 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Check if all the services are able to serve
-    private boolean isAllServiceReadyToServe(String namespace){
+    private boolean isAllServiceReadyToServe(String namespace, Cluster cluster){
         System.out.println("Check if all the services are able to serve");
         boolean result;
-        QueryDeploymentsListResponse deploymentsList = getDeploymentList(namespace);
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(namespace, cluster);
         List<String> serviceNames = new ArrayList<>();
         for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
             String serviceName = singleDeploymentInfo.getMetadata().getName();
@@ -1351,15 +1420,15 @@ public class ApiServiceImpl implements ApiService {
             }
         }
         System.out.println(String.format("The service list to be checked is %s", serviceNames.toString()));
-        result = isAllAbleToServe(serviceNames);
+        result = isAllAbleToServe(serviceNames, cluster);
         return result;
     }
 
     //Check if all the required deployment replicas are ready
-    private boolean isAllReady(SetServiceReplicasRequest setServiceReplicasRequest){
+    private boolean isAllReady(SetServiceReplicasRequest setServiceReplicasRequest, Cluster cluster){
         boolean isAllReady = true;
 
-        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE);
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE, cluster);
 
         for(ServiceReplicasSetting setting : setServiceReplicasRequest.getServiceReplicasSettings()){
             if(!isSingleReady(deploymentsList.getItems(),setting)){
@@ -1371,14 +1440,14 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Get the deployment list
-    private QueryDeploymentsListResponse getDeploymentList(String namespace){
+    private QueryDeploymentsListResponse getDeploymentList(String namespace, Cluster cluster){
         //Get the current deployments information and echo to the file
         String filePath = "/app/get_deployment_list_result.json";
         QueryDeploymentsListResponse deploymentsList = new QueryDeploymentsListResponse();
-        String apiUrl = String.format("%s/apis/apps/v1beta1/namespaces/%s/deployments",myConfig.getApiServer() ,namespace);
+        String apiUrl = String.format("%s/apis/apps/v1beta1/namespaces/%s/deployments",cluster.getApiServer() ,namespace);
         System.out.println(String.format("The constructed api url for getting the deploymentlist is %s", apiUrl));
         String[] cmds ={
-                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,cluster.getToken(),filePath)
         };
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
@@ -1401,14 +1470,14 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Get the node list
-    private V1NodeList getNodeList(){
+    private V1NodeList getNodeList(Cluster cluster){
         //Get the current deployments information and echo to the file
         String filePath = "/app/get_node_list_result.json";
         V1NodeList nodeList = new V1NodeList();
-        String apiUrl = String.format("%s/api/v1/nodes",myConfig.getApiServer());
+        String apiUrl = String.format("%s/api/v1/nodes",cluster.getApiServer());
         System.out.println(String.format("The constructed api url for getting the node list is %s", apiUrl));
         String[] cmds ={
-                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,cluster.getToken(),filePath)
         };
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
@@ -1430,16 +1499,16 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Get the pods list
-    private V1PodList getPodList(String namespace){
+    private V1PodList getPodList(String namespace, Cluster cluster){
         if(namespace.equals(""))
             namespace = NAMESPACE;
         //Get the current pods information and echo to the file
         String filePath = "/app/get_pod_list_result.json";
         V1PodList podList = new V1PodList();
-        String apiUrl = String.format("%s/api/v1/namespaces/%s/pods",myConfig.getApiServer(),namespace);
+        String apiUrl = String.format("%s/api/v1/namespaces/%s/pods",cluster.getApiServer(),namespace);
         System.out.println(String.format("The constructed api url for getting the pod list is %s", apiUrl));
         String[] cmds ={
-                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,cluster.getToken(),filePath)
         };
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
@@ -1461,14 +1530,14 @@ public class ApiServiceImpl implements ApiService {
     }
 
     //Get the pod info
-    private V1Pod getPodInfo(String name){
+    private V1Pod getPodInfo(String name, Cluster cluster){
         //Get the current pods information and echo to the file
         String filePath = "/app/get_pod_info_result.json";
         V1Pod pod = null;
-        String apiUrl = String.format("%s/api/v1/namespaces/%s/pods/%s",myConfig.getApiServer(),NAMESPACE,name);
+        String apiUrl = String.format("%s/api/v1/namespaces/%s/pods/%s",cluster.getApiServer(),NAMESPACE,name);
         System.out.println(String.format("The constructed api url for getting the pod info is %s", apiUrl));
         String[] cmds ={
-                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,myConfig.getToken(),filePath)
+                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,cluster.getToken(),filePath)
         };
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
