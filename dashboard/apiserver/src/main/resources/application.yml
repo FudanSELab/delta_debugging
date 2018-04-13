@@ -13,13 +13,6 @@ spring:
 myConfig:
   clusters:
     -
-      name: cluster2
-      masterIp: 10.141.211.173
-      username: root
-      passwd: root
-      apiServer: https://10.141.211.173:6443
-      token: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJhZG1pbi10b2tlbi16dmxqYyIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJhZG1pbiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjQ0ZGE1NTRmLTJiZTMtMTFlOC05MTA4LTAwNTA1Njg2NTg2MiIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDprdWJlLXN5c3RlbTphZG1pbiJ9.R-R_DQzH5ND-sFPJZRQ3bx4cdupPMkUuivB6ghCWBelsjDy4tIbVeEezAhGt9RRYzPvSCI7_mr2oZUtLgKw8rLep7q2c9J-SS7cGFmXpgqjVludbG4XxgcN-dbZsb1zPPHi4GALyMVqZ54BrK00jQ5WhcadJ5E7aUfoMYNC3blWbeZscuLzIywPNMabEIYliPt4ZTyUprnndLl43AjA6gdCSs6JDp4j3Hp00C8l3rPbvS4MSaCSmNCT0CIYAIem-3Ep9B_axHBbHKksL2mD9PIvLhHqwldqgTRgHZl9otgFXvIn5axLGLuuo43wJzUH5vEIp6tUyiEtvSgPfrpuBUw
-    -
       name: cluster1
       masterIp: 10.141.211.181
       username: root
@@ -27,7 +20,28 @@ myConfig:
       apiServer: https://10.141.211.181:6443
       token: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJhZG1pbi10b2tlbi1qc3p0YiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJhZG1pbiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjY1YmU5ZGUzLTI2OGQtMTFlOC1hNmZiLTAwNTA1Njg2MDI1MCIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDprdWJlLXN5c3RlbTphZG1pbiJ9.D4ZWHz0r0ThLEJjr1xI0VN9_bKQ8wD3Wyj9qxg8RY2ktVygsTbaldiHZUYbumC7xqnOLfHGgoIdyM-yy_sjIty-985kt2QwQPv5_T_uoRzjMmRk_7Gy7V91ql8EaP2OQsrxeQhvX6Gq2_FVmxvuSrgizX0NtFvTen1x182Gj7Xuh2MXLVUNr4x0BRP85p3Dr-qercZxTNdG7bzwbcmMWadypMR2AkrX5K7xmuNEn_fwgEFdExpG98FSZbHM--Q-tucms-cLGeTIOGd9lIs41Jm004FE1XLSDxtMi-npzpnbohjtc62d-uW0daUqzOEi-P3S9eLhGNND1HHSzXSlwaA
     -
+      name: cluster2
+      masterIp: 10.141.211.160
+      username: root
+      passwd: root
+      apiServer: https://10.141.211.160:6443
+      token: eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJhZG1pbi10b2tlbi1rbGNoZCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJhZG1pbiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6ImFhYzFlNTk1LTNmMDEtMTFlOC04M2YwLTAwNTA1NmE0YjQ3MyIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDprdWJlLXN5c3RlbTphZG1pbiJ9.Q-cnpVnXM4Nmf4-gMbTyUY9J1ilBQW0muyVlxTphtf4u8GkqQKHRZw-NYxbAReu68og56VZGLZEmm_9SMF5m40lZtmKNefV542Kopc5pkgrKHtNHaIL7-AVzjI-wZBQniJNDHvDpPI35S_zn6nCR3vec05Al2PSwsv9MyVBOfD9_NbeK5Hofnovp5nHm6CY_dKqj6H9Kz1BKffD9ogGQX_9GCzORhD-piz6nSb-urF6kPPkO86FERKmcgtDJv3_FUBl8YWiMn8bsXXebBD1zFXUb_oJ8Lgkstk0M_Qo_ZU5mVsyu7N8dtyxmzXsahnP6zoLAzdRFlO7GZ62XYBKB7A
+    -
       name: cluster3
+      masterIp: 10.141.211.162
+      username: root
+      passwd: root
+      apiServer: https://10.141.211.162:6443
+      token:
+    -
+      name: cluster4
+      masterIp: 10.141.211.173
+      username: root
+      passwd: root
+      apiServer: https://10.141.211.173:6443
+      token: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJhZG1pbi10b2tlbi16dmxqYyIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJhZG1pbiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjQ0ZGE1NTRmLTJiZTMtMTFlOC05MTA4LTAwNTA1Njg2NTg2MiIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDprdWJlLXN5c3RlbTphZG1pbiJ9.R-R_DQzH5ND-sFPJZRQ3bx4cdupPMkUuivB6ghCWBelsjDy4tIbVeEezAhGt9RRYzPvSCI7_mr2oZUtLgKw8rLep7q2c9J-SS7cGFmXpgqjVludbG4XxgcN-dbZsb1zPPHi4GALyMVqZ54BrK00jQ5WhcadJ5E7aUfoMYNC3blWbeZscuLzIywPNMabEIYliPt4ZTyUprnndLl43AjA6gdCSs6JDp4j3Hp00C8l3rPbvS4MSaCSmNCT0CIYAIem-3Ep9B_axHBbHKksL2mD9PIvLhHqwldqgTRgHZl9otgFXvIn5axLGLuuo43wJzUH5vEIp6tUyiEtvSgPfrpuBUw
+    -
+      name: cluster5
       masterIp: 10.141.212.21
       username: root
       passwd: root
