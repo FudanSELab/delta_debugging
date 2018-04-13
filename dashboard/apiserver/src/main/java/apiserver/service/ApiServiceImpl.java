@@ -168,6 +168,21 @@ public class ApiServiceImpl implements ApiService {
     }
 
     @Override
+    public SetAsyncRequestSequenceResponse unsuspendAllRequest(SetAsyncRequestSequenceRequestWithSource request){
+        Cluster cluster = getClusterByName(request.getClusterName());
+        System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
+        ArrayList<String> svcList = request.getSvcList();
+        String resultStr = "";
+        for(String svcName: svcList){
+            String tempStr = doUnsetServiceRequestSuspend(svcName,cluster);
+            resultStr += tempStr;
+            System.out.println(tempStr);
+        }
+        return new SetAsyncRequestSequenceResponse(true,resultStr);
+
+    }
+
+    @Override
     public SetAsyncRequestSequenceResponse setAsyncRequestSequenceWithSrcCombineWithFullSuspend(SetAsyncRequestSequenceRequestWithSource request){
         Cluster cluster = getClusterByName(request.getClusterName());
         System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));

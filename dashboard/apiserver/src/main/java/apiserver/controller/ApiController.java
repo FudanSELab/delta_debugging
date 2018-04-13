@@ -84,13 +84,25 @@ public class ApiController {
         return apiService.setAsyncRequestsSequenceWithSource(request);
     }
 
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/unsuspendAllRequests", method = RequestMethod.POST)
+    public SetAsyncRequestSequenceResponse unsuspendAllRequests(
+            @RequestBody SetAsyncRequestSequenceRequestWithSource request){
+
+        System.out.println("[=====] /api/unsuspendAllRequests");
+        System.out.println("[=====] src Name:" + request.getSourceName());
+        System.out.println("[=====] svc Name:" + request.getSvcList().size());
+
+        return apiService.unsuspendAllRequest(request);
+    }
+
 
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/setAsyncRequestSequenceWithSrcCombineWithFullSuspend", method = RequestMethod.POST)
     public SetAsyncRequestSequenceResponse setAsyncRequestSequenceWithSrcCombineWithFullSuspend(
             @RequestBody SetAsyncRequestSequenceRequestWithSource request){
 
-        System.out.println("[=====] /api/setAsyncRequestSequence");
+        System.out.println("[=====] /api/setAsyncRequestSequenceWithSrcCombineWithFullSuspend");
         System.out.println("[=====] src Name:" + request.getSourceName());
         System.out.println("[=====] svc Name:" + request.getSvcList().size());
 
