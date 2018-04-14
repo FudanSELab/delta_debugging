@@ -1,5 +1,6 @@
 package apiserver.service;
 
+import apiserver.async.AsyncTask;
 import apiserver.bean.*;
 import apiserver.request.*;
 import apiserver.response.*;
@@ -25,6 +26,8 @@ public class ApiServiceImpl implements ApiService {
 
     private String password = "root";
 
+    @Autowired
+    private AsyncTask asyncTask;
 
     @Autowired
     private MyConfig myConfig;
@@ -186,11 +189,19 @@ public class ApiServiceImpl implements ApiService {
     public SetAsyncRequestSequenceResponse setAsyncRequestSequenceWithSrcCombineWithFullSuspend(SetAsyncRequestSequenceRequestWithSource request){
         Cluster cluster = getClusterByName(request.getClusterName());
         System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
+        String str = "";
         for(int i = 0;i < request.getSvcList().size();i++){
             String executeResult = doSetServiceRequestSuspendWithSourceFile(request.getSvcList().get(i),request.getSourceName(), cluster);
+            str += executeResult;
             System.out.println(executeResult);
         }
-        return setAsyncRequestsSequenceWithSource(request);
+        try{
+            asyncTask.doAsync(request);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return new SetAsyncRequestSequenceResponse(true,str);
+        //return setAsyncRequestsSequenceWithSource(request);
     }
 
 
