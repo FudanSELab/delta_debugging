@@ -331,43 +331,48 @@ public class ApiServiceImpl implements ApiService {
         SetServiceReplicasResponse response = new SetServiceReplicasResponse();
         List<String> serviceNames = new ArrayList<>();
         //Set the desired number of service replicas
-        for(ServiceReplicasSetting setting : setServiceReplicasRequest.getServiceReplicasSettings()){
-            serviceNames.add(setting.getServiceName());
-            String apiUrl = String.format("%s/apis/extensions/v1beta1/namespaces/%s/deployments/%s/scale",cluster.getApiServer() ,NAMESPACE,setting.getServiceName());
-            System.out.println(String.format("The constructed api url is %s", apiUrl));
-            String data ="'[{ \"op\": \"replace\", \"path\": \"/spec/replicas\", \"value\":" +  setting.getNumOfReplicas() + " }]'";
+        if(setServiceReplicasRequest.getServiceReplicasSettings() != null){
+            for(ServiceReplicasSetting setting : setServiceReplicasRequest.getServiceReplicasSettings()){
+                serviceNames.add(setting.getServiceName());
+                String apiUrl = String.format("%s/apis/extensions/v1beta1/namespaces/%s/deployments/%s/scale",cluster.getApiServer() ,NAMESPACE,setting.getServiceName());
+                System.out.println(String.format("The constructed api url is %s", apiUrl));
+                String data ="'[{ \"op\": \"replace\", \"path\": \"/spec/replicas\", \"value\":" +  setting.getNumOfReplicas() + " }]'";
 
-            String[] cmds ={
-                    "/bin/sh","-c",String.format("curl -X PATCH -d%s -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure",data,apiUrl,cluster.getToken())
-            };
-            ProcessBuilder pb = new ProcessBuilder(cmds);
-            pb.redirectErrorStream(true);
-            Process p;
-            try {
-                p = pb.start();
-                BufferedReader br = null;
-                String line = null;
+                String[] cmds ={
+                        "/bin/sh","-c",String.format("curl -X PATCH -d%s -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure",data,apiUrl,cluster.getToken())
+                };
+                ProcessBuilder pb = new ProcessBuilder(cmds);
+                pb.redirectErrorStream(true);
+                Process p;
+                try {
+                    p = pb.start();
+                    BufferedReader br = null;
+                    String line = null;
 
-                //Read the response
-                br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                StringBuilder responseBuilder = new StringBuilder();
-                boolean record = false;
-                while((line = br.readLine()) != null){
-                    if(line.contains("{"))
-                        record = true;
-                    if(record)
-                        responseBuilder.append(line);
-                }
-                //Parse the response to the SetServicesReplicasResponseFromAPI Bean
+                    //Read the response
+                    br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                    StringBuilder responseBuilder = new StringBuilder();
+                    boolean record = false;
+                    while((line = br.readLine()) != null){
+                        if(line.contains("{"))
+                            record = true;
+                        if(record)
+                            responseBuilder.append(line);
+                    }
+                    //Parse the response to the SetServicesReplicasResponseFromAPI Bean
 //                System.out.println(responseBuilder.toString());
-                SetServicesReplicasResponseFromAPI result = JSON.parseObject(responseBuilder.toString(), SetServicesReplicasResponseFromAPI.class);
-                System.out.println(String.format("The kind of the result for service %s is %s",setting.getServiceName(),result.getKind()));
-                br.close();
-            } catch (IOException e) {
-                response.setStatus(false);
-                response.setMessage(String.format("Exception: %s", e.getStackTrace()));
-                e.printStackTrace();
+                    SetServicesReplicasResponseFromAPI result = JSON.parseObject(responseBuilder.toString(), SetServicesReplicasResponseFromAPI.class);
+                    System.out.println(String.format("The kind of the result for service %s is %s",setting.getServiceName(),result.getKind()));
+                    br.close();
+                } catch (IOException e) {
+                    response.setStatus(false);
+                    response.setMessage(String.format("Exception: %s", e.getStackTrace()));
+                    e.printStackTrace();
+                }
             }
+        }
+        else{
+            System.out.println("Error! Please check the parameter in the request!");
         }
         //Check if all the required replicas are ready: running status
         while(!isAllReady(setServiceReplicasRequest, cluster)){
@@ -400,12 +405,18 @@ public class ApiServiceImpl implements ApiService {
         QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE,cluster);
         //Iterate the list and return the result
         List<ServiceWithReplicas> services = new ArrayList<ServiceWithReplicas>();
-        for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
-            ServiceWithReplicas serviceWithReplicas = new ServiceWithReplicas();
-            serviceWithReplicas.setServiceName(singleDeploymentInfo.getMetadata().getName());
-            serviceWithReplicas.setNumOfReplicas(singleDeploymentInfo.getStatus().getReadyReplicas());
-            services.add(serviceWithReplicas);
+        if(deploymentsList.getItems() != null && deploymentsList.getItems().size() > 0){
+            for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
+                ServiceWithReplicas serviceWithReplicas = new ServiceWithReplicas();
+                serviceWithReplicas.setServiceName(singleDeploymentInfo.getMetadata().getName());
+                serviceWithReplicas.setNumOfReplicas(singleDeploymentInfo.getStatus().getReadyReplicas());
+                services.add(serviceWithReplicas);
+            }
         }
+        else{
+            System.out.println(String.format("There is no deployments in [%s] now!", cluster.getName()));
+        }
+
         System.out.println(String.format("The size of current service is %d",services.size()));
         if(deploymentsList.getItems().size() != 0){
             response.setServices(services);
@@ -429,17 +440,23 @@ public class ApiServiceImpl implements ApiService {
         QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE,cluster);
         //Iterate the list and return the result
         List<ServiceWithReplicas> services = new ArrayList<ServiceWithReplicas>();
-        for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
-            for(String serviceName : getServiceReplicasRequest.getServices()){
-                if(singleDeploymentInfo.getMetadata().getName().equals(serviceName)){
-                    ServiceWithReplicas serviceWithReplicas = new ServiceWithReplicas();
-                    serviceWithReplicas.setServiceName(serviceName);
-                    serviceWithReplicas.setNumOfReplicas(singleDeploymentInfo.getStatus().getReadyReplicas());
-                    services.add(serviceWithReplicas);
-                    break;
+        if(deploymentsList.getItems() != null && deploymentsList.getItems().size() > 0){
+            for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
+                for(String serviceName : getServiceReplicasRequest.getServices()){
+                    if(singleDeploymentInfo.getMetadata().getName().equals(serviceName)){
+                        ServiceWithReplicas serviceWithReplicas = new ServiceWithReplicas();
+                        serviceWithReplicas.setServiceName(serviceName);
+                        serviceWithReplicas.setNumOfReplicas(singleDeploymentInfo.getStatus().getReadyReplicas());
+                        services.add(serviceWithReplicas);
+                        break;
+                    }
                 }
             }
         }
+        else{
+            System.out.println(String.format("There is no deployments in [%s] now!", cluster.getName()));
+        }
+
         System.out.println(String.format("The size of current service is %d",services.size()));
         if(services.size() != 0){
             response.setServices(services);
@@ -464,23 +481,28 @@ public class ApiServiceImpl implements ApiService {
         //Get the current deployments information
         QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE, cluster);
 
-        for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
-            //Delete the services not contained in the list
-            String deploymentName = singleDeploymentInfo.getMetadata().getName();
-            if(isDeleted(deploymentName,reserveServiceRequest.getServices())){
-                System.out.println(String.format("The service %s isn't contained in the reserved list. To be deleted",deploymentName ));
-                //Delete the service first
-                deleteService(deploymentName,cluster);
-                //Delete the corresponding pod by set the number of replica to 0
-                boolean result = setServiceReplica(deploymentName, 0,cluster);
-                if(!result){
-                    response.setStatus(false);
-                    response.setMessage(String.format("Fail to delete the service %s", deploymentName));
-                    break;
+        if(deploymentsList.getItems() != null && deploymentsList.getItems().size() > 0){
+            for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
+                //Delete the services not contained in the list
+                String deploymentName = singleDeploymentInfo.getMetadata().getName();
+                if(isDeleted(deploymentName,reserveServiceRequest.getServices())){
+                    System.out.println(String.format("The service %s isn't contained in the reserved list. To be deleted",deploymentName ));
+                    //Delete the service first
+                    deleteService(deploymentName,cluster);
+                    //Delete the corresponding pod by set the number of replica to 0
+                    boolean result = setServiceReplica(deploymentName, 0,cluster);
+                    if(!result){
+                        response.setStatus(false);
+                        response.setMessage(String.format("Fail to delete the service %s", deploymentName));
+                        break;
+                    }
+                }else{
+                    System.out.println(String.format("The service %s is contained in the reserved list. Reserve",deploymentName ));
                 }
-            }else{
-                System.out.println(String.format("The service %s is contained in the reserved list. Reserve",deploymentName ));
             }
+        }
+        else{
+            System.out.println(String.format("There is no deployments in [%s] now!", cluster.getName()));
         }
         return response;
     }
@@ -499,11 +521,16 @@ public class ApiServiceImpl implements ApiService {
         List<V1Node> workingNodeList = new ArrayList<V1Node>();
 
         //Construct the working node list
-        for(V1Node node : nodeList.getItems()){
-            System.out.println(String.format("The node name is %s and the role is %s",node.getMetadata().getName(),node.getSpec().getTaints() == null?"Minion":"Master"));
-            if(node.getSpec().getTaints() == null)
-                workingNodeList.add(node);
+        if(nodeList.getItems() != null && nodeList.getItems().size() > 0){
+            for(V1Node node : nodeList.getItems()){
+                System.out.println(String.format("The node name is %s and the role is %s",node.getMetadata().getName(),node.getSpec().getTaints() == null?"Minion":"Master"));
+                if(node.getSpec().getTaints() == null)
+                    workingNodeList.add(node);
+            }
+        }else{
+            System.out.println(String.format("Fail to get the node info about [%s]", cluster.getName()));
         }
+
 
         //Delete the other working nodes and reserve only one and return until all the services are available again
         if(workingNodeList.size() <= 1){
@@ -791,24 +818,29 @@ public class ApiServiceImpl implements ApiService {
         //Construct the pods log info
         List<PodLog> podLogs = new ArrayList<PodLog>();
         List<V1Container> containers;
-        for(V1Pod pod : podList.getItems()){
-            PodLog podLog = new PodLog();
-            String podName = pod.getMetadata().getName();
-            String containerName = "";
-            containers = pod.getSpec().getContainers();
-            if(containers.size() > 0){
-                for(V1Container container : containers){
-                    if(!container.getName().equals("istio-proxy")){
-                        containerName = container.getName();
-                        break;
+        if(podList.getItems() != null && podList.getItems().size() > 0){
+            for(V1Pod pod : podList.getItems()){
+                PodLog podLog = new PodLog();
+                String podName = pod.getMetadata().getName();
+                String containerName = "";
+                containers = pod.getSpec().getContainers();
+                if(containers.size() > 0){
+                    for(V1Container container : containers){
+                        if(!container.getName().equals("istio-proxy")){
+                            containerName = container.getName();
+                            break;
+                        }
                     }
                 }
+                podLog.setPodName(podName);
+                String logs = getPodLog(podName,containerName,cluster);
+                podLog.setLogs(logs);
+                podLogs.add(podLog);
             }
-            podLog.setPodName(podName);
-            String logs = getPodLog(podName,containerName,cluster);
-            podLog.setLogs(logs);
-            podLogs.add(podLog);
+        }else{
+            System.out.println(String.format("There is no pod in the [%s]", cluster.getName()));
         }
+
         response.setStatus(true);
         response.setMessage("Successfully to get the pods log info!");
         response.setPodLogs(podLogs);
@@ -872,20 +904,23 @@ public class ApiServiceImpl implements ApiService {
         RestartServiceResponse response = new RestartServiceResponse();
         V1PodList podList = getPodList("istio-system",cluster);
         //Delete the zipkin pod
-        for(V1Pod pod : podList.getItems()) {
-            String podName = pod.getMetadata().getName();
-            if(podName.contains("zipkin")){
-                isExist = true;
-                //Delete the pod corresponding to the service
-                boolean deleteResult = deletePod("istio-system",podName,cluster);
-                if(!deleteResult){
-                    response.setStatus(false);
-                    response.setMessage("Fail to restart zipkin!");
-                    return response;
+        if(podList.getItems() != null && podList.getItems().size() > 0){
+            for(V1Pod pod : podList.getItems()) {
+                String podName = pod.getMetadata().getName();
+                if(podName.contains("zipkin")){
+                    isExist = true;
+                    //Delete the pod corresponding to the service
+                    boolean deleteResult = deletePod("istio-system",podName,cluster);
+                    if(!deleteResult){
+                        response.setStatus(false);
+                        response.setMessage("Fail to restart zipkin!");
+                        return response;
+                    }
+                    break;
                 }
-                break;
             }
         }
+
         if(isExist){
             //Wait for the zipkin restart
             try{
@@ -921,14 +956,19 @@ public class ApiServiceImpl implements ApiService {
         QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE,cluster);
         //Iterate the list and return the result
         List<ServiceWithConfig> services = new ArrayList<ServiceWithConfig>();
-        for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
-            V1ResourceRequirements resourceRequirements = singleDeploymentInfo.getSpec().getTemplate().getSpec().getContainers().get(0).getResources();
-            ServiceWithConfig serviceWithConfig = new ServiceWithConfig();
-            serviceWithConfig.setServiceName(singleDeploymentInfo.getMetadata().getName());
-            serviceWithConfig.setLimits(resourceRequirements.getLimits());
-            serviceWithConfig.setRequests(resourceRequirements.getRequests());
-            services.add(serviceWithConfig);
+        if(deploymentsList.getItems() != null && deploymentsList.getItems().size() > 0){
+            for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
+                V1ResourceRequirements resourceRequirements = singleDeploymentInfo.getSpec().getTemplate().getSpec().getContainers().get(0).getResources();
+                ServiceWithConfig serviceWithConfig = new ServiceWithConfig();
+                serviceWithConfig.setServiceName(singleDeploymentInfo.getMetadata().getName());
+                serviceWithConfig.setLimits(resourceRequirements.getLimits());
+                serviceWithConfig.setRequests(resourceRequirements.getRequests());
+                services.add(serviceWithConfig);
+            }
+        }else{
+            System.out.println(String.format("There is no deployments in [%s] now!", cluster.getName()));
         }
+
         System.out.println(String.format("The size of current service is %d",services.size()));
         if(services.size() != 0){
             response.setServices(services);
@@ -953,26 +993,29 @@ public class ApiServiceImpl implements ApiService {
 
         List<String> serviceNames = new ArrayList<>();
         //Check if the resource setting exists
-        for(SingleDeltaCMResourceRequest request : deltaCMResourceRequest.getDeltaRequests()){
-            serviceNames.add(request.getServiceName());
-            for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
-                if(singleDeploymentInfo.getMetadata().getName().equals(request.getServiceName())){
-                    V1ResourceRequirements resourceRequirements = singleDeploymentInfo.getSpec().getTemplate().getSpec().getContainers().get(0).getResources();
-                    if(resourceRequirements.getLimits() == null || resourceRequirements.getRequests() == null){
-                        response.setMessage("There is no corresponding config in the cluster!");
-                        response.setStatus(false);
-                        //TODO: Add the config through add option
-                    }
-                    else{
-                        boolean result = deltaCMResource(NAMESPACE,request, cluster);
-                        if(result){
-                            response.setStatus(true);
-                            response.setMessage("The config has been deltaed successfully!");
+        if(deploymentsList.getItems() != null && deploymentsList.getItems().size() > 0 && deltaCMResourceRequest.getDeltaRequests() != null){
+            for(SingleDeltaCMResourceRequest request : deltaCMResourceRequest.getDeltaRequests()){
+                serviceNames.add(request.getServiceName());
+                for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
+                    if(singleDeploymentInfo.getMetadata().getName().equals(request.getServiceName())){
+                        V1ResourceRequirements resourceRequirements = singleDeploymentInfo.getSpec().getTemplate().getSpec().getContainers().get(0).getResources();
+                        if(resourceRequirements.getLimits() == null || resourceRequirements.getRequests() == null){
+                            response.setMessage("There is no corresponding config in the cluster!");
+                            response.setStatus(false);
+                            //TODO: Add the config through add option
+                        }
+                        else{
+                            boolean result = deltaCMResource(NAMESPACE,request, cluster);
+                            if(result){
+                                response.setStatus(true);
+                                response.setMessage("The config has been deltaed successfully!");
+                            }
                         }
                     }
                 }
             }
         }
+
         //Wait for the pod restart
         try{
             Thread.sleep(1000);
@@ -1011,24 +1054,29 @@ public class ApiServiceImpl implements ApiService {
         V1EndpointsList endpointsList = getEndpointsList(NAMESPACE,cluster);
         //Iterate the list and return the result
         List<ServiceWithEndpoints> services = new ArrayList<ServiceWithEndpoints>();
-        for(V1Endpoints endpoints : endpointsList.getItems()){
-            ServiceWithEndpoints serviceWithEndpoints = new ServiceWithEndpoints();
-            //Set service name
-            serviceWithEndpoints.setServiceName(endpoints.getMetadata().getName());
-            //Set service endpoints
-            List<String> endpointsListOfService = new ArrayList<>();
-            if(endpoints.getSubsets().size() > 0){
-                V1EndpointSubset subset = endpoints.getSubsets().get(0);
-                for(V1EndpointAddress v1EndpointAddress : subset.getAddresses()){
-                    String ip = v1EndpointAddress.getIp();
-                    for(V1EndpointPort v1EndpointPort : subset.getPorts()){
-                        endpointsListOfService.add(ip + ":" + v1EndpointPort.getPort());
+        if(endpointsList.getItems() != null && endpointsList.getItems().size() > 0){
+            for(V1Endpoints endpoints : endpointsList.getItems()){
+                ServiceWithEndpoints serviceWithEndpoints = new ServiceWithEndpoints();
+                //Set service name
+                serviceWithEndpoints.setServiceName(endpoints.getMetadata().getName());
+                //Set service endpoints
+                List<String> endpointsListOfService = new ArrayList<>();
+                if(endpoints.getSubsets().size() > 0){
+                    V1EndpointSubset subset = endpoints.getSubsets().get(0);
+                    if(subset.getAddresses() != null && subset.getPorts() != null){
+                        for(V1EndpointAddress v1EndpointAddress : subset.getAddresses()){
+                            String ip = v1EndpointAddress.getIp();
+                            for(V1EndpointPort v1EndpointPort : subset.getPorts()){
+                                endpointsListOfService.add(ip + ":" + v1EndpointPort.getPort());
+                            }
+                        }
+                        serviceWithEndpoints.setEndPoints(endpointsListOfService);
                     }
                 }
-                serviceWithEndpoints.setEndPoints(endpointsListOfService);
+                services.add(serviceWithEndpoints);
             }
-            services.add(serviceWithEndpoints);
         }
+
         System.out.println(String.format("The size of current service is %d",services.size()));
         if(services.size() != 0){
             response.setServices(services);
@@ -1057,10 +1105,12 @@ public class ApiServiceImpl implements ApiService {
             List<String> endpointsListOfService = new ArrayList<>();
             if(endpoints.getSubsets().size() > 0){
                 V1EndpointSubset subset = endpoints.getSubsets().get(0);
-                for(V1EndpointAddress v1EndpointAddress : subset.getAddresses()){
-                    String ip = v1EndpointAddress.getIp();
-                    for(V1EndpointPort v1EndpointPort : subset.getPorts()){
-                        endpointsListOfService.add(ip + ":" + v1EndpointPort.getPort());
+                if(subset.getAddresses() != null && subset.getPorts() != null){
+                    for(V1EndpointAddress v1EndpointAddress : subset.getAddresses()){
+                        String ip = v1EndpointAddress.getIp();
+                        for(V1EndpointPort v1EndpointPort : subset.getPorts()){
+                            endpointsListOfService.add(ip + ":" + v1EndpointPort.getPort());
+                        }
                     }
                 }
                 serviceWithEndpoints.setEndPoints(endpointsListOfService);
@@ -1084,11 +1134,16 @@ public class ApiServiceImpl implements ApiService {
             List<String> endpointsListOfService = new ArrayList<>();
             if(endpoints.getSubsets().size() > 0){
                 V1EndpointSubset subset = endpoints.getSubsets().get(0);
-                for(V1EndpointAddress v1EndpointAddress : subset.getAddresses()){
-                    String ip = v1EndpointAddress.getIp();
-                    for(V1EndpointPort v1EndpointPort : subset.getPorts()){
-                        endpointsListOfService.add(ip + ":" + v1EndpointPort.getPort());
+                if(subset.getAddresses() != null && subset.getPorts() != null){
+                    for(V1EndpointAddress v1EndpointAddress : subset.getAddresses()){
+                        String ip = v1EndpointAddress.getIp();
+                        for(V1EndpointPort v1EndpointPort : subset.getPorts()){
+                            endpointsListOfService.add(ip + ":" + v1EndpointPort.getPort());
+                        }
                     }
+                }
+                else{
+                    System.out.println(String.format("The service [%s] doesn't have ready address!"));
                 }
             }
             //Check if all the endpoints in the list are able to serve
@@ -1116,9 +1171,14 @@ public class ApiServiceImpl implements ApiService {
 
     //Return the cluster info corresponding to the cluster name
     private Cluster getClusterByName(String clusterName){
-        for(Cluster cluster : myConfig.getClusters()){
-            if(cluster.getName().equals(clusterName))
-                return cluster;
+        if(myConfig.getClusters() != null){
+            for(Cluster cluster : myConfig.getClusters()){
+                if(cluster.getName().equals(clusterName))
+                    return cluster;
+            }
+        }
+        else{
+            System.out.println("There is some error in the application.yml. Please check!");
         }
         System.out.println(String.format("The cluster corresponding to the name [%s] doesn't exist! Please check."));
         return null;
