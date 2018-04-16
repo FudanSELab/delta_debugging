@@ -242,7 +242,7 @@ public class ApiServiceImpl implements ApiService {
                 String podLog = getPodLog(podInfo.getName(),"istio-proxy",cluster);
                 String[] logsFormatted = podLog.split("\n");
                 ArrayList<String> arrayList = new ArrayList<>(Arrays.asList(logsFormatted));
-                ArrayList<String> lastSeveralLogs = new ArrayList<>(arrayList.subList(arrayList.size() - 5,arrayList.size()));
+                ArrayList<String> lastSeveralLogs = new ArrayList<>(arrayList.subList(arrayList.size() - 15,arrayList.size()));
 
                 for(String logStr : lastSeveralLogs) {
                     System.out.println("[=======]Log Line:" + logStr);
@@ -297,7 +297,8 @@ public class ApiServiceImpl implements ApiService {
                 String podLog = getPodLog(podInfo.getName(),"istio-proxy",cluster);
                 String[] logsFormatted = podLog.split("\n");
                 ArrayList<String> arrayList = new ArrayList<>(Arrays.asList(logsFormatted));
-                ArrayList<String> lastSeveralLogs = new ArrayList<>(arrayList.subList(arrayList.size() - 5,arrayList.size()));
+
+                ArrayList<String> lastSeveralLogs = new ArrayList<>(arrayList.subList(arrayList.size() - 15,arrayList.size()));
 
                 for(String logStr : lastSeveralLogs) {
                     System.out.println("[=======]Log Line -:" + logStr);

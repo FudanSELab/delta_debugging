@@ -207,7 +207,8 @@ public class RemoteExecuteCommand {
                 "  httpFault:\n" +
                 "    delay:\n" +
                 "      percent: 100\n" +
-                "      fixedDelay: 10000s";
+                "      fixedDelay: 10000s\n" +
+                " \n";
         String fullLongRuleString = longRuleStr.replaceAll("svcName",svcName);
         System.out.println("[=====]fullLongRuleString");
         System.out.println(fullLongRuleString);
@@ -215,6 +216,12 @@ public class RemoteExecuteCommand {
     }
 
     public String fillLongRuleFileWithSource(String svcName, String sourceSvcName){
+
+        //                "    request:\n" +
+//                "      headers:\n" +
+//                "        cookie: \n" +
+//                "          regex: \"^(.*?;)?(jichao=dododo)(;.*)?$\" \n" +
+
         String longRuleStr = "apiVersion: config.istio.io/v1alpha2\n" +
                 "kind: RouteRule\n" +
                 "metadata:\n" +
@@ -225,14 +232,11 @@ public class RemoteExecuteCommand {
                 "  match:\n" +
                 "    source:\n" +
                 "      name: sourceSvcName \n" +
-                "    request:\n" +
-                "      headers:\n" +
-                "        cookie: \n" +
-                "          regex: \"^(.*?;)?(jichao=dododo)(;.*)?$\" \n" +
                 "  httpFault:\n" +
                 "    delay:\n" +
                 "      percent: 100\n" +
-                "      fixedDelay: 10000s";
+                "      fixedDelay: 10000s\n" +
+                " \n";
         String fullLongRuleString = longRuleStr.replaceAll("svcName",svcName);
         String fullLongRuleStringFinal = fullLongRuleString.replaceAll("sourceSvcName",sourceSvcName);
         System.out.println("[=====]fullLongRuleString");
