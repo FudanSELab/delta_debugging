@@ -229,7 +229,7 @@ public class RemoteExecuteCommand {
                 "    request:\n" +
                 "      headers:\n" +
                 "        cookie: \n" +
-                "          regex: \"^(.*?;)?(jichao=dododo)(;.*)?$\" \n" +
+                "          regex: ^(.*?;)?(jichao=dododo)(;.*)?$ \n" +
                 "  httpFault:\n" +
                 "    delay:\n" +
                 "      percent: 100\n" +
