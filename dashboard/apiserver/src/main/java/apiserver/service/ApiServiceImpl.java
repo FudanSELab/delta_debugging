@@ -392,13 +392,23 @@ public class ApiServiceImpl implements ApiService {
             System.out.println("Error! Please check the parameter in the request!");
         }
         //Check if all the required replicas are ready: running status
-        while(!isAllReady(setServiceReplicasRequest, cluster)){
+        int count = 10;
+        boolean b = isAllReady(setServiceReplicasRequest, cluster);
+        while(!b && count > 0){
             try{
                 //Check every 10 seconds
                 Thread.sleep(10000);
             }catch(Exception e){
                 e.printStackTrace();
             }
+            b = isAllReady(setServiceReplicasRequest, cluster);
+            count--;
+        }
+        if(!b){
+            System.out.println("[Set service replicas].There are still some services not ready.");
+            response.setMessage("There are still some services not ready.");
+            response.setStatus(false);
+            return response;
         }
         //Check if all the pods are able to serve
         boolean result = isAllAbleToServe(serviceNames,cluster);
@@ -567,22 +577,30 @@ public class ApiServiceImpl implements ApiService {
                 e.printStackTrace();
             }
             //Check whether all of the services are available again in certain internals
-            while(!isAllReady(NAMESPACE,cluster)){
+            int count = 10;
+            boolean b = isAllReady(NAMESPACE,cluster);
+            while(!b && count > 0){
                 try{
                     //Check every 10 seconds
                     Thread.sleep(10000);
                 }catch(Exception e){
                     e.printStackTrace();
                 }
+                b = isAllReady(NAMESPACE,cluster);
+                count--;
+            }
+            if(!b){
+                System.out.println("[Set run on single node].There are still some services not ready.");
+                response.setMessage("There are still some services not ready.");
+                response.setStatus(false);
+                return response;
             }
             //Check if all the service are able to serve
-            while(!isAllServiceReadyToServe(NAMESPACE, cluster)){
-                try{
-                    //Check every 10 seconds
-                    Thread.sleep(10000);
-                }catch(Exception e){
-                    e.printStackTrace();
-                }
+            boolean result = isAllServiceReadyToServe(NAMESPACE, cluster);
+            if(result){
+                System.out.println("All the services are able to serve");
+            }else{
+                System.out.println("There are still some services not able to serve");
             }
 
             response.setStatus(true);
@@ -682,23 +700,49 @@ public class ApiServiceImpl implements ApiService {
             e.printStackTrace();
         }
         //Check whether all of the services are available again in certain internals
-        while(!isAllReady(NAMESPACE,cluster)){
-            try{
-                //Check every 10 seconds
-                Thread.sleep(10000);
-            }catch(Exception e){
-                e.printStackTrace();
-            }
-        }
+//        while(!isAllReady(NAMESPACE,cluster)){
+//            try{
+//                //Check every 10 seconds
+//                Thread.sleep(10000);
+//            }catch(Exception e){
+//                e.printStackTrace();
+//            }
+//        }
 
         //Check if all the service are able to serve
-        while(!isAllServiceReadyToServe(NAMESPACE,cluster)){
+//        while(!isAllServiceReadyToServe(NAMESPACE,cluster)){
+//            try{
+//                //Check every 10 seconds
+//                Thread.sleep(10000);
+//            }catch(Exception e){
+//                e.printStackTrace();
+//            }
+//        }
+        //Check whether all of the services are available again in certain internals
+        int count = 10;
+        boolean b = isAllReady(NAMESPACE,cluster);
+        while(!b && count > 0){
             try{
                 //Check every 10 seconds
                 Thread.sleep(10000);
             }catch(Exception e){
                 e.printStackTrace();
             }
+            b = isAllReady(NAMESPACE,cluster);
+            count--;
+        }
+        if(!b){
+            System.out.println("[Delete node by list].There are still some services not ready.");
+            response.setMessage("There are still some services not ready.");
+            response.setStatus(false);
+            return response;
+        }
+        //Check if all the service are able to serve
+        boolean result = isAllServiceReadyToServe(NAMESPACE, cluster);
+        if(result){
+            System.out.println("All the services are able to serve");
+        }else{
+            System.out.println("There are still some services not able to serve");
         }
 
         return response;
@@ -739,23 +783,49 @@ public class ApiServiceImpl implements ApiService {
             e.printStackTrace();
         }
         //Check whether all of the services are available again in certain internals
-        while(!isAllReady(NAMESPACE, cluster)){
-            try{
-                //Check every 10 seconds
-                Thread.sleep(10000);
-            }catch(Exception e){
-                e.printStackTrace();
-            }
-        }
+//        while(!isAllReady(NAMESPACE, cluster)){
+//            try{
+//                //Check every 10 seconds
+//                Thread.sleep(10000);
+//            }catch(Exception e){
+//                e.printStackTrace();
+//            }
+//        }
 
         //Check if all the service are able to serve
-        while(!isAllServiceReadyToServe(NAMESPACE, cluster)){
+//        while(!isAllServiceReadyToServe(NAMESPACE, cluster)){
+//            try{
+//                //Check every 10 seconds
+//                Thread.sleep(10000);
+//            }catch(Exception e){
+//                e.printStackTrace();
+//            }
+//        }
+//Check whether all of the services are available again in certain internals
+        int count = 10;
+        boolean b = isAllReady(NAMESPACE,cluster);
+        while(!b && count > 0){
             try{
                 //Check every 10 seconds
                 Thread.sleep(10000);
             }catch(Exception e){
                 e.printStackTrace();
             }
+            b = isAllReady(NAMESPACE,cluster);
+            count--;
+        }
+        if(!b){
+            System.out.println("[Reserve node by list].There are still some services not ready.");
+            response.setMessage("There are still some services not ready.");
+            response.setStatus(false);
+            return response;
+        }
+        //Check if all the service are able to serve
+        boolean result = isAllServiceReadyToServe(NAMESPACE, cluster);
+        if(result){
+            System.out.println("All the services are able to serve");
+        }else{
+            System.out.println("There are still some services not able to serve");
         }
 
         return response;
