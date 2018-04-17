@@ -87,6 +87,7 @@ $("#service_sequence_list_delete_all").click(function() {
         SetUnsetServiceRequestSuspendRequest.sourceSvcName = $("#source_service").val();
         SetUnsetServiceRequestSuspendRequest.clusterName = "cluster5";
         var data = JSON.stringify(SetUnsetServiceRequestSuspendRequest);
+        alert(data);
         $.ajax({
             type: "post",
             url: "http://10.141.212.22:18898/api/unsetServiceRequestSuspend",
@@ -115,6 +116,7 @@ $("#service_sequence_list_check_and_unsuspend").click(function() {
     SetAsyncRequestSequenceRequest.svcList = svcList.split(",");
     SetAsyncRequestSequenceRequest.clusterName = "cluster5";
     var data = JSON.stringify(SetAsyncRequestSequenceRequest);
+    alert(data);
     $.ajax({
         type: "post",
         //url: "http://10.141.212.24:18898/api/setAsyncRequestSequenceWithSrc",

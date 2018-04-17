@@ -103,9 +103,12 @@ public class ApiServiceImpl implements ApiService {
 
     @Override
     public SetUnsetServiceRequestSuspendResponse unsetServiceRequestSuspend(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+
         Cluster cluster = getClusterByName(setUnsetServiceRequestSuspendRequest.getClusterName());
         System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
+
         String svcName = setUnsetServiceRequestSuspendRequest.getSvc();
+
         String executeResult = doUnsetServiceRequestSuspend(svcName,cluster);
         System.out.println(executeResult);
         boolean status = (executeResult != null);
@@ -200,6 +203,7 @@ public class ApiServiceImpl implements ApiService {
         }catch (Exception e){
             e.printStackTrace();
         }
+        System.out.println("[=====]setAsyncRequestSequenceWithSrcCombineWithFullSuspend返回");
         return new SetAsyncRequestSequenceResponse(true,str);
         //return setAsyncRequestsSequenceWithSource(request);
     }
@@ -242,8 +246,9 @@ public class ApiServiceImpl implements ApiService {
                 String podLog = getPodLog(podInfo.getName(),"istio-proxy",cluster);
                 String[] logsFormatted = podLog.split("\n");
                 ArrayList<String> arrayList = new ArrayList<>(Arrays.asList(logsFormatted));
-                ArrayList<String> lastSeveralLogs = new ArrayList<>(arrayList.subList(arrayList.size() - 15,arrayList.size()));
-
+                ArrayList<String> lastSeveralLogs = new ArrayList<>(arrayList.subList(arrayList.size() - 10,arrayList.size()));
+                System.out.println("[=====]读取到的日志数量为：" + arrayList.size());
+                System.out.println("[=====]截取的日志数量为：" + arrayList.size());
                 for(String logStr : lastSeveralLogs) {
                     System.out.println("[=======]Log Line:" + logStr);
                     //并检查日志     response-code 200 && svcName && 接口名称
@@ -283,7 +288,7 @@ public class ApiServiceImpl implements ApiService {
         while(isRequestComplete == false){
             //每间隔20秒，获取一次pods的日志。注意是pod下的istio-proxy的日志
             try{
-                Thread.sleep(10000);
+                Thread.sleep(5000);
             }catch (InterruptedException e){
                 e.printStackTrace();
             }
@@ -297,9 +302,9 @@ public class ApiServiceImpl implements ApiService {
                 String podLog = getPodLog(podInfo.getName(),"istio-proxy",cluster);
                 String[] logsFormatted = podLog.split("\n");
                 ArrayList<String> arrayList = new ArrayList<>(Arrays.asList(logsFormatted));
-
-                ArrayList<String> lastSeveralLogs = new ArrayList<>(arrayList.subList(arrayList.size() - 15,arrayList.size()));
-
+                ArrayList<String> lastSeveralLogs = new ArrayList<>(arrayList.subList(arrayList.size() - 10,arrayList.size()));
+                System.out.println("[=====]读取到的日志数量为：" + arrayList.size());
+                System.out.println("[=====]截取的日志数量为：" + lastSeveralLogs.size());
                 for(String logStr : lastSeveralLogs) {
                     System.out.println("[=======]Log Line -:" + logStr);
                     //并检查日志     response-code 200 && svcName && 接口名称
