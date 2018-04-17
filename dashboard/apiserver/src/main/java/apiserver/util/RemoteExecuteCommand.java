@@ -216,12 +216,6 @@ public class RemoteExecuteCommand {
     }
 
     public String fillLongRuleFileWithSource(String svcName, String sourceSvcName){
-
-        //                "    request:\n" +
-//                "      headers:\n" +
-//                "        cookie: \n" +
-//                "          regex: \"^(.*?;)?(jichao=dododo)(;.*)?$\" \n" +
-
         String longRuleStr = "apiVersion: config.istio.io/v1alpha2\n" +
                 "kind: RouteRule\n" +
                 "metadata:\n" +
@@ -232,6 +226,10 @@ public class RemoteExecuteCommand {
                 "  match:\n" +
                 "    source:\n" +
                 "      name: sourceSvcName \n" +
+                "    request:\n" +
+                "      headers:\n" +
+                "        cookie: \n" +
+                "          regex: \"^(.*?;)?(jichao=dododo)(;.*)?$\" \n" +
                 "  httpFault:\n" +
                 "    delay:\n" +
                 "      percent: 100\n" +
