@@ -1035,22 +1035,30 @@ public class ApiServiceImpl implements ApiService {
             e.printStackTrace();
         }
         //Check whether all of the services are available again in certain internals
-        while(!isAllReady(NAMESPACE,cluster)){
+        int count = 10;
+        boolean b = isAllReady(NAMESPACE,cluster);
+        while(!b && count > 0){
             try{
                 //Check every 2 seconds
                 Thread.sleep(2000);
             }catch(Exception e){
                 e.printStackTrace();
             }
+            b = isAllReady(NAMESPACE,cluster);
+            count--;
+        }
+        if(!b){
+            System.out.println("There are still some pods are not ready after config delta");
+            response.setMessage("There are still some pods are not ready after config delta");
+            response.setStatus(false);
+            return response;
         }
         //Check if all the pods are able to serve
-        while(!isAllAbleToServe(serviceNames,cluster)){
-            try{
-                //Check every 10 seconds
-                Thread.sleep(10000);
-            }catch(Exception e){
-                e.printStackTrace();
-            }
+        boolean result = isAllAbleToServe(serviceNames,cluster);
+        if(result){
+            System.out.println("All the services are able to serve");
+        }else{
+            System.out.println("There are still some services not able to serve");
         }
 
         return response;
