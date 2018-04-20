@@ -1,7 +1,7 @@
 package deltabackend.domain.configDelta;
 
-import deltabackend.domain.DeltaTestResponse;
-import deltabackend.domain.EnvParameter;
+import deltabackend.domain.bean.SingleDeltaCMResourceRequest;
+import deltabackend.domain.test.DeltaTestResponse;
 
 import java.util.ArrayList;
 import java.util.List;

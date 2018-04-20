@@ -8,28 +8,48 @@ sequence.controller('SequenceCtrl', ['$scope', '$http','$window','loadTestCases'
             $window.location.reload();
         };
 
-        // 加载service列表
-        loadServiceList.loadServiceList().then(function (result) {
-            if(result.status){
-                $scope.services = result.services;
-                $scope.senderGroup = [];
-                $scope.receiverGroup = [];
-                for(var i = 0; i < $scope.services.length; i++){
-                    for(var j = 0; j < 5 && i < $scope.services.length; ){
+        $scope.refreshServices = function(){
+            loadServiceList.loadServiceList().then(function (result) {
+                if(result.status){
+                    $scope.services = result.services;
+                    $scope.senderGroup = [];
+                    $scope.receiverGroup = [];
+                    for(var i = 0; i < $scope.services.length; i++){
                         if($scope.services[i].serviceName.indexOf("service") !== -1){
                             $scope.senderGroup.push($scope.services[i]);
                             $scope.receiverGroup.push($scope.services[i]);
-                            i++;
-                            j++;
-                        } else {
-                            i++;
                         }
                     }
+                } else {
+                    alert(result.message);
                 }
-            } else {
-                alert(result.message);
-            }
-        });
+            });
+        };
+        // 加载service列表
+        $scope.refreshServices();
+
+        // // 加载service列表
+        // loadServiceList.loadServiceList().then(function (result) {
+        //     if(result.status){
+        //         $scope.services = result.services;
+        //         $scope.senderGroup = [];
+        //         $scope.receiverGroup = [];
+        //         for(var i = 0; i < $scope.services.length; i++){
+        //             for(var j = 0; j < 5 && i < $scope.services.length; ){
+        //                 if($scope.services[i].serviceName.indexOf("service") !== -1){
+        //                     $scope.senderGroup.push($scope.services[i]);
+        //                     $scope.receiverGroup.push($scope.services[i]);
+        //                     i++;
+        //                     j++;
+        //                 } else {
+        //                     i++;
+        //                 }
+        //             }
+        //         }
+        //     } else {
+        //         alert(result.message);
+        //     }
+        // });
 
         // 加载testcase列表
         loadTestCases.loadTestList().then(function (result) {
@@ -100,22 +120,21 @@ sequence.controller('SequenceCtrl', ['$scope', '$http','$window','loadTestCases'
                 setConnected(true);
                 stompClient.subscribe('/user/topic/sequenceDeltaResponse', function (data) {
                     var data = JSON.parse(data.body);
+                    console.log("sequenceDeltaResponse:");
+                    console.log(data);
                     if(data.status){
                         var result = data.result.deltaResults;
-                        var sender = data.sender;
-                        var receivers = data.receiversInOrder;
                         var entry = {
-                            sender: sender,
-                            receivers:"",
+                            env: JSON.stringify(data.envList),
                             tests: "",
                             diff:false
                         } ;
                         if(data.diffFromFirst){
                             entry.diff = true;
                         }
-                        for(var i = 0; i < receivers.length; i++){
-                            entry.receivers += receivers[i] + " ";
-                        }
+                        // for(var i = 0; i < receivers.length; i++){
+                        //     entry.receivers += receivers[i] + " ";
+                        // }
                         for(var j = 0; j < result.length; j++){
                             entry.tests += result[j].className + ": " + result[j].status + ";   " ;
                         }

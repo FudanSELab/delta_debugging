@@ -108,7 +108,7 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
                         $scope.configDeltaResponse.push(entry);
                         $scope.$apply();
                     } else {
-                        alert(data.message);
+                        console.log("configDeltaResponse" + data.message);
                     }
                 });
 
@@ -127,12 +127,18 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
                     $('#test-button').removeClass('disabled');
                 });
 
+
+                stompClient.subscribe('/user/topic/simpleSetOrignalResult', function (data) {
+                    alert(data.body);
+                    $scope.refreshConfigs();
+                    $('#setOriginal').removeClass('disabled');
+                });
+
             });
         }
 
 
         $scope.sendDeltaData = function() {
-            $scope.configDeltaResponse = [];
             var checkedConfig = $("input[name='serviceconfig']:checked");
             var configs = [];
             checkedConfig.each(function(){
@@ -144,18 +150,18 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
                     'value': temp[3]
                 });
             });
-
             var checkedTest = $("input[name='testcase']:checked");
             var tests = [];
             checkedTest.each(function(){
                 tests.push($(this).val());
             });
-
             console.log("configs:\n" );
             console.log(configs);
 
             if(configs.length > 0 && tests.length > 0 ){
                 $('#test-button').addClass('disabled');
+                $scope.configDeltaResponse = [];
+                $scope.configDeltaResult = "config testing...";
                 var data = {
                     'id': loginId,
                    'configs': configs,
@@ -165,7 +171,6 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
             } else {
                 alert("Please select at least one config item and one test case!");
             }
-
         };
 
         $scope.showDelta = function(){
@@ -184,6 +189,47 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
         $window.onbeforeunload = function(){
             disconnect();
         };
+
+        $scope.simpleSetOrignal = function(n){
+            if ( stompClient != null ) {
+                var checkedConfig = $("input[name='serviceconfig']:checked");
+                var configs = [];
+                checkedConfig.each(function(){
+                    var temp = $(this).val().split(":");
+                    var v;
+                    if(temp[2] == 'memory'){
+                        v = "350Mi";
+                    } else if(temp[2] == 'cpu'){
+                        v = "300m";
+                    } else {
+                        alert("the key cannot be mapped to a default value.");
+                    }
+                    configs.push({
+                        'serviceName': temp[0],
+                        'type': temp[1],
+                        'key': temp[2],
+                        'value': v
+                    });
+                });
+                console.log("simpleSetOrignal configs: ");
+                console.log(configs);
+
+                if(configs.length > 0){
+                    $('#setOriginal').addClass('disabled');
+                    var data = {
+                        'id': loginId,
+                        'configs': configs
+                    };
+                    stompClient.send("/app/msg/simpleSetOrignal", {}, JSON.stringify(data));
+                } else {
+                    alert("Please select at least one config.");
+                }
+            } else {
+                alert("Please click the connect button.")
+            }
+        };
+
+
 
         $scope.configlogs = "";
         $scope.getPodLogs = function(){

@@ -5,8 +5,16 @@ import java.util.List;
 public class ServiceDeltaRequest {
 
     String id;
-
     List<String> tests;
+    String cluster;
+
+    public String getCluster() {
+        return cluster;
+    }
+
+    public void setCluster(String cluster) {
+        this.cluster = cluster;
+    }
 
     public String getId() {
         return id;

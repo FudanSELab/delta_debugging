@@ -4,26 +4,36 @@ import com.baeldung.algorithms.ddmin.DDMinAlgorithm;
 import com.baeldung.algorithms.ddmin.DDMinDelta;
 import com.baeldung.algorithms.ddmin.ParallelDDMinAlgorithm;
 import com.baeldung.algorithms.ddmin.ParallelDDMinDelta;
-import deltabackend.domain.*;
-import deltabackend.domain.api.GetServiceReplicasRequest;
-import deltabackend.domain.api.GetServiceReplicasResponse;
-import deltabackend.domain.api.SetServiceReplicasRequest;
-import deltabackend.domain.api.SetServiceReplicasResponse;
+
+
+import deltabackend.domain.api.request.*;
+import deltabackend.domain.api.response.*;
+import deltabackend.domain.bean.ServiceReplicasSetting;
+import deltabackend.domain.bean.ServiceWithReplicas;
+
+import deltabackend.domain.bean.SingleDeltaCMResourceRequest;
 import deltabackend.domain.configDelta.ConfigDDMinResponse;
 import deltabackend.domain.configDelta.ConfigDeltaRequest;
-import deltabackend.domain.configDelta.SingleDeltaCMResourceRequest;
 import deltabackend.domain.ddmin.ConfigDDMinDeltaExt;
 import deltabackend.domain.ddmin.InstanceDDMinDeltaExt;
+import deltabackend.domain.ddmin.MixerDDMinDeltaExt;
 import deltabackend.domain.ddmin.SequenceDDMinDeltaExt;
-import deltabackend.domain.instanceDelta.InstanceDDMinResponse;
+
 import deltabackend.domain.instanceDelta.DeltaRequest;
+import deltabackend.domain.instanceDelta.InstanceDDMinResponse;
 import deltabackend.domain.instanceDelta.SimpleInstanceRequest;
-import deltabackend.domain.nodeDelta.DeltaNodeByListResponse;
-import deltabackend.domain.nodeDelta.DeltaNodeRequest;
+import deltabackend.domain.mixerDelta.MixerDDMinResponse;
+import deltabackend.domain.mixerDelta.MixerDeltaRequest;
 import deltabackend.domain.nodeDelta.NodeDeltaRequest;
+import deltabackend.domain.sequenceDelta.SequenceDDMinResponse;
 import deltabackend.domain.sequenceDelta.SequenceDeltaRequest;
-import deltabackend.domain.serviceDelta.*;
+import deltabackend.domain.serviceDelta.ExtractServiceRequest;
+import deltabackend.domain.serviceDelta.ReserveServiceResponse;
+import deltabackend.domain.serviceDelta.ServiceDeltaRequest;
 import deltabackend.domain.socket.SocketSessionRegistry;
+import deltabackend.domain.test.DeltaTestRequest;
+import deltabackend.domain.test.DeltaTestResponse;
+import deltabackend.domain.test.DeltaTestResult;
 import deltabackend.util.MyConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.MessageHeaders;
@@ -33,10 +43,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 @Service
@@ -54,29 +61,33 @@ public class DeltaServiceImpl implements DeltaService{
     @Autowired
     private MyConfig myConfig;
 
-    private List<String> clusters = Arrays.asList("cluster1", "cluster2", "cluster3");
-
 
     //////////////////////////////////////////Instance Delta////////////////////////////////////////////////////
     @Override
-    public void delta(DeltaRequest message) {
+    public void delta(DeltaRequest message) throws ExecutionException, InterruptedException {
         if ( ! webAgentSessionRegistry.getSessionIds(message.getId()).isEmpty()){
             System.out.println("=============Get one Instance Delta Request=============");
             String sessionId=webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
             System.out.println("sessionid = " + sessionId);
             List<String> envStrings= message.getEnv();
+            //get cluster name
+            String cluster = "cluster1";
+            if(null != message.getCluster()){
+                cluster = message.getCluster();
+            }
             //query for the env services' instance number
-            GetServiceReplicasResponse gsrp = queryServicesReplicas(envStrings);
-            List<EnvParameter> env = null;
+            GetServiceReplicasResponse gsrp = queryServicesReplicas(envStrings, cluster);
+            List<ServiceWithReplicas> env = null;
             if(gsrp.isStatus()){
                 env = gsrp.getServices();
             } else {
                 System.out.println("################ cannot get service replica number ####################");
             }
 
-            DDMinAlgorithm ddmin = new DDMinAlgorithm();
-            DDMinDelta ddmin_delta = new InstanceDDMinDeltaExt(message.getTests(),env, sessionId, template);
+            ParallelDDMinAlgorithm ddmin = new ParallelDDMinAlgorithm();
+            ParallelDDMinDelta ddmin_delta = new InstanceDDMinDeltaExt(message.getTests(),env, sessionId, template, myConfig.getClusters());
             ddmin.setDdmin_delta(ddmin_delta);
+            ddmin.initEnv();
             List<String> ddminResult = ddmin.ddmin(ddmin_delta.deltas_all);
 
             InstanceDDMinResponse r = new InstanceDDMinResponse();
@@ -92,94 +103,25 @@ public class DeltaServiceImpl implements DeltaService{
                 r.setMessage("Failed");
                 r.setDdminResult(null);
             }
-
             template.convertAndSendToUser(sessionId,"/topic/deltaEnd" ,r, createHeaders(sessionId));
         }
     }
 
-//    @Override
-//    public void delta(DeltaRequest message) {
-//        if ( ! webAgentSessionRegistry.getSessionIds(message.getId()).isEmpty()){
-//            System.out.println("=============Get one delta request=============");
-//            String sessionId=webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
-//            System.out.println("sessionid = " + sessionId);
-//            List<String> envStrings= message.getEnv();
-//            //query for the env services' instance number
-//            GetServiceReplicasResponse gsrp = queryServicesReplicas(envStrings);
-//
-//            List<EnvParameter> env = null;
-//            if(gsrp.isStatus()){
-//                env = gsrp.getServices();
-//            } else {
-//                System.out.println("################ cannot get service replica number ####################");
-//            }
-//
-//            DeltaTestResponse firstResult = new DeltaTestResponse();//save the first result
-//            for(int i = 0; null != env && i < env.size() + 1; i++){
-//                System.out.println("============= For loop to change the env parameter =============");
-//                if( i != 0 && env.get(i-1).getNumOfReplicas() <= 1){
-//                    continue;
-//                }
-//                DeltaResponse dr = new DeltaResponse();
-//                List<EnvParameter> env2 = new ArrayList<EnvParameter>(env.size());
-//                Iterator<EnvParameter> iterator = env.iterator();
-//                while(iterator.hasNext()){
-//                    env2.add((EnvParameter) iterator.next().clone());
-//                }
-//                if( i != 0 && i <= env.size()){
-//                    env2.get(i-1).setNumOfReplicas(1);
-//                }
-//                //adjust the instance number
-//                SetServiceReplicasResponse ssresult = setInstanceNumOfServices(env2);
-//
-//                if(ssresult.isStatus()){
-//                    System.out.println("============= SetServiceReplicasResponse status is true =============");
-//                    dr.setEnv(env2);
-//
-//                    //delta tests
-//                    DeltaTestResponse result = deltaTests(message.getTests());
-//
-//                    if(result.getStatus() == -1){ //the backend throw an exception, stop the delta test, maybe the testcase not exist
-//                        dr.setStatus(false);
-//                        dr.setMessage(result.getMessage());
-//                        template.convertAndSendToUser(sessionId,"/topic/deltaresponse" ,dr, createHeaders(sessionId));
-//                        break;
-//                    }
-//                    dr.setStatus(true);//just mean the test case has been executed
-//                    dr.setMessage(result.getMessage());
-//                    dr.setResult(result);
-//                    if( i == 0 ){
-//                        firstResult = result;
-//                        dr.setDiffFromFirst(false);
-//                    } else {
-//                        dr.setDiffFromFirst(judgeDiffer( firstResult, result));
-//                    }
-//                    template.convertAndSendToUser(sessionId,"/topic/deltaresponse" ,dr, createHeaders(sessionId));
-//                } else {
-//                    System.out.println("-----------------" + ssresult.getMessage() + "----------------------");
-//                }
-////                if( ! result.isStatus()){ //if failure, break the loop
-////                    break;
-////                }
-//            }
-//
-//        }
+
+//    private DeltaTestResponse deltaTests(List<String> testNames){
+//        DeltaTestRequest dtr = new DeltaTestRequest();
+//        dtr.setTestNames(testNames);
+//        DeltaTestResponse result = restTemplate.postForObject(
+//                "http://test-backend:5001/testBackend/deltaTest",dtr,
+//                DeltaTestResponse.class);
+//        return result;
 //    }
 
-
-    private DeltaTestResponse deltaTests(List<String> testNames){
-        DeltaTestRequest dtr = new DeltaTestRequest();
-        dtr.setTestNames(testNames);
-        DeltaTestResponse result = restTemplate.postForObject(
-                "http://test-backend:5001/testBackend/deltaTest",dtr,
-                DeltaTestResponse.class);
-        return result;
-    }
-
     //query for the env services' instance number
-    private GetServiceReplicasResponse queryServicesReplicas(List<String> envStrings){
+    private GetServiceReplicasResponse queryServicesReplicas(List<String> envStrings, String cluster){
         GetServiceReplicasRequest gsrr = new GetServiceReplicasRequest();
         gsrr.setServices(envStrings);
+        gsrr.setClusterName(cluster);
         GetServiceReplicasResponse gsrp = restTemplate.postForObject(
                 "http://api-server:18898/api/getServicesReplicas",gsrr,
                 GetServiceReplicasResponse.class);
@@ -191,9 +133,10 @@ public class DeltaServiceImpl implements DeltaService{
 
     //adjust the instance number
     @Override
-    public SetServiceReplicasResponse setInstanceNumOfServices(List<EnvParameter> env) {
+    public SetServiceReplicasResponse setInstanceNumOfServices(List<ServiceReplicasSetting> env, String cluster) {
         SetServiceReplicasRequest ssrr = new SetServiceReplicasRequest();
         ssrr.setServiceReplicasSettings(env);
+        ssrr.setClusterName(cluster);
         SetServiceReplicasResponse ssresult = restTemplate.postForObject(
                 "http://api-server:18898/api/setReplicas",ssrr,
                 SetServiceReplicasResponse.class);
@@ -205,15 +148,22 @@ public class DeltaServiceImpl implements DeltaService{
     public void simpleSetInstance(SimpleInstanceRequest message) {
         if ( ! webAgentSessionRegistry.getSessionIds(message.getId()).isEmpty()){
             String sessionId=webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
-            List<EnvParameter> env = new ArrayList<EnvParameter>();
+            List<ServiceReplicasSetting> env = new ArrayList<ServiceReplicasSetting>();
             for(String service: message.getServices()){
-                EnvParameter ep = new EnvParameter();
+                ServiceReplicasSetting ep = new ServiceReplicasSetting();
                 ep.setServiceName(service);
                 ep.setNumOfReplicas(message.getInstanceNum());
                 env.add(ep);
             }
-            SetServiceReplicasResponse ssrr = setInstanceNumOfServices(env);
-            if(ssrr.isStatus()){
+            boolean success = true;
+            for(String c : myConfig.getClusters()){
+                SetServiceReplicasResponse ssrr = setInstanceNumOfServices(env, c);
+                if( ! ssrr.isStatus()){
+                    success = false;
+                }
+            }
+
+            if(success){
                 template.convertAndSendToUser(sessionId,"/topic/simpleSetInstanceResult" ,"Success to set these services' replica", createHeaders(sessionId));
             } else {
                 template.convertAndSendToUser(sessionId,"/topic/simpleSetInstanceResult" ,"Fail to set these services' replica", createHeaders(sessionId));
@@ -222,20 +172,20 @@ public class DeltaServiceImpl implements DeltaService{
     }
 
 
-    private boolean judgeDiffer(DeltaTestResponse first, DeltaTestResponse dtr){
-        List<DeltaTestResult> l1 = first.getDeltaResults();
-        List<DeltaTestResult> l2 = dtr.getDeltaResults();
-        if(l1.size() == l2.size()){
-            for(int i = 0; i < l1.size(); i ++){
-                if( ! l1.get(i).getStatus().equals(l2.get(i).getStatus())){
-                    return true;
-                }
-            }
-        } else {
-            return true;
-        }
-        return false;
-    }
+//    private boolean judgeDiffer(DeltaTestResponse first, DeltaTestResponse dtr){
+//        List<DeltaTestResult> l1 = first.getDeltaResults();
+//        List<DeltaTestResult> l2 = dtr.getDeltaResults();
+//        if(l1.size() == l2.size()){
+//            for(int i = 0; i < l1.size(); i ++){
+//                if( ! l1.get(i).getStatus().equals(l2.get(i).getStatus())){
+//                    return true;
+//                }
+//            }
+//        } else {
+//            return true;
+//        }
+//        return false;
+//    }
 
     private MessageHeaders createHeaders(String sessionId) {
         SimpMessageHeaderAccessor headerAccessor = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
@@ -252,11 +202,17 @@ public class DeltaServiceImpl implements DeltaService{
             System.out.println("=============Get one service delta request=============");
             String sessionId=webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
             System.out.println("sessionid = " + sessionId);
-            RestartServiceResponse restartResult = restartZipkin();
+            //get cluster name
+            String cluster = "cluster1";
+            if(null != message.getCluster()){
+                cluster = message.getCluster();
+            }
+
+            RestartServiceResponse restartResult = restartZipkin(cluster);
             if(restartResult.isStatus()){
-                runTestCases(message.getTests());
-                List<String> servicesNames = getServicesFromZipkin();
-                ReserveServiceResponse response = extract(servicesNames);
+                runTestCases(message.getTests(), cluster);
+                List<String> servicesNames = getServicesFromZipkin(cluster);
+                ReserveServiceResponse response = extract(servicesNames, cluster);
                 template.convertAndSendToUser(sessionId,"/topic/serviceDeltaResponse" ,response, createHeaders(sessionId));
             } else {
                 ReserveServiceResponse response = new ReserveServiceResponse();
@@ -268,34 +224,36 @@ public class DeltaServiceImpl implements DeltaService{
         }
     }
 
-    @Override
-    public ReserveServiceResponse extractServices(ExtractServiceRequest testCases) {
-        runTestCases(testCases.getTests());
-        List<String> servicesNames = getServicesFromZipkin();
-        return extract(servicesNames);
-    }
+//    @Override
+//    public ReserveServiceResponse extractServices(ExtractServiceRequest testCases) {
+//        runTestCases(testCases.getTests(), cluster);
+//        List<String> servicesNames = getServicesFromZipkin();
+//        return extract(servicesNames);
+//    }
 
     //zero, restart the zipkin
-    private RestartServiceResponse restartZipkin(){
+    private RestartServiceResponse restartZipkin(String cluster){
         RestartServiceResponse result = restTemplate.getForObject(
-                "http://test-backend:5001/testBackend/deltaTest",
+                "http://api-server:18898/api/restartService/" + cluster,
                 RestartServiceResponse.class);
         return result;
     }
 
     //first, run testcases
-    private void runTestCases(List<String> testCaseNames){
+    private void runTestCases(List<String> testCaseNames, String cluster){
         DeltaTestRequest dtr = new DeltaTestRequest();
         dtr.setTestNames(testCaseNames);
+        dtr.setCluster(cluster);
         DeltaTestResponse result = restTemplate.postForObject(
                 "http://test-backend:5001/testBackend/deltaTest",dtr,
                 DeltaTestResponse.class);
     }
 
     //second, get all the needed services' name from zipkin
-    public List<String> getServicesFromZipkin(){
+    public List<String> getServicesFromZipkin(String cluster){
+        System.out.println("====== Zipkin URL ====" + myConfig.getZipkinUrl().get(cluster));
         List result = restTemplate.getForObject(
-                myConfig.getZipkinUrl() + "/api/v1/services", List.class);
+                myConfig.getZipkinUrl().get(cluster) + "/api/v1/services", List.class);
         Iterator it = result.iterator();
         List<String> serviceNames = new ArrayList<String>();
         while(it.hasNext()){
@@ -309,9 +267,10 @@ public class DeltaServiceImpl implements DeltaService{
     }
 
     //third, let k8s stop the services except services names from zipkin
-    private ReserveServiceResponse extract(List<String> serviceNames){
+    private ReserveServiceResponse extract(List<String> serviceNames, String cluster){
         ReserveServiceRequest rsr = new ReserveServiceRequest();
         rsr.setServices(serviceNames);
+        rsr.setClusterName(cluster);
         ReserveServiceByListResponse result = restTemplate.postForObject(
                 "http://api-server:18898/api/reserveServiceByList",rsr,
                 ReserveServiceByListResponse.class);
@@ -330,9 +289,15 @@ public class DeltaServiceImpl implements DeltaService{
             System.out.println("=============Get one node delta request=============");
             String sessionId=webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
             System.out.println("sessionid = " + sessionId);
+            //get cluster name
+            String cluster = "cluster1";
+            if(null != message.getCluster()){
+                cluster = message.getCluster();
+            }
 
             DeltaNodeRequest list = new DeltaNodeRequest();
             list.setNodeNames(message.getNodeNames());
+            list.setClusterName(cluster);
             DeltaNodeByListResponse result = restTemplate.postForObject(
                     "http://api-server:18898/api/deleteNodeByList",list,
                     DeltaNodeByListResponse.class);
@@ -341,27 +306,27 @@ public class DeltaServiceImpl implements DeltaService{
         }
     }
 
-    @Override
-    public DeltaNodeByListResponse deleteNodesByList(DeltaNodeRequest list) {
-        DeltaNodeByListResponse result = restTemplate.postForObject(
-                "http://api-server:18898/api/deleteNodeByList",list,
-                DeltaNodeByListResponse.class);
-        return result;
-    }
+//    @Override
+//    public DeltaNodeByListResponse deleteNodesByList(DeltaNodeRequest list) {
+//        DeltaNodeByListResponse result = restTemplate.postForObject(
+//                "http://api-server:18898/api/deleteNodeByList",list,
+//                DeltaNodeByListResponse.class);
+//        return result;
+//    }
 
 
     ///////////////////////////////////////Config Delta/////////////////////////////////////////////
     @Override
-    public void configDelta(ConfigDeltaRequest message) {
+    public void configDelta(ConfigDeltaRequest message) throws ExecutionException, InterruptedException {
         if ( ! webAgentSessionRegistry.getSessionIds(message.getId()).isEmpty()){
-            System.out.println("=============Get one Instance Delta Request=============");
-            String sessionId=webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
+            System.out.println("=============Get one Config Delta Request=============");
+            String sessionId = webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
             System.out.println("sessionid = " + sessionId);
-            List<SingleDeltaCMResourceRequest> configs = message.getConfigs();
 
-            DDMinAlgorithm ddmin = new DDMinAlgorithm();
-            DDMinDelta ddmin_delta = new ConfigDDMinDeltaExt(message.getTests(),configs, sessionId, template);
+            ParallelDDMinAlgorithm ddmin = new ParallelDDMinAlgorithm();
+            ParallelDDMinDelta ddmin_delta = new ConfigDDMinDeltaExt(message.getTests(),message.getConfigs(), sessionId, template, myConfig.getClusters());
             ddmin.setDdmin_delta(ddmin_delta);
+            ddmin.initEnv();
             List<String> ddminResult = ddmin.ddmin(ddmin_delta.deltas_all);
 
             ConfigDDMinResponse r = new ConfigDDMinResponse();
@@ -383,30 +348,59 @@ public class DeltaServiceImpl implements DeltaService{
         }
     }
 
+    @Override
+    public void simpleSetOrignal(ConfigDeltaRequest message) {
+        if ( ! webAgentSessionRegistry.getSessionIds(message.getId()).isEmpty()){
+            System.out.println("=============Get one Config simpleSetOrignal Request=============");
+            String sessionId = webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
+            System.out.println("sessionid = " + sessionId);
+
+            boolean success = true;
+            for(String c : myConfig.getClusters()){
+                DeltaCMResourceRequest dcr = new DeltaCMResourceRequest();
+                dcr.setDeltaRequests(message.getConfigs());
+                dcr.setClusterName(c);
+                DeltaCMResourceResponse r = restTemplate.postForObject(
+                        "http://api-server:18898/api/deltaCMResource",dcr,
+                        DeltaCMResourceResponse.class);
+                if( ! r.isStatus()){
+                    success = false;
+                }
+            }
+
+            if(success){
+                template.convertAndSendToUser(sessionId,"/topic/simpleSetOrignalResult" ,"Success to set these configs", createHeaders(sessionId));
+            } else {
+                template.convertAndSendToUser(sessionId,"/topic/simpleSetOrignalResult" ,"Fail to set these configs", createHeaders(sessionId));
+            }
+
+        }
+    }
+
 
     ////////////////////////////////////////Sequence Delta/////////////////////////////////////////////////
 
     @Override
     public void sequenceDelta(SequenceDeltaRequest message) throws ExecutionException, InterruptedException {
         if ( ! webAgentSessionRegistry.getSessionIds(message.getId()).isEmpty()){
-            System.out.println("=============Get one Instance Delta Request=============");
+            System.out.println("=============Get one Sequence Delta Request=============");
             String sessionId=webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
             System.out.println("sessionid = " + sessionId);
 
             ParallelDDMinAlgorithm ddmin = new ParallelDDMinAlgorithm();
-            ParallelDDMinDelta ddmin_delta = new SequenceDDMinDeltaExt(clusters, message.getTests(),message.getSender(), message.getReceivers(), sessionId, template);
+            ParallelDDMinDelta ddmin_delta = new SequenceDDMinDeltaExt(message.getTests(),message.getSender(), message.getReceivers(), sessionId, template, myConfig.getClusters());
             ddmin.setDdmin_delta(ddmin_delta);
             ddmin.initEnv();
             List<String> ddminResult = ddmin.ddmin(ddmin_delta.deltas_all);
+            System.out.println("######## ddminResult: " + ddminResult);
 
-            ConfigDDMinResponse r = new ConfigDDMinResponse();
+            List<String> finalResult = ((SequenceDDMinDeltaExt)ddmin_delta).getFinalResult(ddminResult);
+
+            SequenceDDMinResponse r = new SequenceDDMinResponse();
             if(null != ddminResult){
-                for(String s: ddminResult){
-                    System.out.println("######## ddminResult: " + s);
-                    r.setStatus(true);
-                    r.setMessage("Success");
-                    r.setDdminResult(ddminResult);
-                }
+                r.setStatus(true);
+                r.setMessage("Success");
+                r.setDdminResult(finalResult);
             } else {
                 r.setStatus(false);
                 r.setMessage("Failed");
@@ -414,7 +408,41 @@ public class DeltaServiceImpl implements DeltaService{
             }
 
             template.convertAndSendToUser(sessionId,"/topic/sequenceDeltaEnd" ,r, createHeaders(sessionId));
-//            ((ConfigDDMinDeltaExt)ddmin_delta).recoverEnv();
+            ((SequenceDDMinDeltaExt)ddmin_delta).recoverEnv();
+        }
+
+    }
+
+    //////////////////////////// Mixer Delta //////////////////////////////////////
+    @Override
+    public void mixerDelta(MixerDeltaRequest message) throws ExecutionException, InterruptedException {
+        if ( ! webAgentSessionRegistry.getSessionIds(message.getId()).isEmpty()){
+            System.out.println("=============Get one Mixer Delta Request=============");
+            String sessionId=webAgentSessionRegistry.getSessionIds(message.getId()).stream().findFirst().get();
+            System.out.println("sessionid = " + sessionId);
+
+            ParallelDDMinAlgorithm ddmin = new ParallelDDMinAlgorithm();
+            ParallelDDMinDelta ddmin_delta = new MixerDDMinDeltaExt(message.getTests(),message.getSender(), message.getReceivers(),message.getInstances(), message.getConfigs(), sessionId, template, myConfig.getClusters());
+            ddmin.setDdmin_delta(ddmin_delta);
+            ddmin.initEnv();
+            List<String> ddminResult = ddmin.ddmin(ddmin_delta.deltas_all);
+            System.out.println("######## ddminResult: " + ddminResult);
+
+            Map<String, List<String>> finalResult = ((MixerDDMinDeltaExt)ddmin_delta).getFinalResult(ddminResult);
+
+            MixerDDMinResponse r = new MixerDDMinResponse();
+            if(null != ddminResult){
+                r.setStatus(true);
+                r.setMessage("Success");
+                r.setDdminResult(finalResult);
+            } else {
+                r.setStatus(false);
+                r.setMessage("Failed");
+                r.setDdminResult(null);
+            }
+
+            template.convertAndSendToUser(sessionId,"/topic/mixerDeltaEnd" ,r, createHeaders(sessionId));
+            ((MixerDDMinDeltaExt)ddmin_delta).recoverEnv();
         }
 
     }

@@ -1238,7 +1238,7 @@ public class ApiServiceImpl implements ApiService {
                     }
                 }
                 else{
-                    System.out.println(String.format("The service [%s] doesn't have ready address!"));
+                    System.out.println(String.format("The service [%s] doesn't have ready address!",serviceName));
                 }
             }
             //Check if all the endpoints in the list are able to serve
@@ -1627,7 +1627,7 @@ public class ApiServiceImpl implements ApiService {
             p.waitFor();
 
             //Wait 2 seconds to ensure the existence of the file
-            Thread.sleep(2000);
+            Thread.sleep(5000);
 
             String json = readWholeFile(filePath);
             //Parse the response to the SetServicesReplicasResponseFromAPI Bean

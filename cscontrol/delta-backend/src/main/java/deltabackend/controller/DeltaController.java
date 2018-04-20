@@ -1,10 +1,11 @@
 package deltabackend.controller;
 
+import deltabackend.domain.api.request.DeltaNodeRequest;
+import deltabackend.domain.api.response.DeltaNodeByListResponse;
 import deltabackend.domain.configDelta.ConfigDeltaRequest;
 import deltabackend.domain.instanceDelta.DeltaRequest;
 import deltabackend.domain.instanceDelta.SimpleInstanceRequest;
-import deltabackend.domain.nodeDelta.DeltaNodeByListResponse;
-import deltabackend.domain.nodeDelta.DeltaNodeRequest;
+import deltabackend.domain.mixerDelta.MixerDeltaRequest;
 import deltabackend.domain.nodeDelta.NodeDeltaRequest;
 import deltabackend.domain.sequenceDelta.SequenceDeltaRequest;
 import deltabackend.domain.serviceDelta.ExtractServiceRequest;
@@ -14,6 +15,7 @@ import deltabackend.service.DeltaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.web.bind.annotation.*;
+
 
 @RestController
 public class DeltaController {
@@ -44,34 +46,48 @@ public class DeltaController {
         deltaService.serviceDelta(message);
     }
 
-    ////////////////////////////////////////Service delta////////////////////////////////////////
+    ////////////////////////////////////////Node delta////////////////////////////////////////
     @MessageMapping("/msg/nodeDelta")
     public void nodeDelta(NodeDeltaRequest message) throws Exception {
         deltaService.nodeDelta(message);
     }
 
-    @CrossOrigin(origins = "*")
-    @RequestMapping(value="/delta/extractServices", method = RequestMethod.POST)
-    public ReserveServiceResponse extractServices(@RequestBody ExtractServiceRequest request) {
-        return deltaService.extractServices(request);
-    }
+//    @CrossOrigin(origins = "*")
+//    @RequestMapping(value="/delta/extractServices", method = RequestMethod.POST)
+//    public ReserveServiceResponse extractServices(@RequestBody ExtractServiceRequest request) {
+//        return deltaService.extractServices(request);
+//    }
+//
+//    @CrossOrigin(origins = "*")
+//    @RequestMapping(value="/delta/deleteNodes", method = RequestMethod.POST)
+//    public DeltaNodeByListResponse deleteNodes(@RequestBody DeltaNodeRequest request) {
+//        return deltaService.deleteNodesByList(request);
+//    }
 
-    @CrossOrigin(origins = "*")
-    @RequestMapping(value="/delta/deleteNodes", method = RequestMethod.POST)
-    public DeltaNodeByListResponse deleteNodes(@RequestBody DeltaNodeRequest request) {
-        return deltaService.deleteNodesByList(request);
-    }
-
-    //////////////////////////////////////////To do //////////////////////////////////////////
+    ////////////////////////////////////////// Config Delta  //////////////////////////////////////////
 
     @MessageMapping("/msg/configDelta")
     public void configDelta(ConfigDeltaRequest message) throws Exception {
         deltaService.configDelta(message);
     }
 
+    @MessageMapping("/msg/simpleSetOrignal")
+    public void simpleSetOrignal(ConfigDeltaRequest message) throws Exception {
+        deltaService.simpleSetOrignal(message);
+    }
+
+    ///////////////////////////// Sequence Delta ///////////////////////////////////
+
     @MessageMapping("/msg/sequenceDelta")
     public void sequenceDelta(SequenceDeltaRequest message) throws Exception {
         deltaService.sequenceDelta(message);
+    }
+
+    ///////////////////////////// Mixer Delta ///////////////////////////////////
+
+    @MessageMapping("/msg/mixerDelta")
+    public void mixerDelta(MixerDeltaRequest message) throws Exception {
+        deltaService.mixerDelta(message);
     }
 
 }

@@ -6,12 +6,10 @@ import java.util.List;
 public class SequenceDeltaRequest {
 
     String id;
-
     String sender;
-
     ArrayList<String> receivers;
-
     List<String> tests;
+
 
 
     public String getId() {

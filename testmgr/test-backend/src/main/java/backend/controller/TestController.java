@@ -34,6 +34,8 @@ public class TestController {
     @Autowired
     ConfigService configService;
 
+//    String cluster = "cluster1";
+
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/welcome", method = RequestMethod.GET)
     public String welcome() {
@@ -93,13 +95,18 @@ public class TestController {
         DeltaTestResponse response = new DeltaTestResponse();
         List<FutureTask<DeltaTestResult>> futureTasks = new ArrayList<FutureTask<DeltaTestResult>>();
         ExecutorService executorService = Executors.newFixedThreadPool(10);
+        //multiple clusters
+        String cluster = "cluster1";
+        if( null != request.getCluster()){
+            cluster= request.getCluster();
+        }
         for(String s: testStrings){
             if( ! configService.containTestCase(s) ){
                 response.setStatus(0);
                 response.setMessage(s + " is not in the test list.");
                 return response;
             } else {
-                FutureTask<DeltaTestResult> futureTask = new FutureTask<DeltaTestResult>(new SingleDeltaTest(s));
+                FutureTask<DeltaTestResult> futureTask = new FutureTask<DeltaTestResult>(new SingleDeltaTest(s, cluster));
                 System.out.println("##############################################");
                 System.out.println("############# add a new test task ############");
                 System.out.println("##############################################");
@@ -123,6 +130,8 @@ public class TestController {
         response.setMessage(message);
         // 清理线程池
         executorService.shutdown();
+
+        System.out.println("### return test response: " + response.getStatus() + ": " + response.getMessage());
         return response;
     }
 
@@ -130,24 +139,25 @@ public class TestController {
     class SingleDeltaTest implements Callable<DeltaTestResult>{
 
         private String testName;
+        private String cluster;
 
-        public SingleDeltaTest(String s){
+        public SingleDeltaTest(String s, String cluster){
             this.testName = s;
+            this.cluster = cluster;
         }
 
         @Override
         public DeltaTestResult call() throws Exception {
-            return runDeltaTest(this.testName);
+            return runDeltaTest(this.testName, this.cluster);
         }
     }
 
 
-    private DeltaTestResult runDeltaTest(String testString) throws Exception{
+    private DeltaTestResult runDeltaTest(String testString, String cluster) throws Exception{
         TestNG testng = new TestNG();
         try{
             //must add the package name
-            testng.setTestClasses(new Class[]{Class.forName("test." + testString)});
-//        testng.setTestClasses(new Class[]{Class.forName(configService.getTestCase(testString))});
+            testng.setTestClasses(new Class[]{Class.forName(cluster + "." + testString)});
             DeltaTestReporter tfr = new DeltaTestReporter();
             testng.addListener((ITestNGListener)tfr);
             testng.setOutputDirectory("./test-output");

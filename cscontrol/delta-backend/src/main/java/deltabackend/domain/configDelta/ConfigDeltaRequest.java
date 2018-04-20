@@ -1,5 +1,7 @@
 package deltabackend.domain.configDelta;
 
+import deltabackend.domain.bean.SingleDeltaCMResourceRequest;
+
 import java.util.List;
 
 public class ConfigDeltaRequest {

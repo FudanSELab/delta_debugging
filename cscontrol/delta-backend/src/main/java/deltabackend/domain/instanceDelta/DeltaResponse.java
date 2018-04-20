@@ -1,7 +1,8 @@
 package deltabackend.domain.instanceDelta;
 
-import deltabackend.domain.DeltaTestResponse;
-import deltabackend.domain.EnvParameter;
+import deltabackend.domain.bean.ServiceWithReplicas;
+import deltabackend.domain.test.DeltaTestResponse;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,7 +10,7 @@ import java.util.List;
 public class DeltaResponse {
     boolean status;
     String message;
-    List<EnvParameter> env = new ArrayList<EnvParameter>();
+    List<ServiceWithReplicas> env = new ArrayList<ServiceWithReplicas>();
     DeltaTestResponse result;
     boolean diffFromFirst;//different from the first test result, highlight it
 
@@ -21,11 +22,11 @@ public class DeltaResponse {
         this.result = result;
     }
 
-    public List<EnvParameter> getEnv() {
+    public List<ServiceWithReplicas> getEnv() {
         return env;
     }
 
-    public void setEnv(List<EnvParameter> env) {
+    public void setEnv(List<ServiceWithReplicas> env) {
         this.env = env;
     }
 

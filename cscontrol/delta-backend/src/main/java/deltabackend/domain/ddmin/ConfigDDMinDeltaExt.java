@@ -1,29 +1,25 @@
 package deltabackend.domain.ddmin;
 
 import com.baeldung.algorithms.ddmin.DDMinDelta;
-import deltabackend.domain.DeltaTestRequest;
-import deltabackend.domain.DeltaTestResponse;
-import deltabackend.domain.EnvParameter;
-import deltabackend.domain.api.SetServiceReplicasRequest;
-import deltabackend.domain.api.SetServiceReplicasResponse;
+import com.baeldung.algorithms.ddmin.ParallelDDMinDelta;
+import deltabackend.domain.api.request.DeltaCMResourceRequest;
+import deltabackend.domain.api.response.DeltaCMResourceResponse;
+import deltabackend.domain.bean.SingleDeltaCMResourceRequest;
 import deltabackend.domain.configDelta.ConfigDeltaResponse;
-import deltabackend.domain.configDelta.DeltaCMResourceRequest;
-import deltabackend.domain.configDelta.DeltaCMResourceResponse;
-import deltabackend.domain.configDelta.SingleDeltaCMResourceRequest;
-import deltabackend.domain.instanceDelta.DeltaResponse;
+import deltabackend.domain.test.DeltaTestRequest;
+import deltabackend.domain.test.DeltaTestResponse;
+
+
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessageType;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
-public class ConfigDDMinDeltaExt extends DDMinDelta {
+public class ConfigDDMinDeltaExt extends ParallelDDMinDelta {
 
     private RestTemplate restTemplate = new RestTemplate();
 
@@ -42,9 +38,10 @@ public class ConfigDDMinDeltaExt extends DDMinDelta {
     private String expectException = "exception";
 
 
-    public ConfigDDMinDeltaExt(List<String> tests, List<SingleDeltaCMResourceRequest> env, String id, SimpMessagingTemplate t) {
+    public ConfigDDMinDeltaExt(List<String> tests, List<SingleDeltaCMResourceRequest> env, String id, SimpMessagingTemplate t, List<String> cs) {
         super();
-        unlimitMap.put("memory", "800Mi");
+        clusters = cs;
+        unlimitMap.put("memory", "1000Mi");
         unlimitMap.put("cpu", "500m");
         unlimitEnv = new ArrayList<SingleDeltaCMResourceRequest>();
         for(SingleDeltaCMResourceRequest s : env){
@@ -76,17 +73,19 @@ public class ConfigDDMinDeltaExt extends DDMinDelta {
 
 
     public boolean recoverEnv(){
-        DeltaCMResourceResponse r1 = modifyConfigsOfServices(orignalEnv);
-        if(! r1.isStatus()){
-            return false;
+        for(String s : clusters){
+            DeltaCMResourceResponse r1 = modifyConfigsOfServices(orignalEnv, s);
+            if(! r1.isStatus()){
+                return false;
+            }
         }
         return true;
     }
 
 
-    public boolean applyDelta(List<String> deltas) {
+    public boolean applyDelta(List<String> deltas, String cluster) {
         // recovery to original cluster status
-        DeltaCMResourceResponse r1 = modifyConfigsOfServices(unlimitEnv);
+        DeltaCMResourceResponse r1 = modifyConfigsOfServices(unlimitEnv, cluster);
         if(! r1.isStatus()){
            return false;
         }
@@ -97,7 +96,7 @@ public class ConfigDDMinDeltaExt extends DDMinDelta {
             SingleDeltaCMResourceRequest e = deltaMap.get(s);
             env.add(e);
         }
-        DeltaCMResourceResponse r2 = modifyConfigsOfServices(env);
+        DeltaCMResourceResponse r2 = modifyConfigsOfServices(env, cluster);
         if( ! r2.isStatus()){
             return false;
         }
@@ -105,16 +104,9 @@ public class ConfigDDMinDeltaExt extends DDMinDelta {
     }
 
 
-    public String processAndGetResult(List<String> deltas, List<String> testcases) {
+    public String processAndGetResult(List<String> deltas, List<String> testcases, String cluster) {
         // execute testcases
-//        try {
-//            Thread.sleep(120000);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//            System.out.println();
-//        }
-
-        DeltaTestResponse result = deltaTests(testcases);
+        DeltaTestResponse result = deltaTests(testcases, cluster);
         List<SingleDeltaCMResourceRequest> env = new ArrayList<SingleDeltaCMResourceRequest>();
         System.out.println();
         System.out.println("***** processAndGetResult *****   " + deltas);
@@ -138,9 +130,10 @@ public class ConfigDDMinDeltaExt extends DDMinDelta {
     }
 
 
-    private DeltaTestResponse deltaTests(List<String> testNames){
+    private DeltaTestResponse deltaTests(List<String> testNames, String cluster){
         DeltaTestRequest dtr = new DeltaTestRequest();
         dtr.setTestNames(testNames);
+        dtr.setCluster(cluster);
         DeltaTestResponse result = restTemplate.postForObject(
                 "http://test-backend:5001/testBackend/deltaTest",dtr,
                 DeltaTestResponse.class);
@@ -148,12 +141,13 @@ public class ConfigDDMinDeltaExt extends DDMinDelta {
     }
 
 
-    private DeltaCMResourceResponse modifyConfigsOfServices(List<SingleDeltaCMResourceRequest> env) {
+    private DeltaCMResourceResponse modifyConfigsOfServices(List<SingleDeltaCMResourceRequest> env, String cluster) {
         DeltaCMResourceRequest dcr = new DeltaCMResourceRequest();
         dcr.setDeltaRequests(env);
+        dcr.setClusterName(cluster);
         System.out.println();
         for(SingleDeltaCMResourceRequest e: env){
-            System.out.println("--modifyConfigsOfServices--" + e.getServiceName() + ": " + e.getType() + ": " + e.getKey() + ": " + e.getValue());
+            System.out.println("--modifyConfigsOfServices--" + cluster + ": " + e.getServiceName() + ": " + e.getType() + ": " + e.getKey() + ": " + e.getValue());
         }
         DeltaCMResourceResponse r = restTemplate.postForObject(
                 "http://api-server:18898/api/deltaCMResource",dcr,

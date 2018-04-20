@@ -1,7 +1,7 @@
 $("#set_suspend_service_btn").click(function() {
     var SetUnsetServiceRequestSuspendRequest = new Object();
     SetUnsetServiceRequestSuspendRequest.svc = $("#suspend_service_name").val();
-    SetUnsetServiceRequestSuspendRequest.clusterName = "cluster5"
+    SetUnsetServiceRequestSuspendRequest.clusterName = "cluster4"
     var data = JSON.stringify(SetUnsetServiceRequestSuspendRequest);
     $.ajax({
         type: "post",
@@ -25,7 +25,7 @@ $("#set_suspend_service_btn").click(function() {
 $("#set_unsuspend_service_btn").click(function() {
     var SetUnsetServiceRequestSuspendRequest = new Object();
     SetUnsetServiceRequestSuspendRequest.svc = $("#unsuspend_service_name").val();
-    SetUnsetServiceRequestSuspendRequest.clusterName = "cluster5"
+    SetUnsetServiceRequestSuspendRequest.clusterName = "cluster4"
     var data = JSON.stringify(SetUnsetServiceRequestSuspendRequest);
     $.ajax({
         type: "post",
@@ -55,7 +55,7 @@ $("#service_sequence_list_suspend_all").click(function() {
         var SetUnsetServiceRequestSuspendRequest = new Object();
         SetUnsetServiceRequestSuspendRequest.svc = svcList[i];
         SetUnsetServiceRequestSuspendRequest.sourceSvcName = $("#source_service").val();
-        SetUnsetServiceRequestSuspendRequest.clusterName = "cluster5"
+        SetUnsetServiceRequestSuspendRequest.clusterName = "cluster4"
         var data = JSON.stringify(SetUnsetServiceRequestSuspendRequest);
         $.ajax({
             type: "post",
@@ -114,13 +114,13 @@ $("#service_sequence_list_check_and_unsuspend").click(function() {
     var svcList = $("#service_sequence_list").val();
     SetAsyncRequestSequenceRequest.sourceName = $("#source_service").val();
     SetAsyncRequestSequenceRequest.svcList = svcList.split(",");
-    SetAsyncRequestSequenceRequest.clusterName = "cluster5";
+    SetAsyncRequestSequenceRequest.clusterName = "cluster4";
     var data = JSON.stringify(SetAsyncRequestSequenceRequest);
     alert(data);
     $.ajax({
         type: "post",
         //url: "http://10.141.212.24:18898/api/setAsyncRequestSequenceWithSrc",
-        url: "http://10.141.212.22:18898/api/setAsyncRequestSequenceWithSrcCombineWithFullSuspend",
+        url: "http://10.141.211.172:18898/api/setAsyncRequestSequenceWithSrcCombineWithFullSuspend",
         contentType: "application/json",
         dataType: "json",
         data:data,
