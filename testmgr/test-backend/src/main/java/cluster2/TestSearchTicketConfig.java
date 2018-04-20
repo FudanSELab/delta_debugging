@@ -43,7 +43,7 @@ public class TestSearchTicketConfig {
         HttpEntity requestEntity = new HttpEntity(queryInfo, headers);
 
         try{
-            Thread.sleep(10000);
+            Thread.sleep(20000);
             ResponseEntity<ArrayList<TripResponse>> r = restTemplate.exchange("http://10.141.211.177:30443/travel/query",HttpMethod.POST, requestEntity, new ParameterizedTypeReference<ArrayList<TripResponse>>(){});
             ArrayList<TripResponse> result = r.getBody();
             System.out.println(result);

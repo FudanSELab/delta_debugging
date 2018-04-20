@@ -97,7 +97,20 @@ mixer.controller('MixerCtrl', ['$scope', '$http','$window','loadServiceList',  '
                             env:"",
                             tests: ""
                         } ;
-                        entry.env = "config: " + data.configEnv + ";    sequence: " + data.seqEnv + ";    instance: " + data.instanceEnv;
+                        if(data.configEnv.length > 0){
+                            entry.env += "config:[ ";
+                            data.configEnv.forEach(function(c){
+                                entry.env += "{" + c.serviceName + ":" + c.type +"-"+ c.key +":"+ c.value + "},";
+                            });
+                            entry.env += "];   ";
+                        }
+                        if(data.seqEnv.length > 0){
+                            entry.env += "  sequence: " + JSON.stringify(data.seqEnv) + " ;";
+                        }
+                        if(data.instanceEnv.length > 0){
+                            entry.env += "  instance:  " + JSON.stringify(data.instanceEnv) + " ;";
+                        }
+
                         for(var j = 0; j < result.length; j++){
                             entry.tests += result[j].className + ": " + result[j].status + ";   " ;
                         }
@@ -192,7 +205,7 @@ mixer.controller('MixerCtrl', ['$scope', '$http','$window','loadServiceList',  '
                     });
                 });
 
-                if(tests.length > 0 && instances.length > 0 && senders.length > 0 && receivers.length > 0 && configs.length > 0){
+                if(tests.length > 0 && (instances.length > 0 || (senders.length > 0 && receivers.length > 1) || configs.length > 0)){
                     $('#test-button').addClass('disabled');
                     $scope.mixerDeltaResponse = [];
                     $scope.mixerDeltaResult = "mixer delta testing...";
@@ -208,7 +221,7 @@ mixer.controller('MixerCtrl', ['$scope', '$http','$window','loadServiceList',  '
                     console.log(data);
                     stompClient.send("/app/msg/mixerDelta", {}, JSON.stringify(data));
                 } else {
-                    alert("Please select at least one config.");
+                    alert("Please select at least one test and one type of delta.");
                 }
             } else {
                 alert("Please click the connect button.")

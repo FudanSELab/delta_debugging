@@ -1311,7 +1311,7 @@ public class ApiServiceImpl implements ApiService {
     //Get the endpoints list of specific service
     private V1Endpoints getSingleServiceEndpoints(String namespace, String serviceName, Cluster cluster){
         V1Endpoints endpoints = new V1Endpoints();
-        String filePath = "/app/get_endpoints_list_of_single_service_" + cluster.getName() + ".json";
+        String filePath = "/app/get_endpoints_list_of_single_service_" + cluster.getName() + System.currentTimeMillis()+ ".json";
         String apiUrl = String.format("%s/api/v1/namespaces/%s/endpoints/%s",cluster.getApiServer(),namespace,serviceName);
         System.out.println(String.format("The constructed api url for getting the endpoints of specific service is %s", apiUrl));
         String[] cmds ={
@@ -1336,7 +1336,7 @@ public class ApiServiceImpl implements ApiService {
     //Get the endpoints list of all services
     private V1EndpointsList getEndpointsList(String namespace, Cluster cluster){
         V1EndpointsList endpointsList = new V1EndpointsList();
-        String filePath = "/app/get_endpoints_list_" + cluster.getName() + ".json";
+        String filePath = "/app/get_endpoints_list_" + cluster.getName() + System.currentTimeMillis()+ ".json";
         String apiUrl = String.format("%s/api/v1/namespaces/%s/endpoints",cluster.getApiServer(),namespace);
         System.out.println(String.format("The constructed api url for getting the endpoints list is %s", apiUrl));
         String[] cmds ={
@@ -1362,7 +1362,7 @@ public class ApiServiceImpl implements ApiService {
     private boolean deltaCMResource(String namespace,SingleDeltaCMResourceRequest request, Cluster cluster){
         boolean isSuccess = true;
         SingleDeploymentInfo result;
-        String filePath = "/app/delta_cmconfig_result_" + cluster.getName() + ".json";
+        String filePath = "/app/delta_cmconfig_result_" + cluster.getName() + System.currentTimeMillis()+ ".json";
         String apiUrl = String.format("%s/apis/apps/v1beta1/namespaces/%s/deployments/%s",cluster.getApiServer(),namespace, request.getServiceName());
         System.out.println(String.format("The constructed api url for deltaing config is %s", apiUrl));
         String data = String.format("'[{ \"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/resources/%s/%s\", \"value\": \"%s\"}]'",
@@ -1394,7 +1394,7 @@ public class ApiServiceImpl implements ApiService {
     private boolean deletePod(String namespace, String podName, Cluster cluster){
         boolean isSuccess = true;
         V1Pod result;
-        String filePath = "/app/delete_pod_result_" + cluster.getName() + ".json";
+        String filePath = "/app/delete_pod_result_" + cluster.getName() + System.currentTimeMillis()+ ".json";
         String apiUrl = String.format("%s/api/v1/namespaces/%s/pods/%s",cluster.getApiServer(),namespace, podName);
         System.out.println(String.format("The constructed api url for deleting node is %s", apiUrl));
         String[] cmds ={
@@ -1422,7 +1422,7 @@ public class ApiServiceImpl implements ApiService {
     private String getPodLog(String podName,String containerName, Cluster cluster){
         String log = "";
 
-        String filePath = "/app/get_pod_log_" + cluster.getName() + ".json";
+        String filePath = "/app/get_pod_log_" + cluster.getName() + System.currentTimeMillis()+ ".json";
         String apiUrl = String.format("%s/api/v1/namespaces/%s/pods/%s/log?container=%s",cluster.getApiServer(),NAMESPACE,podName,containerName);
         System.out.println(String.format("The constructed api url for getting the pod log is %s", apiUrl));
         String[] cmds ={
@@ -1464,7 +1464,7 @@ public class ApiServiceImpl implements ApiService {
     private boolean setServiceReplica(String serviceName, int targetNum, Cluster cluster){
         boolean status = false;
         SetServicesReplicasResponseFromAPI result;
-        String filePath = "/app/set_service_replica_" + cluster.getName() + ".json";
+        String filePath = "/app/set_service_replica_" + cluster.getName() + System.currentTimeMillis()+ ".json";
         String apiUrl = String.format("%s/apis/extensions/v1beta1/namespaces/%s/deployments/%s/scale",cluster.getApiServer() ,NAMESPACE,serviceName);
         System.out.println(String.format("The constructed api url is %s", apiUrl));
         String data ="'[{ \"op\": \"replace\", \"path\": \"/spec/replicas\", \"value\":" +  targetNum + " }]'";
@@ -1509,7 +1509,7 @@ public class ApiServiceImpl implements ApiService {
     private boolean deleteNode(String nodeName, Cluster cluster){
         boolean isSuccess = true;
         DeleteNodeResult result;
-        String filePath = "/app/delete_node_result_" + cluster.getName() + ".json";
+        String filePath = "/app/delete_node_result_" + cluster.getName() + System.currentTimeMillis()+ ".json";
         String apiUrl = String.format("%s/api/v1/nodes/%s",cluster.getApiServer(),nodeName );
         System.out.println(String.format("The constructed api url for deleting node is %s", apiUrl));
         String[] cmds ={
@@ -1544,7 +1544,7 @@ public class ApiServiceImpl implements ApiService {
     //Delete the service
     private void deleteService(String serviceName, Cluster cluster){
         DeleteServiceResult result;
-        String filePath = "/app/delete_service_result_" + cluster.getName() + ".json";
+        String filePath = "/app/delete_service_result_" + cluster.getName() + System.currentTimeMillis()+ ".json";
         String apiUrl = String.format("%s/api/v1/namespaces/%s/services/%s",cluster.getApiServer(), NAMESPACE,serviceName );
         System.out.println(String.format("The constructed api url for deleting service is %s", apiUrl));
         String[] cmds ={
@@ -1622,7 +1622,7 @@ public class ApiServiceImpl implements ApiService {
     //Get the deployment list
     private QueryDeploymentsListResponse getDeploymentList(String namespace, Cluster cluster){
         //Get the current deployments information and echo to the file
-        String filePath = "/app/get_deployment_list_result_" + cluster.getName() + ".json";
+        String filePath = "/app/get_deployment_list_result_" + cluster.getName()  + System.currentTimeMillis()+ ".json";
         QueryDeploymentsListResponse deploymentsList = new QueryDeploymentsListResponse();
         String apiUrl = String.format("%s/apis/apps/v1beta1/namespaces/%s/deployments",cluster.getApiServer() ,namespace);
         System.out.println(String.format("The constructed api url for getting the deploymentlist is %s", apiUrl));
@@ -1652,7 +1652,7 @@ public class ApiServiceImpl implements ApiService {
     //Get the node list
     private V1NodeList getNodeList(Cluster cluster){
         //Get the current deployments information and echo to the file
-        String filePath = "/app/get_node_list_result_" + cluster.getName() + ".json";
+        String filePath = "/app/get_node_list_result_" + cluster.getName() + System.currentTimeMillis() + ".json";
         V1NodeList nodeList = new V1NodeList();
         String apiUrl = String.format("%s/api/v1/nodes",cluster.getApiServer());
         System.out.println(String.format("The constructed api url for getting the node list is %s", apiUrl));
@@ -1683,7 +1683,7 @@ public class ApiServiceImpl implements ApiService {
         if(namespace.equals(""))
             namespace = NAMESPACE;
         //Get the current pods information and echo to the file
-        String filePath = "/app/get_pod_list_result_" + cluster.getName() + ".json";
+        String filePath = "/app/get_pod_list_result_" + cluster.getName() + System.currentTimeMillis()+ ".json";
         V1PodList podList = new V1PodList();
         String apiUrl = String.format("%s/api/v1/namespaces/%s/pods",cluster.getApiServer(),namespace);
         System.out.println(String.format("The constructed api url for getting the pod list is %s", apiUrl));
@@ -1712,7 +1712,7 @@ public class ApiServiceImpl implements ApiService {
     //Get the pod info
     private V1Pod getPodInfo(String name, Cluster cluster){
         //Get the current pods information and echo to the file
-        String filePath = "/app/get_pod_info_result_"+ cluster.getName() + ".json";
+        String filePath = "/app/get_pod_info_result_"+ cluster.getName()  + System.currentTimeMillis()+".json";
         V1Pod pod = null;
         String apiUrl = String.format("%s/api/v1/namespaces/%s/pods/%s",cluster.getApiServer(),NAMESPACE,name);
         System.out.println(String.format("The constructed api url for getting the pod info is %s", apiUrl));
