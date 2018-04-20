@@ -285,8 +285,10 @@ public class ApiServiceImpl implements ApiService {
 //        }catch (Exception e){
 //            e.printStackTrace();
 //        }
+
+        int count = 0;
         while(isRequestComplete == false){
-            //每间隔20秒，获取一次pods的日志。注意是pod下的istio-proxy的日志
+            //每间隔 0秒，获取一次pods的日志。注意是pod下的istio-proxy的日志
             try{
                 Thread.sleep(5000);
             }catch (InterruptedException e){
@@ -317,6 +319,14 @@ public class ApiServiceImpl implements ApiService {
                     }
                 }
             }
+
+
+            count += 1;
+            if(count > 15){
+                isRequestComplete = true;
+                System.out.println("没找到这个请求，循环放弃，释放下一个请求");
+            }
+
         }
         return isRequestComplete;
     }
