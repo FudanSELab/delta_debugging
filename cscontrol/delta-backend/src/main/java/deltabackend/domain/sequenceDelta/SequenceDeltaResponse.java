@@ -1,16 +1,15 @@
 package deltabackend.domain.sequenceDelta;
 
-import deltabackend.domain.DeltaTestResponse;
+import deltabackend.domain.api.request.SetAsyncRequestSequenceRequestWithSource;
+import deltabackend.domain.test.DeltaTestResponse;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class SequenceDeltaResponse {
 
     boolean status;
     String message;
-    String sender;
-    List<String> receiversInOrder = null;
+    List<SetAsyncRequestSequenceRequestWithSource> envList;
     DeltaTestResponse result;
     boolean diffFromFirst;//different from the first test result, highlight it
 
@@ -18,21 +17,14 @@ public class SequenceDeltaResponse {
 
     }
 
-    public List<String> getReceiversInOrder() {
-        return receiversInOrder;
+    public List<SetAsyncRequestSequenceRequestWithSource> getEnvList() {
+        return envList;
     }
 
-    public void setReceiversInOrder(List<String> receiversInOrder) {
-        this.receiversInOrder = receiversInOrder;
+    public void setEnvList(List<SetAsyncRequestSequenceRequestWithSource> envList) {
+        this.envList = envList;
     }
 
-    public String getSender() {
-        return sender;
-    }
-
-    public void setSender(String sender) {
-        this.sender = sender;
-    }
 
 
     public boolean isStatus() {

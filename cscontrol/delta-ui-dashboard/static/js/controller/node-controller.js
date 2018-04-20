@@ -9,9 +9,6 @@ node.controller('NodeCtrl', ['$scope', '$http','$window','loadNodeList', 'refres
             $scope.nodeList = result.nodes;
         });
 
-
-
-
     };
 
     $scope.refreshNodeList();

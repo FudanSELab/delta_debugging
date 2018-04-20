@@ -1,13 +1,13 @@
 package deltabackend.service;
 
-import deltabackend.domain.EnvParameter;
-import deltabackend.domain.api.SetServiceReplicasRequest;
-import deltabackend.domain.api.SetServiceReplicasResponse;
-import deltabackend.domain.instanceDelta.DeltaRequest;
+import deltabackend.domain.api.request.DeltaNodeRequest;
+import deltabackend.domain.api.response.DeltaNodeByListResponse;
+import deltabackend.domain.api.response.SetServiceReplicasResponse;
+import deltabackend.domain.bean.ServiceReplicasSetting;
 import deltabackend.domain.configDelta.ConfigDeltaRequest;
+import deltabackend.domain.instanceDelta.DeltaRequest;
 import deltabackend.domain.instanceDelta.SimpleInstanceRequest;
-import deltabackend.domain.nodeDelta.DeltaNodeByListResponse;
-import deltabackend.domain.nodeDelta.DeltaNodeRequest;
+import deltabackend.domain.mixerDelta.MixerDeltaRequest;
 import deltabackend.domain.nodeDelta.NodeDeltaRequest;
 import deltabackend.domain.sequenceDelta.SequenceDeltaRequest;
 import deltabackend.domain.serviceDelta.ExtractServiceRequest;
@@ -19,9 +19,9 @@ import java.util.concurrent.ExecutionException;
 
 public interface DeltaService {
 
-    void delta(DeltaRequest message);
+    void delta(DeltaRequest message) throws ExecutionException, InterruptedException;
 
-    SetServiceReplicasResponse setInstanceNumOfServices(List<EnvParameter> env);
+    SetServiceReplicasResponse setInstanceNumOfServices(List<ServiceReplicasSetting> env, String cluster);
 
     void simpleSetInstance(SimpleInstanceRequest message);
 
@@ -30,11 +30,15 @@ public interface DeltaService {
 
     void nodeDelta(NodeDeltaRequest message);
 
-    void configDelta(ConfigDeltaRequest message);
+    void configDelta(ConfigDeltaRequest message) throws ExecutionException, InterruptedException;
+
+    void simpleSetOrignal(ConfigDeltaRequest message);
 
     void sequenceDelta(SequenceDeltaRequest message) throws ExecutionException, InterruptedException;
 
-    ReserveServiceResponse extractServices(ExtractServiceRequest testCases);
+    void mixerDelta(MixerDeltaRequest message) throws ExecutionException, InterruptedException;
 
-    DeltaNodeByListResponse deleteNodesByList(DeltaNodeRequest list);
+//    ReserveServiceResponse extractServices(ExtractServiceRequest testCases);
+
+//    DeltaNodeByListResponse deleteNodesByList(DeltaNodeRequest list);
 }

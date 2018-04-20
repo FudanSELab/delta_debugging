@@ -7,6 +7,15 @@ public class DeltaRequest {
     String id;
     List<String> env;
     List<String> tests;
+    String cluster = null;
+
+    public String getCluster() {
+        return cluster;
+    }
+
+    public void setCluster(String cluster) {
+        this.cluster = cluster;
+    }
 
     public String getId() {
         return id;

@@ -3,8 +3,10 @@
   "classDir": "/test",
   "testCases":{
     "Delta Test":[
-      "TestBookErrorConfig",
-      "TestLoginErrorInstance"
+      "TestSearchTicketConfig",
+      "TestLoginErrorInstance2",
+      "TestMiniSequenceError",
+      "TestBookErrorConfig"
     ]
 
   }

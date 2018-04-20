@@ -6,6 +6,16 @@ public class NodeDeltaRequest {
 
     String id;
     List<String> nodeNames;
+    String cluster = null;
+
+    public String getCluster() {
+        return cluster;
+    }
+
+    public void setCluster(String cluster) {
+        this.cluster = cluster;
+    }
+
 
     public String getId() {
         return id;

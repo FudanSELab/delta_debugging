@@ -1,28 +1,26 @@
 package deltabackend.domain.ddmin;
 
-import com.baeldung.algorithms.ddmin.DDMinDelta;
-import deltabackend.domain.DeltaTestRequest;
-import deltabackend.domain.DeltaTestResponse;
-import deltabackend.domain.DeltaTestResult;
-import deltabackend.domain.EnvParameter;
-import deltabackend.domain.api.SetServiceReplicasRequest;
-import deltabackend.domain.api.SetServiceReplicasResponse;
+import com.baeldung.algorithms.ddmin.ParallelDDMinDelta;
+import deltabackend.domain.api.request.SetServiceReplicasRequest;
+import deltabackend.domain.api.response.SetServiceReplicasResponse;
+import deltabackend.domain.bean.ServiceWithReplicas;
+import deltabackend.domain.test.DeltaTestRequest;
+import deltabackend.domain.test.DeltaTestResponse;
+
+import deltabackend.domain.bean.ServiceReplicasSetting;
 import deltabackend.domain.instanceDelta.DeltaResponse;
-import org.apache.commons.collections4.CollectionUtils;
+import deltabackend.util.MyConfig;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.MessageHeaders;
-import org.springframework.messaging.SubscribableChannel;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessageType;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 
 
-public class InstanceDDMinDeltaExt extends DDMinDelta {
+public class InstanceDDMinDeltaExt extends ParallelDDMinDelta {
 
     private RestTemplate restTemplate = new RestTemplate();
 
@@ -30,24 +28,24 @@ public class InstanceDDMinDeltaExt extends DDMinDelta {
 
     private String sessionId;
 
-    private int instanceDeltaN = 3;
+    private int instanceDeltaN = 2;
 
-    private List<EnvParameter> orignalEnv;
+    private List<ServiceWithReplicas> orignalEnv;
 
-    private Map<String, EnvParameter> deltaMap = new HashMap<String, EnvParameter>();
+    private Map<String, ServiceWithReplicas> deltaMap = new HashMap<String, ServiceWithReplicas>();
 
     private String expectException = "exception";
 
-
-    public InstanceDDMinDeltaExt(List<String> tests, List<EnvParameter> env, String id, SimpMessagingTemplate t) {
+    public InstanceDDMinDeltaExt(List<String> tests, List<ServiceWithReplicas> env, String id, SimpMessagingTemplate t, List<String> cs) {
         super();
+        clusters = cs;
         testcases = tests;
         orignalEnv = env;
         sessionId = id;
         deltas_all = new ArrayList<String>();
         template = t;
-        for(EnvParameter p: env){
-            EnvParameter q = new EnvParameter();
+        for(ServiceWithReplicas p: env){
+            ServiceWithReplicas q = new ServiceWithReplicas();
             q.setServiceName(p.getServiceName());
             q.setNumOfReplicas(instanceDeltaN);
             deltaMap.put(p.getServiceName(), q);
@@ -58,43 +56,53 @@ public class InstanceDDMinDeltaExt extends DDMinDelta {
     }
 
 
-    public boolean applyDelta(List<String> deltas) {
+    public boolean applyDelta(List<String> deltas, String cluster) {
         // recovery to original cluster status
-        SetServiceReplicasResponse ssrr1 = setInstanceNumOfServices(orignalEnv);
+        SetServiceReplicasResponse ssrr1 = setInstanceNumOfServices(orignalEnv, cluster);
         if(! ssrr1.isStatus()){
            return false;
         }
 
         // apply delta
-        List<EnvParameter> env = new ArrayList<EnvParameter>();
+        List<ServiceWithReplicas> env = new ArrayList<ServiceWithReplicas>();
         for(String s: deltas){
-            EnvParameter e = deltaMap.get(s);
+            ServiceWithReplicas e = deltaMap.get(s);
             env.add(e);
         }
-        SetServiceReplicasResponse ssrr2 = setInstanceNumOfServices(env);
+        SetServiceReplicasResponse ssrr2 = setInstanceNumOfServices(env, cluster);
         if( ! ssrr2.isStatus()){
             return false;
         }
         return true;
     }
 
+    public boolean recoverEnv(){
+        for(String s : clusters){
+            SetServiceReplicasResponse ssrr1 = setInstanceNumOfServices(orignalEnv, s);
+            if(! ssrr1.isStatus()){
+                return false;
+            }
+        }
+        return true;
+    }
 
-    public String processAndGetResult(List<String> deltas, List<String> testcases) {
+
+    public String processAndGetResult(List<String> deltas, List<String> testcases, String cluster) {
         // execute testcases
-//        try {
-//            Thread.sleep(30000);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//            System.out.println();
-//        }
+        try {
+            Thread.sleep(20000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            System.out.println();
+        }
 
-        DeltaTestResponse result = deltaTests(testcases);
-        List<EnvParameter> env = new ArrayList<EnvParameter>();
+        DeltaTestResponse result = deltaTests(testcases, cluster);
+        List<ServiceWithReplicas> env = new ArrayList<ServiceWithReplicas>();
         System.out.println();
         System.out.println("***** processAndGetResult *****   " + deltas);
         System.out.println();
         for(String s: deltas){
-            EnvParameter e = deltaMap.get(s);
+            ServiceWithReplicas e = deltaMap.get(s);
             env.add(e);
         }
         responseToUser(env, result);
@@ -112,9 +120,10 @@ public class InstanceDDMinDeltaExt extends DDMinDelta {
     }
 
 
-    private DeltaTestResponse deltaTests(List<String> testNames){
+    private DeltaTestResponse deltaTests(List<String> testNames, String cluster){
         DeltaTestRequest dtr = new DeltaTestRequest();
         dtr.setTestNames(testNames);
+        dtr.setCluster(cluster);
         DeltaTestResponse result = restTemplate.postForObject(
                 "http://test-backend:5001/testBackend/deltaTest",dtr,
                 DeltaTestResponse.class);
@@ -122,11 +131,20 @@ public class InstanceDDMinDeltaExt extends DDMinDelta {
     }
 
 
-    private SetServiceReplicasResponse setInstanceNumOfServices(List<EnvParameter> env) {
+    private SetServiceReplicasResponse setInstanceNumOfServices(List<ServiceWithReplicas> env, String cluster) {
         SetServiceReplicasRequest ssrr = new SetServiceReplicasRequest();
-        ssrr.setServiceReplicasSettings(env);
+        List<ServiceReplicasSetting> l = new ArrayList<ServiceReplicasSetting>();
+        for(ServiceWithReplicas swr: env){
+            ServiceReplicasSetting srs = new ServiceReplicasSetting();
+            srs.setServiceName(swr.getServiceName());
+            srs.setNumOfReplicas(swr.getNumOfReplicas());
+            l.add(srs);
+        }
+        ssrr.setServiceReplicasSettings(l);
+        ssrr.setClusterName(cluster);
+
         System.out.println();
-        for(EnvParameter e: env){
+        for(ServiceWithReplicas e: env){
             System.out.println("--setInstanceNumOfServices--" + e.getServiceName() + ": " + e.getNumOfReplicas());
         }
         SetServiceReplicasResponse ssresult = restTemplate.postForObject(
@@ -138,7 +156,7 @@ public class InstanceDDMinDeltaExt extends DDMinDelta {
     }
 
     //////////////////////////////////// send result to user ////////////////////////////////////////////////////
-    private void responseToUser(List<EnvParameter> env, DeltaTestResponse result){
+    private void responseToUser(List<ServiceWithReplicas> env, DeltaTestResponse result){
         DeltaResponse dr = new DeltaResponse();
         if(result.getStatus() == -1){ //the backend throw an exception, stop the delta test, maybe the testcase not exist
             dr.setStatus(false);

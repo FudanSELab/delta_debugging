@@ -1,4 +1,4 @@
-package deltabackend.domain;
+package deltabackend.domain.test;
 
 public class MyTestResult {
 

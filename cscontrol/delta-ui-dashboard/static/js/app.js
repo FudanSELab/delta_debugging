@@ -1,4 +1,4 @@
-var app = angular.module('app', ['ngRoute', 'app.instance-controller','app.node-controller', 'app.service-controller', 'app.config-controller', 'app.sequence-controller']);
+var app = angular.module('app', ['ngRoute', 'app.instance-controller','app.node-controller', 'app.service-controller', 'app.config-controller', 'app.sequence-controller','app.mixer-controller']);
 
 app.config(['$routeProvider', function($routeProvider){
     $routeProvider
@@ -27,10 +27,18 @@ app.config(['$routeProvider', function($routeProvider){
             controller: 'SequenceCtrl',
             cache: true
         })
-        .otherwise({redirectTo:'/sequence'});
+        .when('/mixer',{
+            templateUrl: 'templates/mixer.html',
+            controller: 'MixerCtrl',
+            cache: true
+        })
+        .otherwise({redirectTo:'/mixer'});
 }
 
 ]);
+
+
+app.constant('defaultCluster', 'cluster1');
 
 app.controller('NavController', ['$scope', '$location', function($scope, $location) {
         $scope.isActive = function(destination) {
@@ -38,7 +46,7 @@ app.controller('NavController', ['$scope', '$location', function($scope, $locati
         }
 }]);
 
-app.factory('loadNodeList', function ($http, $q) {
+app.factory('loadNodeList', function ($http, $q, defaultCluster) {
     var service = {};
     //获取并返回数据
     service.load = function () {
@@ -47,7 +55,7 @@ app.factory('loadNodeList', function ($http, $q) {
 
         $http({
             method: "get",
-            url: "/api/getNodesList",
+            url: "/api/getNodesList/" + defaultCluster,
             contentType: "application/json",
             dataType: "json",
             withCredentials: true
@@ -88,13 +96,25 @@ app.factory('loadTestCases', function ($http, $q) {
                 alert("Request the order list fail!" + data.message);
             }
         });
+
+        // var data = {
+        //     "Delta Test":[
+        //         "TestBookErrorConfig",
+        //         "TestLoginErrorInstance",
+        //         "TestLoginErrorInstance2",
+        //         "TestCancelErrorSequence",
+        //         "TestMiniSequenceError"
+        //     ]
+        //
+        // };
+        // deferred.resolve(data);
         return promise;
     };
     return service;
 });
 
 
-app.factory('loadServiceList', function ($http, $q) {
+app.factory('loadServiceList', function ($http, $q, defaultCluster) {
     var service = {};
     //获取并返回数据
     service.loadServiceList = function () {
@@ -102,7 +122,7 @@ app.factory('loadServiceList', function ($http, $q) {
         var promise = deferred.promise;
         $http({
             method: "get",
-            url: "/api/getServicesList",
+            url: "/api/getServicesList/" + defaultCluster,
             contentType: "application/json",
             dataType: "json",
             withCredentials: true
@@ -114,21 +134,287 @@ app.factory('loadServiceList', function ($http, $q) {
                 alert("Request the order list fail!" + data.message);
             }
         });
-
+        // var data = {
+        //     "status": true,
+        //     "message": "Get the service list successfully!",
+        //     "services": [
+        //         {
+        //             "serviceName": "redis",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-account-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-admin-basic-info-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-admin-order-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-admin-route-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-admin-travel-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-admin-user-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-assurance-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-assurance-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-basic-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-cancel-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-config-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-config-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-consign-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-consign-price-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-consign-price-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-consign-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-contacts-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-contacts-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-execute-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-food-map-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-food-map-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-food-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-food-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-inside-payment-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-inside-payment-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-login-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-news-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-notification-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-order-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-order-other-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-order-other-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-order-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-payment-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-payment-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-preserve-other-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-preserve-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-price-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-price-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-rebook-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-register-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-route-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-route-plan-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-route-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-seat-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-security-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-security-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-sso-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-station-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-station-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-ticket-office-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-ticket-office-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-ticketinfo-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-train-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-train-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-travel-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-travel-plan-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-travel-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-travel2-mongo",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-travel2-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-ui-dashboard",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-verification-code-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-voucher-mysql",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "ts-voucher-service",
+        //             "numOfReplicas": 1
+        //         },
+        //         {
+        //             "serviceName": "zipkin",
+        //             "numOfReplicas": 1
+        //         }
+        //     ]
+        // };
+        // deferred.resolve(data);
         return promise;
     };
     return service;
 });
 
 
-app.factory('getConfigService', function ($http, $q) {
+app.factory('getConfigService', function ($http, $q, defaultCluster) {
     var service = {};
     service.load = function (podString) {
         var deferred = $q.defer();
         var promise = deferred.promise;
         $http({
             method: "get",
-            url: "/api/getServicesAndConfig",
+            url: "/api/getServicesAndConfig/" + defaultCluster,
             contentType: "application/json",
             dataType: "json",
             withCredentials: true
@@ -478,13 +764,14 @@ app.factory('getConfigService', function ($http, $q) {
         //     ]
         // };
         // deferred.resolve(data);
+
         return promise;
     };
     return service;
 });
 
 
-app.factory('getPodLogService', function ($http, $q) {
+app.factory('getPodLogService', function ($http, $q, defaultCluster) {
     var service = {};
     service.load = function (podString) {
         var deferred = $q.defer();
@@ -495,6 +782,7 @@ app.factory('getPodLogService', function ($http, $q) {
             contentType: "application/json",
             dataType: "json",
             data:{
+                clusterName: defaultCluster,
                 podName: podString
             },
             withCredentials: true
@@ -511,14 +799,14 @@ app.factory('getPodLogService', function ($http, $q) {
 });
 
 
-app.factory('refreshPodsService', function ($http, $q) {
+app.factory('refreshPodsService', function ($http, $q, defaultCluster) {
     var service = {};
     service.load = function () {
         var deferred = $q.defer();
         var promise = deferred.promise;
         $http({
             method: "get",
-            url: "/api/getPodsList",
+            url: "/api/getPodsList/" + defaultCluster,
             contentType: "application/json",
             dataType: "json",
             withCredentials: true
@@ -592,7 +880,7 @@ app.directive('icheck', ['$timeout', '$parse', function($timeout, $parse) {
 //---------------------------------------------------------------------------
 //---------------------------- Add by jichao --------------------------------
 //---------------------------------------------------------------------------
-app.factory('suspendServiceWithSource', function ($http, $q) {
+app.factory('suspendServiceWithSource', function ($http, $q, defaultCluster) {
     var service = {};
     service.load = function (sourceSvcName, svcName) {
         $http({
@@ -601,6 +889,7 @@ app.factory('suspendServiceWithSource', function ($http, $q) {
             contentType: "application/json",
             dataType: "json",
             data:{
+                clusterName: defaultCluster,
                 sourceSvcName: sourceSvcName,
                 svc: svcName
             },
@@ -616,7 +905,7 @@ app.factory('suspendServiceWithSource', function ($http, $q) {
     return service;
 });
 
-app.factory('unsuspendServiceWithSource', function ($http, $q) {
+app.factory('unsuspendServiceWithSource', function ($http, $q, defaultCluster) {
     var service = {};
     service.load = function (sourceSvcName, svcName) {
         $http({
@@ -625,6 +914,7 @@ app.factory('unsuspendServiceWithSource', function ($http, $q) {
             contentType: "application/json",
             dataType: "json",
             data:{
+                clusterName: defaultCluster,
                 sourceSvcName: sourceSvcName,
                 svc: svcName
             },
@@ -640,7 +930,7 @@ app.factory('unsuspendServiceWithSource', function ($http, $q) {
     return service;
 });
 
-app.factory('setAsyncRequestSequenceWithSrc', function ($http, $q) {
+app.factory('setAsyncRequestSequenceWithSrc', function ($http, $q, defaultCluster) {
     var service = {};
     service.load = function (sourceSvcName, svcListString) {
         $http({
@@ -649,6 +939,7 @@ app.factory('setAsyncRequestSequenceWithSrc', function ($http, $q) {
             contentType: "application/json",
             dataType: "json",
             data:{
+                clusterName: defaultCluster,
                 sourceSvcName: sourceSvcName,
                 svc: svcListString.split(",")
             },

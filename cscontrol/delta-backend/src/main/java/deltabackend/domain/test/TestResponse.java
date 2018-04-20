@@ -1,4 +1,6 @@
-package deltabackend.domain;
+package deltabackend.domain.test;
+
+import deltabackend.domain.test.MyTestResult;
 
 import java.util.List;
 
