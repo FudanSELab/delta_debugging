@@ -115,14 +115,17 @@ public class TestController {
             }
         }
         int status = 1;
+        boolean skipGetStatus = false;
         String message = "Test all the chosen testcases";
         for (FutureTask<DeltaTestResult> futureTask : futureTasks) {
             response.addDeltaResult(futureTask.get());
-            if( "EXCEPTION".equals(futureTask.get().getStatus())){
-                status = -1;
-                message = futureTask.get().getMessage();
-                break;
-            } else if( ! "SUCCESS".equals(futureTask.get().getStatus())){
+            if(!skipGetStatus){
+                if( "EXCEPTION".equals(futureTask.get().getStatus())){
+                    status = -1;
+                    message = futureTask.get().getMessage();
+                    skipGetStatus = true;
+                }
+            } else if(  (status != -1) && (! "SUCCESS".equals(futureTask.get().getStatus()))){
                 status = 0;
             }
         }

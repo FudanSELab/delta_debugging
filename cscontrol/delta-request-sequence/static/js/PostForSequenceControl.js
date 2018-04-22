@@ -5,7 +5,7 @@ $("#set_suspend_service_btn").click(function() {
     var data = JSON.stringify(SetUnsetServiceRequestSuspendRequest);
     $.ajax({
         type: "post",
-        url: "http://10.141.212.22:18898/api/setServiceRequestSuspend",
+        url: "http://10.141.211.172:18898/api/setServiceRequestSuspend",
         contentType: "application/json",
         dataType: "json",
         data:data,
@@ -29,7 +29,7 @@ $("#set_unsuspend_service_btn").click(function() {
     var data = JSON.stringify(SetUnsetServiceRequestSuspendRequest);
     $.ajax({
         type: "post",
-        url: "http://10.141.212.22:18898/api/unsetServiceRequestSuspend",
+        url: "http://10.141.211.172:18898/api/unsetServiceRequestSuspend",
         contentType: "application/json",
         dataType: "json",
         data:data,
@@ -59,7 +59,7 @@ $("#service_sequence_list_suspend_all").click(function() {
         var data = JSON.stringify(SetUnsetServiceRequestSuspendRequest);
         $.ajax({
             type: "post",
-            url: "http://10.141.212.22:18898/api/setServiceRequestSuspendWithSourceSvc",
+            url: "http://10.141.211.172:18898/api/setServiceRequestSuspendWithSourceSvc",
             contentType: "application/json",
             dataType: "json",
             data:data,
@@ -90,7 +90,7 @@ $("#service_sequence_list_delete_all").click(function() {
         alert(data);
         $.ajax({
             type: "post",
-            url: "http://10.141.212.22:18898/api/unsetServiceRequestSuspend",
+            url: "http://10.141.211.172:18898/api/unsetServiceRequestSuspend",
             contentType: "application/json",
             dataType: "json",
             data:data,

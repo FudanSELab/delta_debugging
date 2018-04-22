@@ -6,6 +6,7 @@ import com.baeldung.algorithms.ddmin.ParallelDDMinDelta;
 import deltabackend.domain.api.request.SetAsyncRequestSequenceRequestWithSource;
 import deltabackend.domain.api.response.SetAsyncRequestSequenceResponse;
 import deltabackend.domain.sequenceDelta.SequenceDeltaResponse;
+import deltabackend.domain.sequenceDelta.SingleSequenceDelta;
 import deltabackend.domain.test.DeltaTestRequest;
 import deltabackend.domain.test.DeltaTestResponse;
 
@@ -33,7 +34,7 @@ public class SequenceDDMinDeltaExt extends ParallelDDMinDelta {
 
     private Map<String, ArrayList<String>> preToReceivers = new HashMap<String, ArrayList<String>>();
 
-    public SequenceDDMinDeltaExt ( List<String> tests, String s, ArrayList<String> rs, String id, SimpMessagingTemplate t, List<String> cs){
+    public SequenceDDMinDeltaExt (List<String> tests, List<SingleSequenceDelta> seqGroups, String id, SimpMessagingTemplate t, List<String> cs){
         super();
         seqNum.push("D");
         seqNum.push("C");
@@ -49,29 +50,35 @@ public class SequenceDDMinDeltaExt extends ParallelDDMinDelta {
         clusters = cs;
 
         deltas_all = new ArrayList<String>();
-        int size = rs.size();
-        String prefix = "seq" + seqNum.pop();
-        preToSender.put(prefix, s);
-        //put inside-payment in the first
-        ArrayList<String> l = new ArrayList<String>();
-        for(String a : rs){
-            if(a.contains("inside")){
-                l.add(a);
-            }
-        }
-        for(String a : rs){
-            if( ! a.contains("inside")){
-                l.add(a);
-            }
-        }
-        System.out.println("------ New List -----" + l);
-        preToReceivers.put(prefix, l);
 
-        for(int i = 0; i < size-1; i++){
-            for(int j = i + 1; j < size; j++){
-                deltas_all.add( prefix + "_" + size + "_" + (i+1) +  "_" + (j+1) );
+        for(SingleSequenceDelta group: seqGroups){
+            String s = group.getSender();
+            List<String> rs = group.getReceivers();
+            String prefix = "seq" + seqNum.pop();
+            preToSender.put(prefix, s);
+            ArrayList<String> l = new ArrayList<String>();
+            //put inside-payment in the first
+            for(String a : rs){
+                if(a.contains("inside")){
+                    l.add(a);
+                }
+            }
+            for(String a : rs){
+                if( ! a.contains("inside")){
+                    l.add(a);
+                }
+            }
+            System.out.println("------ New List -----" + l);
+            preToReceivers.put(prefix, l);
+
+            int size = rs.size();
+            for(int i = 0; i < size-1; i++){
+                for(int j = i + 1; j < size; j++){
+                    deltas_all.add( prefix + "_" + size + "_" + (i+1) +  "_" + (j+1) );
+                }
             }
         }
+
         System.out.println("######### delta_all ###########  " + deltas_all);
     }
 

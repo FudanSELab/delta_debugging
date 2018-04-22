@@ -1,4 +1,4 @@
-package test;
+package cluster1;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -23,12 +23,12 @@ public class TestServiceContacts {
     private String baseUrl;
     @BeforeClass
     public void setUp() throws Exception {
-        System.setProperty("webdriver.chrome.driver", "F:/app/new/chromedriver.exe");
-        driver = new ChromeDriver();
+//        System.setProperty("webdriver.chrome.driver", "F:/app/new/chromedriver.exe");
+//        driver = new ChromeDriver();
+//        baseUrl = "http://10.141.211.179:30224";
+        driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
+                DesiredCapabilities.chrome());
         baseUrl = "http://10.141.211.179:30224";
-//        driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
-//                DesiredCapabilities.chrome());
-//        baseUrl = "http://10.141.211.180:30776";
         driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
     }
     @Test

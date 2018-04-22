@@ -26,22 +26,20 @@ public class TestServiceLogin {
     }
     @BeforeClass
     public void setUp() throws Exception {
-//        System.setProperty("webdriver.chrome.driver", "F:/app/new2/chromedriver.exe");
-//        driver = new ChromeDriver();
-//        baseUrl = "http://10.141.211.173:30004";
-        driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
-                DesiredCapabilities.chrome());
-        baseUrl = "http://10.141.211.180:30776";
+        System.setProperty("webdriver.chrome.driver", "F:/app/new/chromedriver.exe");
+        driver = new ChromeDriver();
+        baseUrl = "http://10.141.211.179:30224";
+//        driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
+//                DesiredCapabilities.chrome());
+//        baseUrl = "http://10.141.211.180:30776";
         driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
     }
 
     @DataProvider(name="user")
     public Object[][] Users(){
         return new Object[][]{
-                {"fdse_microservices@163","DefaultPassword",false},
                 {"fdse_microservices@163.com","DefaultPass",false},
                 {"fdse_microservices@163.com","DefaultPassword",true},
-                {"error","error",false},
                 //{"","","请先输入您的邮箱帐号"},
                 //{"fdse_microservices@163.com"," ","帐号或密码错误"},
                 //{" ","DefaultPassword","请先输入您的邮箱帐号"},

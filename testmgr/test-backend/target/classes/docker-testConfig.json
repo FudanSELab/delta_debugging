@@ -7,6 +7,11 @@
       "TestLoginErrorInstance2",
       "TestMiniSequenceError",
       "TestBookErrorConfig"
+    ],
+    "Ticket Reserve":[
+      "TestServiceTrain",
+      "TestServiceRoute",
+      "TestServiceBasicInfo"
     ]
 
   }

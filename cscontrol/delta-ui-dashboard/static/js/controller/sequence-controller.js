@@ -28,28 +28,6 @@ sequence.controller('SequenceCtrl', ['$scope', '$http','$window','loadTestCases'
         // 加载service列表
         $scope.refreshServices();
 
-        // // 加载service列表
-        // loadServiceList.loadServiceList().then(function (result) {
-        //     if(result.status){
-        //         $scope.services = result.services;
-        //         $scope.senderGroup = [];
-        //         $scope.receiverGroup = [];
-        //         for(var i = 0; i < $scope.services.length; i++){
-        //             for(var j = 0; j < 5 && i < $scope.services.length; ){
-        //                 if($scope.services[i].serviceName.indexOf("service") !== -1){
-        //                     $scope.senderGroup.push($scope.services[i]);
-        //                     $scope.receiverGroup.push($scope.services[i]);
-        //                     i++;
-        //                     j++;
-        //                 } else {
-        //                     i++;
-        //                 }
-        //             }
-        //         }
-        //     } else {
-        //         alert(result.message);
-        //     }
-        // });
 
         // 加载testcase列表
         loadTestCases.loadTestList().then(function (result) {
@@ -171,26 +149,49 @@ sequence.controller('SequenceCtrl', ['$scope', '$http','$window','loadTestCases'
                 tests.push($(this).val());
             });
             var checkedSenderServices = $("input[name='sender']:checked");
-            var senders = [];
+            var sender = [];
             checkedSenderServices.each(function(){
-                senders.push($(this).val());
+                sender.push($(this).val());
             });
             var checkedReceiverServices = $("input[name='receiver']:checked");
             var receivers = [];
             checkedReceiverServices.each(function(){
                 receivers.push($(this).val());
             });
+            var checkedSenderServices2 = $("input[name='sender2']:checked");
+            var sender2 = [];
+            checkedSenderServices2.each(function(){
+                sender2.push($(this).val());
+            });
+            var checkedReceiverServices2 = $("input[name='receiver2']:checked");
+            var receivers2 = [];
+            checkedReceiverServices2.each(function(){
+                receivers2.push($(this).val());
+            });
 
-            if(tests.length > 0 && senders.length === 1 && receivers.length > 1){
+            if(tests.length > 0 && ((sender.length === 1 && receivers.length > 1) ||(sender2.length === 1 && receivers2.length > 1) ) &&  stompClient != null){
                 $('#test-button').addClass('disabled');
                 $scope.deltaResults = [];
                 $scope.sequenceDeltaResult = "sequence delta testing...";
+                var seqGroups = [];
+                if(sender.length == 1 && receivers.length > 1){
+                    seqGroups.push({
+                        'sender':sender[0],
+                        'receivers': receivers
+                    });
+                }
+                if(sender2.length == 1 && receivers2.length > 1){
+                    seqGroups.push({
+                        'sender':sender2[0],
+                        'receivers': receivers2
+                    });
+                }
                 var data = {
                     'id': loginId,
-                    'sender': senders[0],
-                    'receivers': receivers,
+                    'seqGroups': seqGroups,
                     'tests': tests
                 };
+                console.log(data);
                 stompClient.send("/app/msg/sequenceDelta", {}, JSON.stringify(data));
             } else {
                 alert("Please choose at least one testcase, one sender and two receivers.");

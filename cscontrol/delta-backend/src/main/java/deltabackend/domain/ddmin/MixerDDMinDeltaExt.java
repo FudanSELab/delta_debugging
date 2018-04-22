@@ -12,6 +12,7 @@ import deltabackend.domain.bean.ServiceWithReplicas;
 import deltabackend.domain.bean.SingleDeltaCMResourceRequest;
 import deltabackend.domain.configDelta.ConfigDeltaResponse;
 import deltabackend.domain.mixerDelta.MixerDeltaResponse;
+import deltabackend.domain.sequenceDelta.SingleSequenceDelta;
 import deltabackend.domain.test.DeltaTestRequest;
 import deltabackend.domain.test.DeltaTestResponse;
 import org.springframework.messaging.MessageHeaders;
@@ -41,7 +42,7 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
     private List<ServiceWithReplicas> instanceOrignalEnv = new ArrayList<ServiceWithReplicas>();
     private Map<String, ServiceWithReplicas> instanceDeltaMap = new HashMap<String, ServiceWithReplicas>();
 
-    public MixerDDMinDeltaExt(List<String> tests, String sender, ArrayList<String> receivers, List<String> instances, List<SingleDeltaCMResourceRequest> configs, String id, SimpMessagingTemplate t, List<String> cs) {
+    public MixerDDMinDeltaExt(List<String> tests, List<SingleSequenceDelta> seqGroups, List<String> instances, List<SingleDeltaCMResourceRequest> configs, String id, SimpMessagingTemplate t, List<String> cs) {
         super();
         configUnlimitMap.put("memory", "800Mi");
         configUnlimitMap.put("cpu", "500m");
@@ -58,28 +59,6 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
         clusters = cs;
         deltas_all = new ArrayList<String>();
 
-        //sequence
-        String prefix = "seq" + seqNum.pop();
-        preToSender.put(prefix, sender);
-        ArrayList<String> l = new ArrayList<String>(); //put inside-payment in the first
-        for(String a : receivers){
-            if(a.contains("inside")){
-                l.add(a);
-            }
-        }
-        for(String a : receivers){
-            if( ! a.contains("inside")){
-                l.add(a);
-            }
-        }
-        System.out.println("------ New List -----" + l);
-        preToReceivers.put(prefix, l);
-        int sequenceSize = receivers.size();
-        for(int i = 0; i < sequenceSize-1; i++){
-            for(int j = i + 1; j < sequenceSize; j++){
-                deltas_all.add( prefix + "_" + sequenceSize + "_" + (i+1) +  "_" + (j+1) );
-            }
-        }
         //instance
         for(String p: instances){
             ServiceWithReplicas q = new ServiceWithReplicas();
@@ -93,6 +72,56 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
             w.setNumOfReplicas(1);
             instanceOrignalEnv.add(w);
         }
+        //sequence
+        for(SingleSequenceDelta group: seqGroups){
+            String s = group.getSender();
+            List<String> rs = group.getReceivers();
+            String prefix = "seq" + seqNum.pop();
+            preToSender.put(prefix, s);
+            ArrayList<String> l = new ArrayList<String>();
+            //put inside-payment in the first
+            for(String a : rs){
+                if(a.contains("inside")){
+                    l.add(a);
+                }
+            }
+            for(String a : rs){
+                if( ! a.contains("inside")){
+                    l.add(a);
+                }
+            }
+            System.out.println("------ New List -----" + l);
+            preToReceivers.put(prefix, l);
+
+            int size = rs.size();
+            for(int i = 0; i < size-1; i++){
+                for(int j = i + 1; j < size; j++){
+                    deltas_all.add( prefix + "_" + size + "_" + (i+1) +  "_" + (j+1) );
+                }
+            }
+        }
+//        String prefix = "seq" + seqNum.pop();
+//        preToSender.put(prefix, sender);
+//        ArrayList<String> l = new ArrayList<String>(); //put inside-payment in the first
+//        for(String a : receivers){
+//            if(a.contains("inside")){
+//                l.add(a);
+//            }
+//        }
+//        for(String a : receivers){
+//            if( ! a.contains("inside")){
+//                l.add(a);
+//            }
+//        }
+//        System.out.println("------ New List -----" + l);
+//        preToReceivers.put(prefix, l);
+//        int sequenceSize = receivers.size();
+//        for(int i = 0; i < sequenceSize-1; i++){
+//            for(int j = i + 1; j < sequenceSize; j++){
+//                deltas_all.add( prefix + "_" + sequenceSize + "_" + (i+1) +  "_" + (j+1) );
+//            }
+//        }
+
         //config
         configOrignalEnv = configs;
         configUnlimitEnv = new ArrayList<SingleDeltaCMResourceRequest>();
@@ -276,7 +305,7 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
         System.out.println();
         // execute testcases
         try {
-            Thread.sleep(15000);
+            Thread.sleep(20000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

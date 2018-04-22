@@ -1,6 +1,7 @@
 package deltabackend.domain.mixerDelta;
 
 import deltabackend.domain.bean.SingleDeltaCMResourceRequest;
+import deltabackend.domain.sequenceDelta.SingleSequenceDelta;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,13 +10,21 @@ public class MixerDeltaRequest {
 
     String id;
     List<String> instances;
-    String sender;
-    ArrayList<String> receivers;
+    List<SingleSequenceDelta> seqGroups;
     List<SingleDeltaCMResourceRequest> configs;
     List<String> tests;
 
     public MixerDeltaRequest(){
 
+    }
+
+
+    public List<SingleSequenceDelta> getSeqGroups() {
+        return seqGroups;
+    }
+
+    public void setSeqGroups(List<SingleSequenceDelta> seqGroups) {
+        this.seqGroups = seqGroups;
     }
 
     public String getId() {
@@ -34,21 +43,7 @@ public class MixerDeltaRequest {
         this.instances = instances;
     }
 
-    public String getSender() {
-        return sender;
-    }
 
-    public void setSender(String sender) {
-        this.sender = sender;
-    }
-
-    public ArrayList<String> getReceivers() {
-        return receivers;
-    }
-
-    public void setReceivers(ArrayList<String> receivers) {
-        this.receivers = receivers;
-    }
 
     public List<SingleDeltaCMResourceRequest> getConfigs() {
         return configs;

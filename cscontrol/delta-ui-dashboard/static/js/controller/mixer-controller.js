@@ -183,14 +183,24 @@ mixer.controller('MixerCtrl', ['$scope', '$http','$window','loadServiceList',  '
                     instances.push($(this).val());
                 });
                 var checkedSenderServices = $("input[name='sender']:checked");
-                var senders = [];
+                var sender = [];
                 checkedSenderServices.each(function(){
-                    senders.push($(this).val());
+                    sender.push($(this).val());
                 });
                 var checkedReceiverServices = $("input[name='receiver']:checked");
                 var receivers = [];
                 checkedReceiverServices.each(function(){
                     receivers.push($(this).val());
+                });
+                var checkedSenderServices2 = $("input[name='sender2']:checked");
+                var sender2 = [];
+                checkedSenderServices2.each(function(){
+                    sender2.push($(this).val());
+                });
+                var checkedReceiverServices2 = $("input[name='receiver2']:checked");
+                var receivers2 = [];
+                checkedReceiverServices2.each(function(){
+                    receivers2.push($(this).val());
                 });
 
                 var checkedConfig = $("input[name='serviceconfig']:checked");
@@ -205,15 +215,27 @@ mixer.controller('MixerCtrl', ['$scope', '$http','$window','loadServiceList',  '
                     });
                 });
 
-                if(tests.length > 0 && (instances.length > 0 || (senders.length > 0 && receivers.length > 1) || configs.length > 0)){
+                if(tests.length > 0 && (instances.length > 0 || ((sender.length === 1 && receivers.length > 1) ||(sender2.length === 1 && receivers2.length > 1) ) || configs.length > 0)){
                     $('#test-button').addClass('disabled');
                     $scope.mixerDeltaResponse = [];
                     $scope.mixerDeltaResult = "mixer delta testing...";
+                    var seqGroups = [];
+                    if(sender.length == 1 && receivers.length > 1){
+                        seqGroups.push({
+                            'sender':sender[0],
+                            'receivers': receivers
+                        });
+                    }
+                    if(sender2.length == 1 && receivers2.length > 1){
+                        seqGroups.push({
+                            'sender':sender2[0],
+                            'receivers': receivers2
+                        });
+                    }
                     var data = {
                         'id': loginId,
                         'instances': instances,
-                        'senders':senders,
-                        'receivers': receivers,
+                        'seqGroups': seqGroups,
                         'configs': configs,
                         'tests':tests
                     };
@@ -271,7 +293,7 @@ mixer.controller('MixerCtrl', ['$scope', '$http','$window','loadServiceList',  '
 
         $scope.simpleSetInstance = function(n){
             if ( stompClient != null ) {
-                var checkedServices = $("input[name='service']:checked");
+                var checkedServices = $("input[name='instance-service']:checked");
                 var services = [];
                 checkedServices.each(function(){
                     services.push($(this).val());

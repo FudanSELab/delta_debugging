@@ -388,7 +388,7 @@ public class DeltaServiceImpl implements DeltaService{
             System.out.println("sessionid = " + sessionId);
 
             ParallelDDMinAlgorithm ddmin = new ParallelDDMinAlgorithm();
-            ParallelDDMinDelta ddmin_delta = new SequenceDDMinDeltaExt(message.getTests(),message.getSender(), message.getReceivers(), sessionId, template, myConfig.getClusters());
+            ParallelDDMinDelta ddmin_delta = new SequenceDDMinDeltaExt(message.getTests(),message.getSeqGroups(), sessionId, template, myConfig.getClusters());
             ddmin.setDdmin_delta(ddmin_delta);
             ddmin.initEnv();
             List<String> ddminResult = ddmin.ddmin(ddmin_delta.deltas_all);
@@ -422,7 +422,7 @@ public class DeltaServiceImpl implements DeltaService{
             System.out.println("sessionid = " + sessionId);
 
             ParallelDDMinAlgorithm ddmin = new ParallelDDMinAlgorithm();
-            ParallelDDMinDelta ddmin_delta = new MixerDDMinDeltaExt(message.getTests(),message.getSender(), message.getReceivers(),message.getInstances(), message.getConfigs(), sessionId, template, myConfig.getClusters());
+            ParallelDDMinDelta ddmin_delta = new MixerDDMinDeltaExt(message.getTests(),message.getSeqGroups(),message.getInstances(), message.getConfigs(), sessionId, template, myConfig.getClusters());
             ddmin.setDdmin_delta(ddmin_delta);
             ddmin.initEnv();
             List<String> ddminResult = ddmin.ddmin(ddmin_delta.deltas_all);

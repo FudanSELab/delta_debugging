@@ -6,10 +6,17 @@ import java.util.List;
 public class SequenceDeltaRequest {
 
     String id;
-    String sender;
-    ArrayList<String> receivers;
+    List<SingleSequenceDelta> seqGroups;
     List<String> tests;
 
+
+    public List<SingleSequenceDelta> getSeqGroups() {
+        return seqGroups;
+    }
+
+    public void setSeqGroups(List<SingleSequenceDelta> seqGroups) {
+        this.seqGroups = seqGroups;
+    }
 
 
     public String getId() {
@@ -20,21 +27,7 @@ public class SequenceDeltaRequest {
         this.id = id;
     }
 
-    public String getSender() {
-        return sender;
-    }
 
-    public void setSender(String sender) {
-        this.sender = sender;
-    }
-
-    public ArrayList<String> getReceivers() {
-        return receivers;
-    }
-
-    public void setReceivers(ArrayList<String> receivers) {
-        this.receivers = receivers;
-    }
 
     public List<String> getTests() {
         return tests;
