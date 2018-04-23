@@ -11,9 +11,7 @@ import com.alibaba.fastjson.JSON;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class ApiServiceImpl implements ApiService {
@@ -1092,7 +1090,7 @@ public class ApiServiceImpl implements ApiService {
         List<String> serviceNames = new ArrayList<>();
         //Check if the resource setting exists
         if(deploymentsList.getItems() != null && deploymentsList.getItems().size() > 0 && deltaCMResourceRequest.getDeltaRequests() != null){
-            for(SingleDeltaCMResourceRequest request : deltaCMResourceRequest.getDeltaRequests()){
+            for(NewSingleDeltaCMResourceRequest request : deltaCMResourceRequest.getDeltaRequests()){
                 serviceNames.add(request.getServiceName());
                 for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
                     if(singleDeploymentInfo.getMetadata().getName().equals(request.getServiceName())){
@@ -1359,7 +1357,8 @@ public class ApiServiceImpl implements ApiService {
         return endpointsList;
     }
 
-    //Delta the CPU and memory of service
+    //Not Used Any More: Delta the CPU and memory of service
+    @Deprecated
     private boolean deltaCMResource(String namespace,SingleDeltaCMResourceRequest request, Cluster cluster){
         boolean isSuccess = true;
         SingleDeploymentInfo result;
@@ -1373,6 +1372,60 @@ public class ApiServiceImpl implements ApiService {
                 "/bin/sh","-c",String.format("curl -X PATCH -d%s -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
                 data,apiUrl,cluster.getToken(),filePath)
         };
+        ProcessBuilder pb = new ProcessBuilder(cmds);
+        pb.redirectErrorStream(true);
+        Process p;
+        try {
+            p = pb.start();
+            p.waitFor();
+
+            String json = readWholeFile(filePath);
+            //Parse the response to the SetServicesReplicasResponseFromAPI Bean
+//            System.out.println(json);
+            result = JSON.parseObject(json,SingleDeploymentInfo.class);
+        } catch (Exception e) {
+            isSuccess = false;
+            e.printStackTrace();
+        }
+        return isSuccess;
+    }
+
+    //New: Delta the CPU and memory of service. Restart only once.
+    private boolean deltaCMResource(String namespace,NewSingleDeltaCMResourceRequest request, Cluster cluster){
+        boolean isSuccess = true;
+        SingleDeploymentInfo result;
+        String filePath = "/app/delta_cmconfig_result_" + cluster.getName() + System.currentTimeMillis()+ ".json";
+        String apiUrl = String.format("%s/apis/apps/v1beta1/namespaces/%s/deployments/%s",cluster.getApiServer(),namespace, request.getServiceName());
+        System.out.println(String.format("The constructed api url for deltaing config is %s", apiUrl));
+        //Add the type: limits and requests
+        List<CMConfig> configs = request.getConfigs();
+
+        String[] cmds;
+        //Delta limits and requests at the same time
+        if(configs.size() > 1){
+            cmds = new String[]{
+                    "/bin/sh","-c",String.format("curl -X PATCH -d \"[{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/spec/template/spec/containers/0/resources\\\",\\\"value\\\":{\\\"%s\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"},\\\"%s\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}}]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                    configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
+                    configs.get(1).getType(),configs.get(1).getValues().get(0).getKey(),configs.get(1).getValues().get(0).getValue(),configs.get(1).getValues().get(1).getKey(),configs.get(1).getValues().get(1).getValue(),
+                    apiUrl,cluster.getToken(),filePath)
+            };
+        }
+        //Delta limits or requests
+        else{
+            cmds = new String[]{
+                    "/bin/sh","-c",String.format("curl -X PATCH -d \"[{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\",\\\"value\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                    configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
+                    apiUrl,cluster.getToken(),filePath)
+            };
+        }
+//        String data = String.format("'[{ \"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/resources/%s/%s\", \"value\": \"%s\"}]'",
+//                request.getType(),request.getKey(),request.getValue());
+//        System.out.println(String.format("The constructed data for deltaing config is %s", data));
+//        cmds ={
+//                "/bin/sh","-c",String.format("curl -X PATCH -d%s -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+//                data,apiUrl,cluster.getToken(),filePath)
+//        };
+//        System.out.println(String.format("The constructed command for deltaing config is %s", cmds[2]));
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
         Process p;
@@ -1473,6 +1526,7 @@ public class ApiServiceImpl implements ApiService {
         String[] cmds ={
                 "/bin/sh","-c",String.format("curl -X PATCH -d%s -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",data,apiUrl,cluster.getToken(),filePath)
         };
+//        System.out.println(String.format("The constructed command for setting service replicas is %s", cmds[2]));
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
         Process p;
@@ -1660,6 +1714,7 @@ public class ApiServiceImpl implements ApiService {
         String[] cmds ={
                 "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,cluster.getToken(),filePath)
         };
+
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
         Process p;

@@ -1,12 +1,12 @@
 package apiserver.request;
 
-import apiserver.bean.SingleDeltaCMResourceRequest;
+import apiserver.bean.NewSingleDeltaCMResourceRequest;
 
 import java.util.List;
 
 public class DeltaCMResourceRequest {
     private String clusterName;
-    private List<SingleDeltaCMResourceRequest> deltaRequests;
+    private List<NewSingleDeltaCMResourceRequest> deltaRequests;
 
     public DeltaCMResourceRequest(){
 
@@ -20,11 +20,11 @@ public class DeltaCMResourceRequest {
         this.clusterName = clusterName;
     }
 
-    public List<SingleDeltaCMResourceRequest> getDeltaRequests() {
+    public List<NewSingleDeltaCMResourceRequest> getDeltaRequests() {
         return deltaRequests;
     }
 
-    public void setDeltaRequests(List<SingleDeltaCMResourceRequest> deltaRequests) {
+    public void setDeltaRequests(List<NewSingleDeltaCMResourceRequest> deltaRequests) {
         this.deltaRequests = deltaRequests;
     }
 }
