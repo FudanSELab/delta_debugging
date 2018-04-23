@@ -1536,19 +1536,36 @@ public class ApiServiceImpl implements ApiService {
                 //Delta limits or requests, with instance
                 if(num > 0){
                     System.out.println("[Delta All] Delta limits or requests, with instance");
-                    cmds = new String[]{
-                            "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
-                                    "{\\\"op\\\":\\\"replace\\\"," +
-                                    "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
-                                    "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}," +
-                                    "{\\\"op\\\":\\\"replace\\\"," +
-                                    "\\\"path\\\":\\\"/spec/replicas\\\"," +
-                                    "\\\"value\\\": %d}" +
-                                    "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
-                            configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
-                            request.getNumOfReplicas(),
-                            apiUrl,cluster.getToken(),filePath)
-                    };
+                    if(configs.get(0).getValues().size() > 1){
+                        cmds = new String[]{
+                                "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                                        "{\\\"op\\\":\\\"replace\\\"," +
+                                        "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
+                                        "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}," +
+                                        "{\\\"op\\\":\\\"replace\\\"," +
+                                        "\\\"path\\\":\\\"/spec/replicas\\\"," +
+                                        "\\\"value\\\": %d}" +
+                                        "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                                configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
+                                request.getNumOfReplicas(),
+                                apiUrl,cluster.getToken(),filePath)
+                        };
+                    }else if(configs.get(0).getValues().size() == 1){
+                        cmds = new String[]{
+                                "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                                        "{\\\"op\\\":\\\"replace\\\"," +
+                                        "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
+                                        "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\"}}," +
+                                        "{\\\"op\\\":\\\"replace\\\"," +
+                                        "\\\"path\\\":\\\"/spec/replicas\\\"," +
+                                        "\\\"value\\\": %d}" +
+                                        "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                                configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),
+                                request.getNumOfReplicas(),
+                                apiUrl,cluster.getToken(),filePath)
+                        };
+                    }
+
                 }
                 //Delta limits or requests only
                 else{
