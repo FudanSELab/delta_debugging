@@ -1511,7 +1511,7 @@ public class ApiServiceImpl implements ApiService {
         List<CMConfig> configs = request.getConfigs();
         int num = request.getNumOfReplicas();
 
-        String[] cmds;
+        String[] cmds = new String[]{};
         //Delta limits and requests , with instance at the same time
         if(configs == null || configs.size() == 0){
             if(num <= 0){
@@ -1553,14 +1553,28 @@ public class ApiServiceImpl implements ApiService {
                 //Delta limits or requests only
                 else{
                     System.out.println("[Delta All] Delta limits or requests only");
-                    cmds = new String[]{
-                            "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
-                                    "{\\\"op\\\":\\\"replace\\\"," +
-                                    "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"" +
-                                    "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
-                            configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
-                            apiUrl,cluster.getToken(),filePath)
-                    };
+                    if(configs.get(0).getValues().size() > 1){
+                        cmds = new String[]{
+                                "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                                        "{\\\"op\\\":\\\"replace\\\"," +
+                                        "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"" +
+                                        "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}," +
+                                        "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                                configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
+                                apiUrl,cluster.getToken(),filePath)
+                        };
+                    }else if(configs.get(0).getValues().size() == 1){
+                        cmds = new String[]{
+                                "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                                        "{\\\"op\\\":\\\"replace\\\"," +
+                                        "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"" +
+                                        "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\"}}," +
+                                        "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                                configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),
+                                apiUrl,cluster.getToken(),filePath)
+                        };
+                    }
+
                 }
             }
             else{
@@ -1600,21 +1614,26 @@ public class ApiServiceImpl implements ApiService {
         }
 
 //        System.out.println(String.format("The constructed command for deltaing all is %s", cmds[2]));
-        ProcessBuilder pb = new ProcessBuilder(cmds);
-        pb.redirectErrorStream(true);
-        Process p;
-        try {
-            p = pb.start();
-            p.waitFor();
+        if(cmds.length > 0){
+            ProcessBuilder pb = new ProcessBuilder(cmds);
+            pb.redirectErrorStream(true);
+            Process p;
+            try {
+                p = pb.start();
+                p.waitFor();
 
-            String json = readWholeFile(filePath);
-            //Parse the response to the SetServicesReplicasResponseFromAPI Bean
+                String json = readWholeFile(filePath);
+                //Parse the response to the SetServicesReplicasResponseFromAPI Bean
 //            System.out.println(json);
-            result = JSON.parseObject(json,SingleDeploymentInfo.class);
-        } catch (Exception e) {
-            isSuccess = false;
-            e.printStackTrace();
+                result = JSON.parseObject(json,SingleDeploymentInfo.class);
+            } catch (Exception e) {
+                isSuccess = false;
+                e.printStackTrace();
+            }
+        }else{
+            System.out.println("The cmds is empty. No command to execute!");
         }
+
         return isSuccess;
     }
 
