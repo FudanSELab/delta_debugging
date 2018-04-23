@@ -1509,40 +1509,94 @@ public class ApiServiceImpl implements ApiService {
         System.out.println(String.format("The constructed api url for deltaing all is %s", apiUrl));
         //Add the type: limits and requests
         List<CMConfig> configs = request.getConfigs();
+        int num = request.getNumOfReplicas();
 
         String[] cmds;
         //Delta limits and requests , with instance at the same time
-        if(configs.size() > 1){
-            cmds = new String[]{
-                    "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
-                            "{\\\"op\\\":\\\"replace\\\"," +
-                            "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources\\\"," +
-                            "\\\"value\\\":{\\\"%s\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"},\\\"%s\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}}," +
-                            "{\\\"op\\\":\\\"replace\\\"," +
-                            "\\\"path\\\":\\\"/spec/replicas\\\"," +
-                            "\\\"value\\\": %d}" +
-                            "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
-                    configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
-                    configs.get(1).getType(),configs.get(1).getValues().get(0).getKey(),configs.get(1).getValues().get(0).getValue(),configs.get(1).getValues().get(1).getKey(),configs.get(1).getValues().get(1).getValue(),
-                    request.getNumOfReplicas(),
-                    apiUrl,cluster.getToken(),filePath)
-            };
+        if(configs == null || configs.size() == 0){
+            if(num <= 0){
+                cmds = new String[]{};
+                System.out.println("There is no need to delta!");
+            }
+            else{
+                //Delta instance only
+                System.out.println("[Delta All] Delta instance only");
+                cmds = new String[]{
+                        "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                                "{\\\"op\\\":\\\"replace\\\"," +
+                                "\\\"path\\\":\\\"/spec/replicas\\\"," +
+                                "\\\"value\\\": %d}" +
+                                "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                        request.getNumOfReplicas(), apiUrl,cluster.getToken(),filePath)
+                };
+            }
         }
-        //Delta limits or requests, with instance
         else{
-            cmds = new String[]{
-                    "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
-                            "{\\\"op\\\":\\\"replace\\\"," +
-                            "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
-                            "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}," +
-                            "{\\\"op\\\":\\\"replace\\\"," +
-                            "\\\"path\\\":\\\"/spec/replicas\\\"," +
-                            "\\\"value\\\": %d}" +
-                            "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
-                    configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
-                    request.getNumOfReplicas(),
-                    apiUrl,cluster.getToken(),filePath)
-            };
+            if(configs.size() == 1){
+                //Delta limits or requests, with instance
+                if(num > 0){
+                    System.out.println("[Delta All] Delta limits or requests, with instance");
+                    cmds = new String[]{
+                            "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                                    "{\\\"op\\\":\\\"replace\\\"," +
+                                    "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
+                                    "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}," +
+                                    "{\\\"op\\\":\\\"replace\\\"," +
+                                    "\\\"path\\\":\\\"/spec/replicas\\\"," +
+                                    "\\\"value\\\": %d}" +
+                                    "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                            configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
+                            request.getNumOfReplicas(),
+                            apiUrl,cluster.getToken(),filePath)
+                    };
+                }
+                //Delta limits or requests only
+                else{
+                    System.out.println("[Delta All] Delta limits or requests only");
+                    cmds = new String[]{
+                            "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                                    "{\\\"op\\\":\\\"replace\\\"," +
+                                    "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"" +
+                                    "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                            configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
+                            apiUrl,cluster.getToken(),filePath)
+                    };
+                }
+            }
+            else{
+                //Delta limits and requests, with instance
+                if(num > 0){
+                    System.out.println("[Delta All] Delta limits and requests, with instance");
+                    cmds = new String[]{
+                            "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                                    "{\\\"op\\\":\\\"replace\\\"," +
+                                    "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources\\\"," +
+                                    "\\\"value\\\":{\\\"%s\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"},\\\"%s\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}}," +
+                                    "{\\\"op\\\":\\\"replace\\\"," +
+                                    "\\\"path\\\":\\\"/spec/replicas\\\"," +
+                                    "\\\"value\\\": %d}" +
+                                    "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                            configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
+                            configs.get(1).getType(),configs.get(1).getValues().get(0).getKey(),configs.get(1).getValues().get(0).getValue(),configs.get(1).getValues().get(1).getKey(),configs.get(1).getValues().get(1).getValue(),
+                            request.getNumOfReplicas(),
+                            apiUrl,cluster.getToken(),filePath)
+                    };
+                }
+                //Delta limits and requests only
+                else{
+                    System.out.println("[Delta All] Delta limits and requests only");
+                    cmds = new String[]{
+                            "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                                    "{\\\"op\\\":\\\"replace\\\"," +
+                                    "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources\\\"," +
+                                    "\\\"value\\\":{\\\"%s\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"},\\\"%s\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}}" +
+                                    "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                            configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
+                            configs.get(1).getType(),configs.get(1).getValues().get(0).getKey(),configs.get(1).getValues().get(0).getValue(),configs.get(1).getValues().get(1).getKey(),configs.get(1).getValues().get(1).getValue(),
+                            apiUrl,cluster.getToken(),filePath)
+                    };
+                }
+            }
         }
 
 //        System.out.println(String.format("The constructed command for deltaing all is %s", cmds[2]));
