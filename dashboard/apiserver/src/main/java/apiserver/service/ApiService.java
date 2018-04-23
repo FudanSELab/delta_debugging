@@ -2,7 +2,6 @@ package apiserver.service;
 
 import apiserver.request.*;
 import apiserver.response.*;
-import org.springframework.web.bind.annotation.RequestBody;
 
 public interface ApiService {
     GetClustersResponse getClusters();
@@ -29,5 +28,5 @@ public interface ApiService {
     SetAsyncRequestSequenceResponse setAsyncRequestsSequenceWithSource(SetAsyncRequestSequenceRequestWithSource setAsyncRequestSequenceRequest);
     SetAsyncRequestSequenceResponse setAsyncRequestSequenceWithSrcCombineWithFullSuspend(SetAsyncRequestSequenceRequestWithSource request);
     SetAsyncRequestSequenceResponse unsuspendAllRequest(SetAsyncRequestSequenceRequestWithSource request);
-
+    SimpleResponse deltaAll(DeltaAllRequest deltaAllRequest);
 }

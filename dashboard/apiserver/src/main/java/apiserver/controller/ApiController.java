@@ -221,4 +221,11 @@ public class ApiController {
     public ServiceWithEndpointsResponse getSpecificServiceWithEndpoints(@RequestBody ReserveServiceRequest reserveServiceRequest) {
         return apiService.getSpecificServiceWithEndpoints(reserveServiceRequest);
     }
+
+    //Delta all: currently instance and config
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/deltaAll", method= RequestMethod.POST)
+    public SimpleResponse deltaAll(@RequestBody DeltaAllRequest deltaAllRequest) {
+        return apiService.deltaAll(deltaAllRequest);
+    }
 }

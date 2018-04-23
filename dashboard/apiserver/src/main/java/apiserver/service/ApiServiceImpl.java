@@ -18,12 +18,6 @@ public class ApiServiceImpl implements ApiService {
 
     private final String NAMESPACE = "default";
 
-    private String masterIp = "10.141.211.181";
-
-    private String username = "root";
-
-    private String password = "root";
-
     @Autowired
     private AsyncTask asyncTask;
 
@@ -1227,6 +1221,68 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
+    //Delta the config and replicas of service at the same time
+    @Override
+    public SimpleResponse deltaAll(DeltaAllRequest deltaAllRequest) {
+        Cluster cluster = getClusterByName(deltaAllRequest.getClusterName());
+        System.out.println(String.format("The cluster to operate is: %s", cluster.getName()));
+        SimpleResponse response = new SimpleResponse();
+        //Get the current deployments information
+        QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE,cluster);
+
+        List<String> serviceNames = new ArrayList<>();
+        //Check if the resource setting exists
+        if(deploymentsList.getItems() != null && deploymentsList.getItems().size() > 0 && deltaAllRequest.getDeltaRequests() != null){
+            for(SingleDeltaAllRequest request : deltaAllRequest.getDeltaRequests()){
+                serviceNames.add(request.getServiceName());
+                for(SingleDeploymentInfo singleDeploymentInfo : deploymentsList.getItems()){
+                    if(singleDeploymentInfo.getMetadata().getName().equals(request.getServiceName())){
+                        boolean result = deltaAllProcess(NAMESPACE,request, cluster);
+                        if(result){
+                            response.setStatus(true);
+                            response.setMessage("The config has been deltaed successfully!");
+                        }
+                    }
+                }
+            }
+        }
+
+        //Wait for the pod restart
+        try{
+            Thread.sleep(1000);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        //Check whether all of the services are available again in certain internals
+        int count = 10;
+        boolean b = isAllReady(NAMESPACE,cluster);
+        while(!b && count > 0){
+            try{
+                //Check every 2 seconds
+                Thread.sleep(2000);
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+            b = isAllReady(NAMESPACE,cluster);
+            count--;
+        }
+        if(!b){
+            System.out.println("There are still some pods are not ready after delta all");
+            response.setMessage("There are still some pods are not ready after delta all");
+            response.setStatus(false);
+            return response;
+        }
+        //Check if all the pods are able to serve
+        boolean result = isAllAbleToServe(serviceNames,cluster);
+        if(result){
+            System.out.println("All the services are able to serve");
+        }else{
+            System.out.println("There are still some services not able to serve");
+        }
+
+        return response;
+    }
+
     //Check if all the services in the list are able to serve
     private boolean isAllAbleToServe(List<String> serviceNames,Cluster cluster){
         System.out.println(String.format("The service list to be checked are %s", serviceNames.toString()));
@@ -1426,6 +1482,70 @@ public class ApiServiceImpl implements ApiService {
 //                data,apiUrl,cluster.getToken(),filePath)
 //        };
 //        System.out.println(String.format("The constructed command for deltaing config is %s", cmds[2]));
+        ProcessBuilder pb = new ProcessBuilder(cmds);
+        pb.redirectErrorStream(true);
+        Process p;
+        try {
+            p = pb.start();
+            p.waitFor();
+
+            String json = readWholeFile(filePath);
+            //Parse the response to the SetServicesReplicasResponseFromAPI Bean
+//            System.out.println(json);
+            result = JSON.parseObject(json,SingleDeploymentInfo.class);
+        } catch (Exception e) {
+            isSuccess = false;
+            e.printStackTrace();
+        }
+        return isSuccess;
+    }
+
+    //Delta the config and instance of service at the same time
+    private boolean deltaAllProcess(String namespace,SingleDeltaAllRequest request, Cluster cluster){
+        boolean isSuccess = true;
+        SingleDeploymentInfo result;
+        String filePath = "/app/delta_all_result_" + cluster.getName() + System.currentTimeMillis()+ ".json";
+        String apiUrl = String.format("%s/apis/apps/v1beta1/namespaces/%s/deployments/%s",cluster.getApiServer(),namespace, request.getServiceName());
+        System.out.println(String.format("The constructed api url for deltaing all is %s", apiUrl));
+        //Add the type: limits and requests
+        List<CMConfig> configs = request.getConfigs();
+
+        String[] cmds;
+        //Delta limits and requests , with instance at the same time
+        if(configs.size() > 1){
+            cmds = new String[]{
+                    "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                            "{\\\"op\\\":\\\"replace\\\"," +
+                            "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources\\\"," +
+                            "\\\"value\\\":{\\\"%s\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"},\\\"%s\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}}," +
+                            "{\\\"op\\\":\\\"replace\\\"," +
+                            "\\\"path\\\":\\\"/spec/replicas\\\"," +
+                            "\\\"value\\\": %d}" +
+                            "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                    configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
+                    configs.get(1).getType(),configs.get(1).getValues().get(0).getKey(),configs.get(1).getValues().get(0).getValue(),configs.get(1).getValues().get(1).getKey(),configs.get(1).getValues().get(1).getValue(),
+                    request.getNumOfReplicas(),
+                    apiUrl,cluster.getToken(),filePath)
+            };
+        }
+        //Delta limits or requests, with instance
+        else{
+            cmds = new String[]{
+                    "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                            "{\\\"op\\\":\\\"replace\\\"," +
+                            "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
+                            "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}," +
+                            "{\\\"op\\\":\\\"replace\\\"," +
+                            "\\\"path\\\":\\\"/spec/replicas\\\"," +
+                            "\\\"value\\\": %d}" +
+                            "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                    configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
+                    request.getNumOfReplicas(),
+                    apiUrl,cluster.getToken(),filePath)
+            };
+        }
+
+//        System.out.println(String.format("The constructed command for deltaing all is %s", cmds[2]));
         ProcessBuilder pb = new ProcessBuilder(cmds);
         pb.redirectErrorStream(true);
         Process p;
