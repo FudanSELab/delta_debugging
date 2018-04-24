@@ -9,9 +9,8 @@
       "TestBookErrorConfig"
     ],
     "Ticket Reserve":[
-      "TestServiceTrain",
-      "TestServiceRoute",
-      "TestServiceBasicInfo"
+      "TestServiceLogin",
+      "TestServiceContacts"
     ]
 
   }

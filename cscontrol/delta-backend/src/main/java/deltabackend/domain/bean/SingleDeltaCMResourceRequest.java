@@ -41,4 +41,8 @@ public class SingleDeltaCMResourceRequest {
     public void setValue(String value) {
         this.value = value;
     }
+
+    public String toString(){
+        return this.serviceName + ": " + this.type + ": " + this.key + ": " + this.value;
+    }
 }

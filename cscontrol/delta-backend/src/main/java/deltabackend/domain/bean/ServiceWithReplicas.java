@@ -23,4 +23,8 @@ public class ServiceWithReplicas {
     public void setNumOfReplicas(int numOfReplicas) {
         this.numOfReplicas = numOfReplicas;
     }
+
+    public String toString(){
+        return this.serviceName + ": " + this.numOfReplicas;
+    }
 }

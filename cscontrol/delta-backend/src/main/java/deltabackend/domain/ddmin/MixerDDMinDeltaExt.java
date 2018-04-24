@@ -1,16 +1,17 @@
 package deltabackend.domain.ddmin;
 
 import com.baeldung.algorithms.ddmin.ParallelDDMinDelta;
-import deltabackend.domain.api.request.DeltaCMResourceRequest;
-import deltabackend.domain.api.request.SetAsyncRequestSequenceRequestWithSource;
-import deltabackend.domain.api.request.SetServiceReplicasRequest;
+import deltabackend.domain.api.request.*;
 import deltabackend.domain.api.response.DeltaCMResourceResponse;
 import deltabackend.domain.api.response.SetAsyncRequestSequenceResponse;
 import deltabackend.domain.api.response.SetServiceReplicasResponse;
+import deltabackend.domain.api.response.SimpleResponse;
 import deltabackend.domain.bean.ServiceReplicasSetting;
 import deltabackend.domain.bean.ServiceWithReplicas;
 import deltabackend.domain.bean.SingleDeltaCMResourceRequest;
-import deltabackend.domain.configDelta.ConfigDeltaResponse;
+import deltabackend.domain.configDelta.CM;
+import deltabackend.domain.configDelta.CMConfig;
+import deltabackend.domain.configDelta.NewSingleDeltaCMResourceRequest;
 import deltabackend.domain.mixerDelta.MixerDeltaResponse;
 import deltabackend.domain.sequenceDelta.SingleSequenceDelta;
 import deltabackend.domain.test.DeltaTestRequest;
@@ -72,6 +73,26 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
             w.setNumOfReplicas(1);
             instanceOrignalEnv.add(w);
         }
+        //config
+        configOrignalEnv = configs;
+        configUnlimitEnv = new ArrayList<SingleDeltaCMResourceRequest>();
+        for(SingleDeltaCMResourceRequest s : configs){
+            SingleDeltaCMResourceRequest a = new SingleDeltaCMResourceRequest();
+            a.setServiceName(s.getServiceName());
+            a.setType(s.getType());
+            a.setKey(s.getKey());
+            a.setValue(configUnlimitMap.get(s.getKey()));
+            configUnlimitEnv.add(a);
+        }
+        for(SingleDeltaCMResourceRequest p: configs){
+            SingleDeltaCMResourceRequest q = new SingleDeltaCMResourceRequest();
+            q.setServiceName(p.getServiceName());
+            q.setType(p.getType());
+            q.setKey(p.getKey());
+            q.setValue(p.getValue());
+            configDeltaMap.put("config_" + q.getServiceName() + ":" + q.getType()+ ":" + q.getKey()+ ":" + q.getValue(), q);
+            deltas_all.add("config_" + q.getServiceName() + ":" + q.getType()+ ":" + q.getKey()+ ":" + q.getValue());
+        }
         //sequence
         for(SingleSequenceDelta group: seqGroups){
             String s = group.getSender();
@@ -100,6 +121,7 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
                 }
             }
         }
+
 //        String prefix = "seq" + seqNum.pop();
 //        preToSender.put(prefix, sender);
 //        ArrayList<String> l = new ArrayList<String>(); //put inside-payment in the first
@@ -122,27 +144,7 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
 //            }
 //        }
 
-        //config
-        configOrignalEnv = configs;
-        configUnlimitEnv = new ArrayList<SingleDeltaCMResourceRequest>();
-        for(SingleDeltaCMResourceRequest s : configs){
-            SingleDeltaCMResourceRequest a = new SingleDeltaCMResourceRequest();
-            a.setServiceName(s.getServiceName());
-            a.setType(s.getType());
-            a.setKey(s.getKey());
-            a.setValue(configUnlimitMap.get(s.getKey()));
-            configUnlimitEnv.add(a);
-        }
-        for(SingleDeltaCMResourceRequest p: configs){
-            SingleDeltaCMResourceRequest q = new SingleDeltaCMResourceRequest();
-            q.setServiceName(p.getServiceName());
-            q.setType(p.getType());
-            q.setKey(p.getKey());
-            q.setValue(p.getValue());
-            configDeltaMap.put("config_" + q.getServiceName() + ":" + q.getType()+ ":" + q.getKey()+ ":" + q.getValue(), q);
-            deltas_all.add("config_" + q.getServiceName() + ":" + q.getType()+ ":" + q.getKey()+ ":" + q.getValue());
-        }
-        System.out.print("@@@@@@@@@ deltas_all @@@@@@@@@@@@" + deltas_all);
+        System.out.print("@@@@@@@@@ deltas_all @@@@@@@@@@@" + deltas_all);
     }
 
     /////////////////////apply delta //////////////////////////////////////
@@ -150,17 +152,17 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
     public boolean applyDelta(List<String> deltas, String cluster) {
         /* recovery to original cluster status*/
         //instance
-        SetServiceReplicasResponse ssrr1 = setInstanceNumOfServices(instanceOrignalEnv, cluster);
-        if(! ssrr1.isStatus()){
-            return false;
-        }
+//        SetServiceReplicasResponse ssrr1 = setInstanceNumOfServices(instanceOrignalEnv, cluster);
+//        if(! ssrr1.isStatus()){
+//            return false;
+//        }
         //config
-        DeltaCMResourceResponse r1 = modifyConfigsOfServices(configUnlimitEnv, cluster);
-        if(! r1.isStatus()){
-            return false;
-        }
+//        DeltaCMResourceResponse r1 = modifyConfigsOfServices(configUnlimitEnv, cluster);
+//        if(! r1.isStatus()){
+//            return false;
+//        }
 
-
+        System.out.println("******** applyDelta deltas ***********" + deltas);
         /*apply delta*/
         //instance
         List<ServiceWithReplicas> instanceEnv = new ArrayList<ServiceWithReplicas>();
@@ -170,24 +172,61 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
                 instanceEnv.add(e);
             }
         }
-        SetServiceReplicasResponse ssrr2 = setInstanceNumOfServices(instanceEnv, cluster);
-        if( ! ssrr2.isStatus()){
-            return false;
+        for(ServiceWithReplicas swr1: instanceOrignalEnv){
+            boolean toAdjust = false;
+            for(ServiceWithReplicas swr2: instanceEnv){
+                if(swr1.getServiceName().equals(swr2.getServiceName())){
+                    toAdjust = true;
+                }
+            }
+            if(toAdjust == false){
+                instanceEnv.add(swr1);
+            }
         }
+//        if(instanceEnv.size() > 0){
+//            System.out.println();
+//            System.out.println("$$$$ instanceEnv: $$$$ " + instanceEnv);
+//            SetServiceReplicasResponse ssrr2 = setInstanceNumOfServices(instanceEnv, cluster);
+//            if( ! ssrr2.isStatus()){
+//                return false;
+//            }
+//        }
+
         //config
-        List<SingleDeltaCMResourceRequest> env = new ArrayList<SingleDeltaCMResourceRequest>();
+        List<SingleDeltaCMResourceRequest> configEnv = new ArrayList<SingleDeltaCMResourceRequest>();
         for(String s: deltas){
            if(s.contains("config_")){
                SingleDeltaCMResourceRequest e = configDeltaMap.get(s);
-               env.add(e);
+               configEnv.add(e);
            }
         }
-        if(env.size() > 0){
-            DeltaCMResourceResponse r2 = modifyConfigsOfServices(env, cluster);
-            if( ! r2.isStatus()){
-                return false;
+        for(SingleDeltaCMResourceRequest sdcr1: configUnlimitEnv ){
+            boolean toAdjust = false;
+            for(SingleDeltaCMResourceRequest sdcr2: configEnv){
+                if(sdcr1.getServiceName().equals(sdcr2.getServiceName()) && sdcr1.getType().equals(sdcr2.getType()) && sdcr1.getKey().equals(sdcr2.getKey()) ){
+                    toAdjust = true;
+                }
+            }
+            if(toAdjust == false){
+                configEnv.add(sdcr1);
             }
         }
+//        if(configEnv.size() > 0){
+//            System.out.println();
+//            System.out.println("$$$$ configEnv: $$$$ " + configEnv);
+//            DeltaCMResourceResponse r2 = modifyConfigsOfServices(transformToNewConfigDS(configEnv), cluster);
+//            if( ! r2.isStatus()){
+//                return false;
+//            }
+//        }
+
+        //delta Configs & Instances simultaneously
+        SimpleResponse sr = sendAllDelta(toDeltaAllDS(instanceEnv, configEnv), cluster);
+        if( ! sr.isStatus()){
+            return false;
+        }
+
+
         //sequence
         List<String> seqDeltas = new ArrayList<String>();
         for(String s: deltas) {
@@ -227,7 +266,6 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
     }
 
 
-
     private SetAsyncRequestSequenceResponse controlSequence(String sender, ArrayList<String> receivers, String cluster) {
         SetAsyncRequestSequenceRequestWithSource sar = new SetAsyncRequestSequenceRequestWithSource();
         sar.setSourceName(sender);
@@ -242,29 +280,104 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
         return r;
     }
 
-    private SetServiceReplicasResponse setInstanceNumOfServices(List<ServiceWithReplicas> env, String cluster) {
-        SetServiceReplicasRequest ssrr = new SetServiceReplicasRequest();
-        List<ServiceReplicasSetting> l = new ArrayList<ServiceReplicasSetting>();
-        for(ServiceWithReplicas swr: env){
-            ServiceReplicasSetting srs = new ServiceReplicasSetting();
-            srs.setServiceName(swr.getServiceName());
-            srs.setNumOfReplicas(swr.getNumOfReplicas());
-            l.add(srs);
-        }
-        ssrr.setServiceReplicasSettings(l);
-        ssrr.setClusterName(cluster);
+    private List<SingleDeltaAllRequest> toDeltaAllDS( List<ServiceWithReplicas> instances, List<SingleDeltaCMResourceRequest> configs){
+        System.out.println("^^^^ toDeltaAllDS instances ^^^^^^ " + instances);
+        System.out.println("^^^^ toDeltaAllDS configs ^^^^^^ " + configs);
 
-        System.out.println();
-        for(ServiceWithReplicas e: env){
-            System.out.println("--setInstanceNumOfServices--" + e.getServiceName() + ": " + e.getNumOfReplicas());
+        List<SingleDeltaAllRequest> newList = new ArrayList<SingleDeltaAllRequest>();
+        Set<String> existService = new HashSet<String>();
+
+        for(ServiceWithReplicas sw: instances){
+            if(existService.contains(sw.getServiceName())){
+                for(SingleDeltaAllRequest sdr: newList){
+                    if(sdr.getServiceName().equals(sw.getServiceName())){
+                        sdr.setNumOfReplicas(sw.getNumOfReplicas());
+                    }
+                }
+            } else {
+                existService.add(sw.getServiceName());
+                newList.add(new SingleDeltaAllRequest(sw.getServiceName(), sw.getNumOfReplicas()));
+            }
+            System.out.println("++++++++++ transformInstance ++++++++++++ " + newList);
         }
-        SetServiceReplicasResponse ssresult = restTemplate.postForObject(
-                "http://api-server:18898/api/setReplicas",ssrr,
-                SetServiceReplicasResponse.class);
-        System.out.println("--setInstanceNumOfServices--" + ssresult.isStatus() + ": " + ssresult.getMessage());
-        System.out.println();
-        return ssresult;
+
+        for(SingleDeltaCMResourceRequest l: configs){
+            if(existService.contains(l.getServiceName())){
+                for(SingleDeltaAllRequest d: newList){
+                    if(d.getServiceName().equals(l.getServiceName())){
+                        int hasSameType = 0;
+                        if( d.getConfigs().size() > 0){
+                            for(CMConfig cm : d.getConfigs()){
+                                if(cm.getType().equals(l.getType())){
+                                    hasSameType = 1;
+                                    cm.addValues(new CM(l.getKey(), l.getValue()));
+                                    break;
+                                }
+                            }
+                        }
+                        if(hasSameType == 0){
+                            CMConfig e = new CMConfig();
+                            e.setType(l.getType());
+                            e.addValues(new CM(l.getKey(), l.getValue()));
+                            d.getConfigs().add(e);
+                        }
+                        break;
+                    }
+                }
+            } else {
+                existService.add(l.getServiceName());
+                SingleDeltaAllRequest newL = new SingleDeltaAllRequest();
+                newL.setServiceName(l.getServiceName());
+                List<CMConfig> newConfig = new ArrayList<CMConfig>();
+                CMConfig cmc = new CMConfig();
+                cmc.setType(l.getType());
+                cmc.addValues(new CM(l.getKey(), l.getValue()));
+                newConfig.add(cmc);
+                newL.setConfigs(newConfig);
+                newList.add(newL);
+            }
+            System.out.println("++++++++++ transformConfig ++++++++++++ " + newList);
+        }
+
+        System.out.println("++++++++++ transformToDeltaAllDS ++++++++++++ " + newList);
+        return newList;
     }
+
+    private SimpleResponse sendAllDelta(List<SingleDeltaAllRequest> d, String cluster){
+        DeltaAllRequest dar = new DeltaAllRequest();
+        dar.setClusterName(cluster);
+        dar.setDeltaRequests(d);
+        SimpleResponse sr = restTemplate.postForObject(
+                "http://api-server:18898/api/deltaAll",dar,
+                SimpleResponse.class);
+        System.out.println("-- sendAllDelta --" + sr.isStatus() + ": " + sr.getMessage());
+        System.out.println();
+        return sr;
+    }
+
+//    private SetServiceReplicasResponse setInstanceNumOfServices(List<ServiceWithReplicas> env, String cluster) {
+//        SetServiceReplicasRequest ssrr = new SetServiceReplicasRequest();
+//        List<ServiceReplicasSetting> l = new ArrayList<ServiceReplicasSetting>();
+//        for(ServiceWithReplicas swr: env){
+//            ServiceReplicasSetting srs = new ServiceReplicasSetting();
+//            srs.setServiceName(swr.getServiceName());
+//            srs.setNumOfReplicas(swr.getNumOfReplicas());
+//            l.add(srs);
+//        }
+//        ssrr.setServiceReplicasSettings(l);
+//        ssrr.setClusterName(cluster);
+//
+//        System.out.println();
+//        for(ServiceWithReplicas e: env){
+//            System.out.println("--setInstanceNumOfServices--" + e.getServiceName() + ": " + e.getNumOfReplicas());
+//        }
+//        SetServiceReplicasResponse ssresult = restTemplate.postForObject(
+//                "http://api-server:18898/api/setReplicas",ssrr,
+//                SetServiceReplicasResponse.class);
+//        System.out.println("--setInstanceNumOfServices--" + ssresult.isStatus() + ": " + ssresult.getMessage());
+//        System.out.println();
+//        return ssresult;
+//    }
 
     private SetAsyncRequestSequenceResponse releaseControl(String sender, ArrayList<String> receivers, String cluster) {
         SetAsyncRequestSequenceRequestWithSource sar = new SetAsyncRequestSequenceRequestWithSource();
@@ -282,21 +395,23 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
     }
 
 
-    private DeltaCMResourceResponse modifyConfigsOfServices(List<SingleDeltaCMResourceRequest> env, String cluster) {
-        DeltaCMResourceRequest dcr = new DeltaCMResourceRequest();
-        dcr.setDeltaRequests(env);
-        dcr.setClusterName(cluster);
-        System.out.println();
-        for(SingleDeltaCMResourceRequest e: env){
-            System.out.println("--modifyConfigsOfServices--" + cluster + ": " + e.getServiceName() + ": " + e.getType() + ": " + e.getKey() + ": " + e.getValue());
-        }
-        DeltaCMResourceResponse r = restTemplate.postForObject(
-                "http://api-server:18898/api/deltaCMResource",dcr,
-                DeltaCMResourceResponse.class);
-        System.out.println("--modifyConfigsOfServices--" + r.isStatus() + ": " + r.getMessage());
-        System.out.println();
-        return r;
-    }
+
+
+//    private DeltaCMResourceResponse modifyConfigsOfServices(List<NewSingleDeltaCMResourceRequest> env, String cluster) {
+//        DeltaCMResourceRequest dcr = new DeltaCMResourceRequest();
+//        dcr.setDeltaRequests(env);
+//        dcr.setClusterName(cluster);
+//        System.out.println();
+//        for(NewSingleDeltaCMResourceRequest e: env){
+//            System.out.println("--modifyConfigsOfServices--" + cluster + ": " + e.getServiceName() + ": " + e.getConfigs());
+//        }
+//        DeltaCMResourceResponse r = restTemplate.postForObject(
+//                "http://api-server:18898/api/deltaCMResource",dcr,
+//                DeltaCMResourceResponse.class);
+//        System.out.println("--modifyConfigsOfServices--" + r.isStatus() + ": " + r.getMessage());
+//        System.out.println();
+//        return r;
+//    }
 
     ///////////////////////////////////Test/////////////////////////////////////////
 
@@ -440,25 +555,36 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
 
     ////////////////////////// Recover ////////////////////////////////////
     public boolean recoverEnv(){
-        boolean a = recoverConfigEnv();
+//        boolean a = recoverConfigEnv();
         boolean b = recoverSequenceEnv();
-        boolean c = recoverInstanceEnv();
-        if(a && b && c){
+//        boolean c = recoverInstanceEnv();
+        boolean d = recoverInstancesAndConfigs();
+        if(b && d){
             return true;
         } else {
             return false;
         }
     }
 
-    private boolean recoverConfigEnv(){
+    private boolean recoverInstancesAndConfigs(){
         for(String s : clusters){
-            DeltaCMResourceResponse r1 = modifyConfigsOfServices(configOrignalEnv, s);
+            SimpleResponse r1 = sendAllDelta(toDeltaAllDS(instanceOrignalEnv, configOrignalEnv), s);
             if(! r1.isStatus()){
                 return false;
             }
         }
         return true;
     }
+
+//    private boolean recoverConfigEnv(){
+//        for(String s : clusters){
+//            DeltaCMResourceResponse r1 = modifyConfigsOfServices(transformToNewConfigDS(configOrignalEnv), s);
+//            if(! r1.isStatus()){
+//                return false;
+//            }
+//        }
+//        return true;
+//    }
 
     private boolean recoverSequenceEnv(){
         for(String c: clusters){
@@ -474,14 +600,14 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
         return true;
     }
 
-    private boolean recoverInstanceEnv(){
-        for(String s : clusters){
-            SetServiceReplicasResponse ssrr1 = setInstanceNumOfServices(instanceOrignalEnv, s);
-            if(! ssrr1.isStatus()){
-                return false;
-            }
-        }
-        return true;
-    }
+//    private boolean recoverInstanceEnv(){
+//        for(String s : clusters){
+//            SetServiceReplicasResponse ssrr1 = setInstanceNumOfServices(instanceOrignalEnv, s);
+//            if(! ssrr1.isStatus()){
+//                return false;
+//            }
+//        }
+//        return true;
+//    }
 
 }

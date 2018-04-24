@@ -25,7 +25,7 @@ public class TestLoginErrorInstance2 {
     @BeforeClass
     public void setUp() throws Exception {
         //do nothing
-        Thread.sleep(20000);
+        Thread.sleep(2000);
     }
 
     @Test
@@ -58,6 +58,7 @@ public class TestLoginErrorInstance2 {
             ResponseEntity<LoginResult> r4 = restTemplate.exchange("http://10.141.211.174:30082/login",HttpMethod.POST, requestEntity, LoginResult.class);
             result = r4.getBody();
             Assert.assertEquals(result.getLoginNum(), loginNum+3);
+            System.out.println(result.getLoginNum() + " VS " + (loginNum+3));
         } else {
             throw new Exception("get login number failed!");
         }

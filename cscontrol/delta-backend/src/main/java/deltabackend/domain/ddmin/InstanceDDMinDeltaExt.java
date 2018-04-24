@@ -58,10 +58,10 @@ public class InstanceDDMinDeltaExt extends ParallelDDMinDelta {
 
     public boolean applyDelta(List<String> deltas, String cluster) {
         // recovery to original cluster status
-        SetServiceReplicasResponse ssrr1 = setInstanceNumOfServices(orignalEnv, cluster);
-        if(! ssrr1.isStatus()){
-           return false;
-        }
+//        SetServiceReplicasResponse ssrr1 = setInstanceNumOfServices(orignalEnv, cluster);
+//        if(! ssrr1.isStatus()){
+//           return false;
+//        }
 
         // apply delta
         List<ServiceWithReplicas> env = new ArrayList<ServiceWithReplicas>();
@@ -69,6 +69,18 @@ public class InstanceDDMinDeltaExt extends ParallelDDMinDelta {
             ServiceWithReplicas e = deltaMap.get(s);
             env.add(e);
         }
+        for(ServiceWithReplicas swr1: orignalEnv){
+            boolean toAdjust = false;
+            for(ServiceWithReplicas swr2: env){
+                if(swr1.getServiceName().equals(swr2.getServiceName())){
+                    toAdjust = true;
+                }
+            }
+            if(toAdjust == false){
+                env.add(swr1);
+            }
+        }
+        System.out.println("&&&& instance deltas to apply: &&&&& " + env);
         SetServiceReplicasResponse ssrr2 = setInstanceNumOfServices(env, cluster);
         if( ! ssrr2.isStatus()){
             return false;

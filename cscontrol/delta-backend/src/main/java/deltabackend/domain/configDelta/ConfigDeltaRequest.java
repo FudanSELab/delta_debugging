@@ -27,6 +27,7 @@ public class ConfigDeltaRequest {
         this.configs = configs;
     }
 
+
     public List<String> getTests() {
         return tests;
     }

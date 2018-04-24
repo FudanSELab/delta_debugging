@@ -131,7 +131,7 @@ mixer.controller('MixerCtrl', ['$scope', '$http','$window','loadServiceList',  '
                         // console.log("data.ddminResult: " + data.ddminResult);
                         $scope.$apply();
                     } else {
-                        alert(data.message);
+                        console.log(data.message);
                     }
                     $('#test-button').removeClass('disabled');
                 });

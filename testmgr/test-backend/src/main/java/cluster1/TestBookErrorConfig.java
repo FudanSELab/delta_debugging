@@ -51,7 +51,7 @@ public class TestBookErrorConfig {
 //        baseUrl = "http://10.141.211.179:30224";
         driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
                 DesiredCapabilities.chrome());
-        baseUrl = "http://10.141.211.179:30224";
+        baseUrl = "http://10.141.211.179:32028";
         trainType = "0";//all
         driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
     }

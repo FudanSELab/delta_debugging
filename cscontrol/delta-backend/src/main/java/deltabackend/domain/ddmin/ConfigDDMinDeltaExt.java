@@ -1,11 +1,13 @@
 package deltabackend.domain.ddmin;
 
-import com.baeldung.algorithms.ddmin.DDMinDelta;
 import com.baeldung.algorithms.ddmin.ParallelDDMinDelta;
 import deltabackend.domain.api.request.DeltaCMResourceRequest;
 import deltabackend.domain.api.response.DeltaCMResourceResponse;
 import deltabackend.domain.bean.SingleDeltaCMResourceRequest;
+import deltabackend.domain.configDelta.CM;
+import deltabackend.domain.configDelta.CMConfig;
 import deltabackend.domain.configDelta.ConfigDeltaResponse;
+import deltabackend.domain.configDelta.NewSingleDeltaCMResourceRequest;
 import deltabackend.domain.test.DeltaTestRequest;
 import deltabackend.domain.test.DeltaTestResponse;
 
@@ -74,7 +76,7 @@ public class ConfigDDMinDeltaExt extends ParallelDDMinDelta {
 
     public boolean recoverEnv(){
         for(String s : clusters){
-            DeltaCMResourceResponse r1 = modifyConfigsOfServices(orignalEnv, s);
+            DeltaCMResourceResponse r1 = modifyConfigsOfServices(transformToNewConfigDS(orignalEnv), s);
             if(! r1.isStatus()){
                 return false;
             }
@@ -85,10 +87,10 @@ public class ConfigDDMinDeltaExt extends ParallelDDMinDelta {
 
     public boolean applyDelta(List<String> deltas, String cluster) {
         // recovery to original cluster status
-        DeltaCMResourceResponse r1 = modifyConfigsOfServices(unlimitEnv, cluster);
-        if(! r1.isStatus()){
-           return false;
-        }
+//        DeltaCMResourceResponse r1 = modifyConfigsOfServices(unlimitEnv, cluster);
+//        if(! r1.isStatus()){
+//           return false;
+//        }
 
         // apply delta
         List<SingleDeltaCMResourceRequest> env = new ArrayList<SingleDeltaCMResourceRequest>();
@@ -96,11 +98,66 @@ public class ConfigDDMinDeltaExt extends ParallelDDMinDelta {
             SingleDeltaCMResourceRequest e = deltaMap.get(s);
             env.add(e);
         }
-        DeltaCMResourceResponse r2 = modifyConfigsOfServices(env, cluster);
+        for(SingleDeltaCMResourceRequest sdcr1: unlimitEnv ){
+            boolean toAdjust = false;
+            for(SingleDeltaCMResourceRequest sdcr2: env){
+                if(sdcr1.getServiceName().equals(sdcr2.getServiceName()) && sdcr1.getType().equals(sdcr2.getType()) && sdcr1.getKey().equals(sdcr2.getKey()) ){
+                    toAdjust = true;
+                }
+            }
+            if(toAdjust == false){
+                env.add(sdcr1);
+            }
+        }
+        DeltaCMResourceResponse r2 = modifyConfigsOfServices(transformToNewConfigDS(env), cluster);
         if( ! r2.isStatus()){
             return false;
         }
         return true;
+    }
+
+    private List<NewSingleDeltaCMResourceRequest> transformToNewConfigDS(List<SingleDeltaCMResourceRequest> list){
+        System.out.println("^^^^ transformToNewConfigDS original ^^^^^^ " + list);
+
+        List<NewSingleDeltaCMResourceRequest> newList = new ArrayList<NewSingleDeltaCMResourceRequest>();
+        Set<String> existService = new HashSet<String>();
+        for(SingleDeltaCMResourceRequest l: list){
+            if(existService.contains(l.getServiceName())){
+                for(NewSingleDeltaCMResourceRequest d: newList){
+                    if(d.getServiceName().equals(l.getServiceName())){
+                        int hasSameType = 0;
+                        if( d.getConfigs().size() > 0){
+                            for(CMConfig cm : d.getConfigs()){
+                                if(cm.getType().equals(l.getType())){
+                                    hasSameType = 1;
+                                    cm.addValues(new CM(l.getKey(), l.getValue()));
+                                    break;
+                                }
+                            }
+                        }
+                        if(hasSameType == 0){
+                            CMConfig e = new CMConfig();
+                            e.setType(l.getType());
+                            e.addValues(new CM(l.getKey(), l.getValue()));
+                            d.getConfigs().add(e);
+                        }
+                    }
+                }
+            } else {
+                existService.add(l.getServiceName());
+                NewSingleDeltaCMResourceRequest newL = new NewSingleDeltaCMResourceRequest();
+                newL.setServiceName(l.getServiceName());
+                List<CMConfig> newConfig = new ArrayList<CMConfig>();
+                CMConfig cmc = new CMConfig();
+                cmc.setType(l.getType());
+                cmc.addValues(new CM(l.getKey(), l.getValue()));
+                newConfig.add(cmc);
+                newL.setConfigs(newConfig);
+                newList.add(newL);
+            }
+        }
+        System.out.println("++++++++++ transformToNewConfigDS ++++++++++++ " + newList);
+        return newList;
     }
 
 
@@ -141,13 +198,13 @@ public class ConfigDDMinDeltaExt extends ParallelDDMinDelta {
     }
 
 
-    private DeltaCMResourceResponse modifyConfigsOfServices(List<SingleDeltaCMResourceRequest> env, String cluster) {
+    private DeltaCMResourceResponse modifyConfigsOfServices(List<NewSingleDeltaCMResourceRequest> env, String cluster) {
         DeltaCMResourceRequest dcr = new DeltaCMResourceRequest();
         dcr.setDeltaRequests(env);
         dcr.setClusterName(cluster);
         System.out.println();
-        for(SingleDeltaCMResourceRequest e: env){
-            System.out.println("--modifyConfigsOfServices--" + cluster + ": " + e.getServiceName() + ": " + e.getType() + ": " + e.getKey() + ": " + e.getValue());
+        for(NewSingleDeltaCMResourceRequest e: env){
+            System.out.println("--modifyConfigsOfServices--" + cluster + ": " + e.getServiceName() + ": " + e.getConfigs() );
         }
         DeltaCMResourceResponse r = restTemplate.postForObject(
                 "http://api-server:18898/api/deltaCMResource",dcr,

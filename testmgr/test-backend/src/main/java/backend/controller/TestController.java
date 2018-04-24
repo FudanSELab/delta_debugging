@@ -115,20 +115,47 @@ public class TestController {
             }
         }
         int status = 1;
+        int fail = 0;
+        int exception = 0;
+        int  mustException = 0;
         boolean skipGetStatus = false;
         String message = "Test all the chosen testcases";
         for (FutureTask<DeltaTestResult> futureTask : futureTasks) {
             response.addDeltaResult(futureTask.get());
-            if(!skipGetStatus){
-                if( "EXCEPTION".equals(futureTask.get().getStatus())){
-                    status = -1;
-                    message = futureTask.get().getMessage();
-                    skipGetStatus = true;
+            if( ! "SUCCESS".equals(futureTask.get().getStatus())){
+                if(futureTask.get().getClassName().contains("TestServiceLogin") || futureTask.get().getClassName().contains("TestServiceContacts") ){
+                    mustException = 1;
+                } else {
+                    if( "EXCEPTION".equals(futureTask.get().getStatus())){
+                        exception = 1;
+                        message = futureTask.get().getMessage();
+                    }
+                    if(  "FAILURE".equals(futureTask.get().getStatus())){
+                        fail = 1;
+                    }
                 }
-            } else if(  (status != -1) && (! "SUCCESS".equals(futureTask.get().getStatus()))){
-                status = 0;
             }
+
+//            if(!skipGetStatus){
+//                if( "EXCEPTION".equals(futureTask.get().getStatus())){
+//                    status = -1;
+//                    message = futureTask.get().getMessage();
+//                    skipGetStatus = true;
+//                }
+//            }
+//            if( (status != -1) && (! "SUCCESS".equals(futureTask.get().getStatus()))){
+//                status = 0;
+//            }
         }
+
+        if( mustException == 1){
+            status = -1;
+        }else if(fail == 1){
+            status = 0;
+        } else if(exception == 1){
+            status = -1;
+        }
+
         response.setStatus(status);
         response.setMessage(message);
         // 清理线程池

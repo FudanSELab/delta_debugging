@@ -1571,8 +1571,8 @@ public class ApiServiceImpl implements ApiService {
                         cmds = new String[]{
                                 "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
                                         "{\\\"op\\\":\\\"replace\\\"," +
-                                        "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"" +
-                                        "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}," +
+                                        "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
+                                        "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}" +
                                         "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
                                 configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
                                 apiUrl,cluster.getToken(),filePath)
@@ -1581,7 +1581,7 @@ public class ApiServiceImpl implements ApiService {
                         cmds = new String[]{
                                 "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
                                         "{\\\"op\\\":\\\"replace\\\"," +
-                                        "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"" +
+                                        "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
                                         "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\"}}" +
                                         "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
                                 configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),
@@ -1635,7 +1635,7 @@ public class ApiServiceImpl implements ApiService {
             try {
                 p = pb.start();
                 p.waitFor();
-
+                Thread.sleep(2000);
                 String json = readWholeFile(filePath);
                 //Parse the response to the SetServicesReplicasResponseFromAPI Bean
 //            System.out.println(json);

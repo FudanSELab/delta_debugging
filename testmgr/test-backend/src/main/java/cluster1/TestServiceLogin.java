@@ -46,7 +46,7 @@ public class TestServiceLogin {
 
         HttpEntity requestEntity = new HttpEntity(li, headers);
         //注意把这里换成你的集群的ip
-        ResponseEntity<LoginResult> r = restTemplate.exchange("http://10.141.211.179:30224/login", HttpMethod.POST, requestEntity, LoginResult.class);
+        ResponseEntity<LoginResult> r = restTemplate.exchange("http://10.141.211.179:32028/login", HttpMethod.POST, requestEntity, LoginResult.class);
         LoginResult result = r.getBody();
         //[Error Process Seq] - 顺序没控制好的话result.message返回这个 status为false
         //Success.Processes Seq. - 顺序控制好了返回这个 status为true

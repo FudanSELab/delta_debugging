@@ -12,8 +12,7 @@ import deltabackend.domain.bean.ServiceReplicasSetting;
 import deltabackend.domain.bean.ServiceWithReplicas;
 
 import deltabackend.domain.bean.SingleDeltaCMResourceRequest;
-import deltabackend.domain.configDelta.ConfigDDMinResponse;
-import deltabackend.domain.configDelta.ConfigDeltaRequest;
+import deltabackend.domain.configDelta.*;
 import deltabackend.domain.ddmin.ConfigDDMinDeltaExt;
 import deltabackend.domain.ddmin.InstanceDDMinDeltaExt;
 import deltabackend.domain.ddmin.MixerDDMinDeltaExt;
@@ -104,6 +103,7 @@ public class DeltaServiceImpl implements DeltaService{
                 r.setDdminResult(null);
             }
             template.convertAndSendToUser(sessionId,"/topic/deltaEnd" ,r, createHeaders(sessionId));
+            ((InstanceDDMinDeltaExt)ddmin_delta).recoverEnv();
         }
     }
 
@@ -358,7 +358,7 @@ public class DeltaServiceImpl implements DeltaService{
             boolean success = true;
             for(String c : myConfig.getClusters()){
                 DeltaCMResourceRequest dcr = new DeltaCMResourceRequest();
-                dcr.setDeltaRequests(message.getConfigs());
+                dcr.setDeltaRequests(transformToNewConfigDS(message.getConfigs()));
                 dcr.setClusterName(c);
                 DeltaCMResourceResponse r = restTemplate.postForObject(
                         "http://api-server:18898/api/deltaCMResource",dcr,
@@ -373,12 +373,40 @@ public class DeltaServiceImpl implements DeltaService{
             } else {
                 template.convertAndSendToUser(sessionId,"/topic/simpleSetOrignalResult" ,"Fail to set these configs", createHeaders(sessionId));
             }
-
         }
     }
 
+    private List<NewSingleDeltaCMResourceRequest> transformToNewConfigDS(List<SingleDeltaCMResourceRequest> list){
+        List<NewSingleDeltaCMResourceRequest> newList = new ArrayList<NewSingleDeltaCMResourceRequest>();
+        Set<String> existService = new HashSet<String>();
+        for(SingleDeltaCMResourceRequest l: list){
+            if(existService.contains(l.getServiceName())){
+                for(NewSingleDeltaCMResourceRequest d: newList){
+                    if(d.getServiceName().equals(l.getServiceName())){
+                        for(CMConfig cm : d.getConfigs()){
+                            if(cm.getType().equals(l.getType())){
+                                cm.addValues(new CM(l.getKey(), l.getValue()));
+                            }
+                        }
+                    }
+                }
+            } else {
+                existService.add(l.getServiceName());
+                NewSingleDeltaCMResourceRequest newL = new NewSingleDeltaCMResourceRequest();
+                newL.setServiceName(l.getServiceName());
+                List<CMConfig> newConfig = new ArrayList<CMConfig>();
+                CMConfig cmc = new CMConfig();
+                cmc.setType(l.getType());
+                cmc.addValues(new CM(l.getKey(), l.getValue()));
+                newL.setConfigs(newConfig);
+            }
+        }
+        System.out.println("++++++++++ transformToNewConfigDS ++++++++++++ " + newList);
+        return newList;
+    }
 
-    ////////////////////////////////////////Sequence Delta/////////////////////////////////////////////////
+
+    //////////////////////////////////////// Sequence Delta /////////////////////////////////////////////////
 
     @Override
     public void sequenceDelta(SequenceDeltaRequest message) throws ExecutionException, InterruptedException {

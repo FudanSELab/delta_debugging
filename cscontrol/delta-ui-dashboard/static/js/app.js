@@ -38,7 +38,7 @@ app.config(['$routeProvider', function($routeProvider){
 ]);
 
 
-app.constant('defaultCluster', 'cluster1');
+app.constant('defaultCluster', 'cluster4');
 
 app.controller('NavController', ['$scope', '$location', function($scope, $location) {
         $scope.isActive = function(destination) {
@@ -443,7 +443,10 @@ app.factory('getConfigService', function ($http, $q, defaultCluster) {
         //         },
         //         {
         //             "serviceName": "redis",
-        //             "limits": null,
+        //             "limits": {
+        //                 "memory": "128Mi",
+        //                 "cpu": "500m"
+        //             },
         //             "requests": null
         //         },
         //         {
@@ -453,7 +456,10 @@ app.factory('getConfigService', function ($http, $q, defaultCluster) {
         //         },
         //         {
         //             "serviceName": "ts-admin-basic-info-service",
-        //             "limits": null,
+        //             "limits": {
+        //                 "memory": "128Mi",
+        //                 "cpu": "500m"
+        //             },
         //             "requests": null
         //         },
         //         {
@@ -463,7 +469,10 @@ app.factory('getConfigService', function ($http, $q, defaultCluster) {
         //         },
         //         {
         //             "serviceName": "ts-admin-route-service",
-        //             "limits": null,
+        //             "limits": {
+        //                 "memory": "128Mi",
+        //                 "cpu": "500m"
+        //             },
         //             "requests": null
         //         },
         //         {

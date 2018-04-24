@@ -150,13 +150,53 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
                     'value': temp[3]
                 });
             });
+            // var finalConfigs = [];
+            // configs.forEach(function(c){
+            //     var existService;
+            //     finalConfigs.forEach(function(f){
+            //         if(f.serviceName == c.serviceName) existService = f;
+            //     });
+            //    if(existService) {
+            //        var hasType = 0;
+            //        existService['configs'].forEach(function(t){
+            //            if(t.type == c.type){
+            //                t.values.push({
+            //                    'key': c.key,
+            //                    'value': c.value
+            //                });
+            //                hasType = 1;
+            //            }
+            //        });
+            //        if(hasType == 0){
+            //            existService['configs'].push({
+            //                'type': c.type,
+            //                'values': [{
+            //                    'key': c.key,
+            //                    'value': c.value
+            //                }]
+            //            })
+            //        }
+            //    } else {
+            //        finalConfigs.push({
+            //            'serviceName':c.serviceName,
+            //            'configs': [{
+            //                 'type': c.type,
+            //                 'values': [{
+            //                    'key': c.key,
+            //                    'value': c.value
+            //                 }]
+            //            }]
+            //        })
+            //    }
+            // });
+            // console.log("finalConfigs:");
+            // console.log(JSON.stringify(finalConfigs));
+
             var checkedTest = $("input[name='testcase']:checked");
             var tests = [];
             checkedTest.each(function(){
                 tests.push($(this).val());
             });
-            console.log("configs:\n" );
-            console.log(configs);
 
             if(configs.length > 0 && tests.length > 0 ){
                 $('#test-button').addClass('disabled');
@@ -164,7 +204,7 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
                 $scope.configDeltaResult = "config testing...";
                 var data = {
                     'id': loginId,
-                   'configs': configs,
+                    'configs': configs,
                     'tests': tests
                 };
                 stompClient.send("/app/msg/configDelta", {}, JSON.stringify(data));
@@ -213,12 +253,53 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
                 });
                 console.log("simpleSetOrignal configs: ");
                 console.log(configs);
+                // var finalConfigs = [];
+                // configs.forEach(function(c){
+                //     var existService;
+                //     finalConfigs.forEach(function(f){
+                //         if(f.serviceName == c.serviceName) existService = f;
+                //     });
+                //     if(existService) {
+                //         var hasType = 0;
+                //         existService['configs'].forEach(function(t){
+                //             if(t.type == c.type){
+                //                 t.values.push({
+                //                     'key': c.key,
+                //                     'value': c.value
+                //                 });
+                //                 hasType = 1;
+                //             }
+                //         });
+                //         if(hasType == 0){
+                //             existService['configs'].push({
+                //                 'type': c.type,
+                //                 'values': [{
+                //                     'key': c.key,
+                //                     'value': c.value
+                //                 }]
+                //             })
+                //         }
+                //     } else {
+                //         finalConfigs.push({
+                //             'serviceName':c.serviceName,
+                //             'configs': [{
+                //                 'type': c.type,
+                //                 'values': [{
+                //                     'key': c.key,
+                //                     'value': c.value
+                //                 }]
+                //             }]
+                //         })
+                //     }
+                // });
+                // console.log("simpleSetOrignal finalConfigs: ");
+                // console.log(finalConfigs);
 
                 if(configs.length > 0){
                     $('#setOriginal').addClass('disabled');
                     var data = {
                         'id': loginId,
-                        'configs': configs
+                        'configs':configs
                     };
                     stompClient.send("/app/msg/simpleSetOrignal", {}, JSON.stringify(data));
                 } else {

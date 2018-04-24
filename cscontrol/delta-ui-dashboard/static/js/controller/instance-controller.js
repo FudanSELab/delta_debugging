@@ -1,7 +1,7 @@
 var instance = angular.module('app.instance-controller', []);
 
-instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases','loadServiceList', 'getPodLogService','refreshPodsService',
-        function($scope, $http,$window,loadTestCases,loadServiceList, getPodLogService, refreshPodsService) {
+instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases','loadServiceList', 'getPodLogService','refreshPodsService','defaultCluster',
+        function($scope, $http,$window,loadTestCases,loadServiceList, getPodLogService, refreshPodsService, defaultCluster) {
 
         //刷新页面
         $scope.reloadRoute = function () {
@@ -134,7 +134,8 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
                 var data = {
                     'id': loginId,
                     'env': env,
-                    'tests': tests
+                    'tests': tests,
+                    'cluster': defaultCluster
                 };
                 stompClient.send("/app/msg/delta", {}, JSON.stringify(data));
                 $scope.instanceDeltaResult = "";

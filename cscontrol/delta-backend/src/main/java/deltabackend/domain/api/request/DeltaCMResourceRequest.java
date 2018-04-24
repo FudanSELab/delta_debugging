@@ -2,13 +2,13 @@ package deltabackend.domain.api.request;
 
 
 
-import deltabackend.domain.bean.SingleDeltaCMResourceRequest;
+import deltabackend.domain.configDelta.NewSingleDeltaCMResourceRequest;
 
 import java.util.List;
 
 public class DeltaCMResourceRequest {
     private String clusterName;
-    private List<SingleDeltaCMResourceRequest> deltaRequests;
+    private List<NewSingleDeltaCMResourceRequest> deltaRequests;
 
     public DeltaCMResourceRequest(){
 
@@ -22,11 +22,11 @@ public class DeltaCMResourceRequest {
         this.clusterName = clusterName;
     }
 
-    public List<SingleDeltaCMResourceRequest> getDeltaRequests() {
+    public List<NewSingleDeltaCMResourceRequest> getDeltaRequests() {
         return deltaRequests;
     }
 
-    public void setDeltaRequests(List<SingleDeltaCMResourceRequest> deltaRequests) {
+    public void setDeltaRequests(List<NewSingleDeltaCMResourceRequest> deltaRequests) {
         this.deltaRequests = deltaRequests;
     }
 }

@@ -46,7 +46,7 @@ public class TestLoginErrorInstance {
 //        baseUrl = "http://10.141.211.180:30776";
         driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
                 DesiredCapabilities.chrome());
-        baseUrl = "http://10.141.211.179:30224";
+        baseUrl = "http://10.141.211.179:32028";
         trainType = "0";//all
         driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
     }

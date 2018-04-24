@@ -28,7 +28,7 @@ public class TestServiceContacts {
 //        baseUrl = "http://10.141.211.179:30224";
         driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
                 DesiredCapabilities.chrome());
-        baseUrl = "http://10.141.211.179:30224";
+        baseUrl = "http://10.141.211.179:32028";
         driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
     }
     @Test
