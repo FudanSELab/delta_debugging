@@ -1500,6 +1500,32 @@ public class ApiServiceImpl implements ApiService {
         return isSuccess;
     }
 
+
+    //Get single deployment info
+    private SingleDeploymentInfo getSingleDeployment(String namespace, String serviceName,Cluster cluster){
+        SingleDeploymentInfo result = new SingleDeploymentInfo();
+        String filePath = "/app/get_single_deployment_result_" + cluster.getName() + System.currentTimeMillis()+ ".json";
+        String apiUrl = String.format("%s/apis/apps/v1beta1/namespaces/%s/deployments/%s",cluster.getApiServer(),namespace, serviceName);
+        System.out.println(String.format("The constructed api url for deltaing all is %s", apiUrl));
+        String[] cmds ={
+                "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,cluster.getToken(),filePath)
+        };
+        ProcessBuilder pb = new ProcessBuilder(cmds);
+        pb.redirectErrorStream(true);
+        Process p;
+        try {
+            p = pb.start();
+            p.waitFor();
+            String json = readWholeFile(filePath);
+            result = JSON.parseObject(json,SingleDeploymentInfo.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }catch(InterruptedException e){
+            e.printStackTrace();
+        }
+        return result;
+    }
+
     //Delta the config and instance of service at the same time
     private boolean deltaAllProcess(String namespace,SingleDeltaAllRequest request, Cluster cluster){
         boolean isSuccess = true;
@@ -1551,16 +1577,49 @@ public class ApiServiceImpl implements ApiService {
                                 apiUrl,cluster.getToken(),filePath)
                         };
                     }else if(configs.get(0).getValues().size() == 1){
-                        cmds = new String[]{
-                                "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
-                                        "{\\\"op\\\":\\\"replace\\\"," +
-                                        "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
-                                        "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\"}}" +
-                                        "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
-                                configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),
-                                request.getNumOfReplicas(),
-                                apiUrl,cluster.getToken(),filePath)
-                        };
+                        //Check if exist limits and memory at the same time
+                        SingleDeploymentInfo singleDeploymentInfo = getSingleDeployment(namespace, request.getServiceName(),cluster);
+                        V1ResourceRequirements resourceRequirements = singleDeploymentInfo.getSpec().getTemplate().getSpec().getContainers().get(0).getResources();
+                        if(resourceRequirements.getLimits().size() == 1 || resourceRequirements.getRequests().size() == 1){
+                            //Only one config: cpu or memory
+                            cmds = new String[]{
+                                    "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                                            "{\\\"op\\\":\\\"replace\\\"," +
+                                            "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
+                                            "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\"}}," +
+                                            "{\\\"op\\\":\\\"replace\\\"," +
+                                            "\\\"path\\\":\\\"/spec/replicas\\\"," +
+                                            "\\\"value\\\": %d}" +
+                                            "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                                    configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),
+                                    request.getNumOfReplicas(),
+                                    apiUrl,cluster.getToken(),filePath)
+                            };
+                        }else{
+                            String key, value;
+                            if(configs.get(0).getValues().get(0).getKey().equals("memory")){
+                                //Add the origin cpu
+                                key = "cpu";
+                                value = resourceRequirements.getLimits().get("cpu");
+                            }else{
+                                //Add the origin memory
+                                key = "memory";
+                                value = resourceRequirements.getLimits().get("memory");
+                            }
+                            cmds = new String[]{
+                                    "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                                            "{\\\"op\\\":\\\"replace\\\"," +
+                                            "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
+                                            "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}," +
+                                            "{\\\"op\\\":\\\"replace\\\"," +
+                                            "\\\"path\\\":\\\"/spec/replicas\\\"," +
+                                            "\\\"value\\\": %d}" +
+                                            "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                                    configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),key,value,
+                                    request.getNumOfReplicas(),
+                                    apiUrl,cluster.getToken(),filePath)
+                            };
+                        }
                     }
 
                 }
@@ -1578,15 +1637,41 @@ public class ApiServiceImpl implements ApiService {
                                 apiUrl,cluster.getToken(),filePath)
                         };
                     }else if(configs.get(0).getValues().size() == 1){
-                        cmds = new String[]{
-                                "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
-                                        "{\\\"op\\\":\\\"replace\\\"," +
-                                        "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
-                                        "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\"}}" +
-                                        "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
-                                configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),
-                                apiUrl,cluster.getToken(),filePath)
-                        };
+                        //Check if exist limits and memory at the same time
+                        SingleDeploymentInfo singleDeploymentInfo = getSingleDeployment(namespace, request.getServiceName(),cluster);
+                        V1ResourceRequirements resourceRequirements = singleDeploymentInfo.getSpec().getTemplate().getSpec().getContainers().get(0).getResources();
+                        if(resourceRequirements.getLimits().size() == 1 || resourceRequirements.getRequests().size() == 1){
+                            //Only one config: cpu or memory
+                            cmds = new String[]{
+                                    "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                                            "{\\\"op\\\":\\\"replace\\\"," +
+                                            "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
+                                            "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\"}}" +
+                                            "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                                    configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),
+                                    apiUrl,cluster.getToken(),filePath)
+                            };
+                        }else{
+                            String key, value;
+                            if(configs.get(0).getValues().get(0).getKey().equals("memory")){
+                                //Add the origin cpu
+                                key = "cpu";
+                                value = resourceRequirements.getLimits().get("cpu");
+                            }else{
+                                //Add the origin memory
+                                key = "memory";
+                                value = resourceRequirements.getLimits().get("memory");
+                            }
+                            cmds = new String[]{
+                                    "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                                            "{\\\"op\\\":\\\"replace\\\"," +
+                                            "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
+                                            "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}" +
+                                            "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                                    configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),key,value,
+                                    apiUrl,cluster.getToken(),filePath)
+                            };
+                        }
                     }
 
                 }
