@@ -12,8 +12,10 @@ myConfig:
 #    cluster2: http://10.141.211.160:30005
 #    cluster3: http://10.141.211.172:30005
     cluster4: http://10.141.211.173:30005
+#    cluster6: http://10.141.211.181:30005
   clusters:
 #    - cluster1
 #    - cluster2
 #    - cluster3
     - cluster4
+#    - cluster6
