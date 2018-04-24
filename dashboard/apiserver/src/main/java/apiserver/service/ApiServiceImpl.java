@@ -1555,10 +1555,7 @@ public class ApiServiceImpl implements ApiService {
                                 "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
                                         "{\\\"op\\\":\\\"replace\\\"," +
                                         "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
-                                        "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\"}}," +
-                                        "{\\\"op\\\":\\\"replace\\\"," +
-                                        "\\\"path\\\":\\\"/spec/replicas\\\"," +
-                                        "\\\"value\\\": %d}" +
+                                        "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\"}}" +
                                         "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
                                 configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),
                                 request.getNumOfReplicas(),
@@ -1585,7 +1582,7 @@ public class ApiServiceImpl implements ApiService {
                                 "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
                                         "{\\\"op\\\":\\\"replace\\\"," +
                                         "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"" +
-                                        "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\"}}," +
+                                        "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\"}}" +
                                         "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
                                 configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),
                                 apiUrl,cluster.getToken(),filePath)
@@ -1630,7 +1627,7 @@ public class ApiServiceImpl implements ApiService {
             }
         }
 
-//        System.out.println(String.format("The constructed command for deltaing all is %s", cmds[2]));
+        System.out.println(String.format("The constructed command for deltaing all is %s", cmds[2]));
         if(cmds.length > 0){
             ProcessBuilder pb = new ProcessBuilder(cmds);
             pb.redirectErrorStream(true);
