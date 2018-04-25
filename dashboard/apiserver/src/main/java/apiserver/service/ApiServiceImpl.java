@@ -327,12 +327,12 @@ public class ApiServiceImpl implements ApiService {
             }
 
 
-//            count += 1;
-//            if(count > 30){
-//                isRequestComplete = true;
-//                System.out.println("没找到这个请求，循环放弃，释放下一个请求");
-//                count = 0;
-//            }
+            count += 1;
+            if(count > 15){
+                isRequestComplete = true;
+                System.out.println("没找到这个请求，循环放弃，释放下一个请求");
+                count = 0;
+            }
 
         }
         return isRequestComplete;
