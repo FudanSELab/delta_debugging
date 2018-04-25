@@ -279,20 +279,20 @@ public class ApiServiceImpl implements ApiService {
 //        }
 
         int count = 0;
-        while(isRequestComplete == false){
 
-            GetPodsListResponse podsListResponse = getPodsList("default", cluster);
-            ArrayList<PodInfo> podInfoList = new ArrayList<>(podsListResponse.getPods());
-            ArrayList<PodInfo> targetPodInfoList = new ArrayList<>();
-            for(PodInfo podInfo : podInfoList){
-                if(podInfo.getName().contains(srcName)){ //寻找source pod的日志，在source pod里看看有没有svcName
-                    System.out.println("[=====] We are now checking useful POD-NAME:" + podInfo.getName());
-                    targetPodInfoList.add(podInfo);
-                }else{
-                    //do nothing
-                }
+        GetPodsListResponse podsListResponse = getPodsList("default", cluster);
+        ArrayList<PodInfo> podInfoList = new ArrayList<>(podsListResponse.getPods());
+        ArrayList<PodInfo> targetPodInfoList = new ArrayList<>();
+        for(PodInfo podInfo : podInfoList){
+            if(podInfo.getName().contains(srcName)){ //寻找source pod的日志，在source pod里看看有没有svcName
+                System.out.println("[=====] We are now checking useful POD-NAME:" + podInfo.getName());
+                targetPodInfoList.add(podInfo);
+            }else{
+                //do nothing
             }
+        }
 
+        while(isRequestComplete == false){
 
             //每间隔 0秒，获取一次pods的日志。注意是pod下的istio-proxy的日志
             try{
