@@ -1466,7 +1466,7 @@ public class ApiServiceImpl implements ApiService {
         //Add the type: limits and requests
         List<CMConfig> configs = request.getConfigs();
 
-        String[] cmds;
+        String[] cmds = new String[]{};
         //Delta limits and requests at the same time
         if(configs.size() > 1){
             cmds = new String[]{
@@ -1478,11 +1478,54 @@ public class ApiServiceImpl implements ApiService {
         }
         //Delta limits or requests
         else{
-            cmds = new String[]{
-                    "/bin/sh","-c",String.format("curl -X PATCH -d \"[{\\\"op\\\":\\\"replace\\\",\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\",\\\"value\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
-                    configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
-                    apiUrl,cluster.getToken(),filePath)
-            };
+            System.out.println("[Delta All] Delta limits or requests only");
+            if(configs.get(0).getValues().size() > 1){
+                cmds = new String[]{
+                        "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                                "{\\\"op\\\":\\\"replace\\\"," +
+                                "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
+                                "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}" +
+                                "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                        configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),configs.get(0).getValues().get(1).getKey(),configs.get(0).getValues().get(1).getValue(),
+                        apiUrl,cluster.getToken(),filePath)
+                };
+            }else if(configs.get(0).getValues().size() == 1){
+                //Check if exist limits and memory at the same time
+                SingleDeploymentInfo singleDeploymentInfo = getSingleDeployment(namespace, request.getServiceName(),cluster);
+                V1ResourceRequirements resourceRequirements = singleDeploymentInfo.getSpec().getTemplate().getSpec().getContainers().get(0).getResources();
+                if(resourceRequirements.getLimits().size() == 1 || resourceRequirements.getRequests().size() == 1){
+                    //Only one config: cpu or memory
+                    cmds = new String[]{
+                            "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                                    "{\\\"op\\\":\\\"replace\\\"," +
+                                    "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
+                                    "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\"}}" +
+                                    "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                            configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),
+                            apiUrl,cluster.getToken(),filePath)
+                    };
+                }else{
+                    String key, value;
+                    if(configs.get(0).getValues().get(0).getKey().equals("memory")){
+                        //Add the origin cpu
+                        key = "cpu";
+                        value = resourceRequirements.getLimits().get("cpu");
+                    }else{
+                        //Add the origin memory
+                        key = "memory";
+                        value = resourceRequirements.getLimits().get("memory");
+                    }
+                    cmds = new String[]{
+                            "/bin/sh","-c",String.format("curl -X PATCH -d \"[" +
+                                    "{\\\"op\\\":\\\"replace\\\"," +
+                                    "\\\"path\\\":\\\"/spec/template/spec/containers/0/resources/%s\\\"," +
+                                    "\\\"value\\\":{\\\"%s\\\":\\\"%s\\\", \\\"%s\\\":\\\"%s\\\"}}" +
+                                    "]\" -H 'Content-Type: application/json-patch+json' %s --header \"Authorization: Bearer %s\" --insecure >> %s",
+                            configs.get(0).getType(),configs.get(0).getValues().get(0).getKey(),configs.get(0).getValues().get(0).getValue(),key,value,
+                            apiUrl,cluster.getToken(),filePath)
+                    };
+                }
+            }
         }
 //        String data = String.format("'[{ \"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/resources/%s/%s\", \"value\": \"%s\"}]'",
 //                request.getType(),request.getKey(),request.getValue());

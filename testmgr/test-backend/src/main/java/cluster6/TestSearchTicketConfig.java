@@ -1,4 +1,4 @@
-package cluster4;
+package cluster6;
 
 import helper.QueryInfo;
 import helper.TripResponse;
@@ -16,7 +16,6 @@ import org.testng.annotations.Test;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class TestSearchTicketConfig {
@@ -44,7 +43,7 @@ public class TestSearchTicketConfig {
 
         try{
             Thread.sleep(10000);
-            ResponseEntity<ArrayList<TripResponse>> r = restTemplate.exchange("http://10.141.211.174:30082/travel/query",HttpMethod.POST, requestEntity, new ParameterizedTypeReference<ArrayList<TripResponse>>(){});
+            ResponseEntity<ArrayList<TripResponse>> r = restTemplate.exchange("http://10.141.211.161:31139/travel/query",HttpMethod.POST, requestEntity, new ParameterizedTypeReference<ArrayList<TripResponse>>(){});
             ArrayList<TripResponse> result = r.getBody();
             System.out.println(result);
             if(null == result || result.size() <= 0){

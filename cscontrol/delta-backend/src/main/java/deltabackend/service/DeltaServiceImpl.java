@@ -377,16 +377,29 @@ public class DeltaServiceImpl implements DeltaService{
     }
 
     private List<NewSingleDeltaCMResourceRequest> transformToNewConfigDS(List<SingleDeltaCMResourceRequest> list){
+        System.out.println("^^^^ transformToNewConfigDS original ^^^^^^ " + list);
+
         List<NewSingleDeltaCMResourceRequest> newList = new ArrayList<NewSingleDeltaCMResourceRequest>();
         Set<String> existService = new HashSet<String>();
         for(SingleDeltaCMResourceRequest l: list){
             if(existService.contains(l.getServiceName())){
                 for(NewSingleDeltaCMResourceRequest d: newList){
                     if(d.getServiceName().equals(l.getServiceName())){
-                        for(CMConfig cm : d.getConfigs()){
-                            if(cm.getType().equals(l.getType())){
-                                cm.addValues(new CM(l.getKey(), l.getValue()));
+                        int hasSameType = 0;
+                        if( d.getConfigs().size() > 0){
+                            for(CMConfig cm : d.getConfigs()){
+                                if(cm.getType().equals(l.getType())){
+                                    hasSameType = 1;
+                                    cm.addValues(new CM(l.getKey(), l.getValue()));
+                                    break;
+                                }
                             }
+                        }
+                        if(hasSameType == 0){
+                            CMConfig e = new CMConfig();
+                            e.setType(l.getType());
+                            e.addValues(new CM(l.getKey(), l.getValue()));
+                            d.getConfigs().add(e);
                         }
                     }
                 }
@@ -398,12 +411,15 @@ public class DeltaServiceImpl implements DeltaService{
                 CMConfig cmc = new CMConfig();
                 cmc.setType(l.getType());
                 cmc.addValues(new CM(l.getKey(), l.getValue()));
+                newConfig.add(cmc);
                 newL.setConfigs(newConfig);
+                newList.add(newL);
             }
         }
         System.out.println("++++++++++ transformToNewConfigDS ++++++++++++ " + newList);
         return newList;
     }
+
 
 
     //////////////////////////////////////// Sequence Delta /////////////////////////////////////////////////
