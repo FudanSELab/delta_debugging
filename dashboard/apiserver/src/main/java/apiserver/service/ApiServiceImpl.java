@@ -285,8 +285,8 @@ public class ApiServiceImpl implements ApiService {
             ArrayList<PodInfo> podInfoList = new ArrayList<>(podsListResponse.getPods());
             ArrayList<PodInfo> targetPodInfoList = new ArrayList<>();
             for(PodInfo podInfo : podInfoList){
-                System.out.println("[=====] We are now checking useful POD-NAME:" + podInfo.getName());
                 if(podInfo.getName().contains(srcName)){ //寻找source pod的日志，在source pod里看看有没有svcName
+                    System.out.println("[=====] We are now checking useful POD-NAME:" + podInfo.getName());
                     targetPodInfoList.add(podInfo);
                 }else{
                     //do nothing
