@@ -6,7 +6,8 @@
       "TestSearchTicketConfig",
       "TestLoginErrorInstance2",
       "TestMiniSequenceError",
-      "TestBookErrorConfig"
+      "TestBookErrorConfig",
+      "TestF12"
     ],
     "Ticket Reserve":[
       "TestServiceLogin",

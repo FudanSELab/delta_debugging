@@ -1,4 +1,4 @@
-package cluster6;
+package cluster8;
 
 import helper.QueryInfo;
 import helper.TripResponse;
@@ -43,7 +43,7 @@ public class TestSearchTicketConfig {
 
         try{
             Thread.sleep(10000);
-            ResponseEntity<ArrayList<TripResponse>> r = restTemplate.exchange("http://10.141.211.161:30930/travel/query",HttpMethod.POST, requestEntity, new ParameterizedTypeReference<ArrayList<TripResponse>>(){});
+            ResponseEntity<ArrayList<TripResponse>> r = restTemplate.exchange("http://10.141.211.179:30914/travel/query",HttpMethod.POST, requestEntity, new ParameterizedTypeReference<ArrayList<TripResponse>>(){});
             ArrayList<TripResponse> result = r.getBody();
             System.out.println(result);
             if(null == result || result.size() <= 0){

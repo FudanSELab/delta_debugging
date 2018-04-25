@@ -1,4 +1,4 @@
-package cluster6;
+package cluster7;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -27,7 +27,7 @@ public class TestServiceContacts {
 //        baseUrl = "http://10.141.211.179:30224";
         driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
                 DesiredCapabilities.chrome());
-        baseUrl = "http://10.141.211.161:30930";
+        baseUrl = "http://10.141.211.162:30118";
         driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
     }
     @Test

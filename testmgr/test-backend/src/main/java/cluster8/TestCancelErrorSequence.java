@@ -1,4 +1,4 @@
-package cluster6;
+package cluster8;
 
 import org.openqa.selenium.*;
 import org.openqa.selenium.remote.DesiredCapabilities;
@@ -33,7 +33,7 @@ public class TestCancelErrorSequence {
 //        baseUrl = "http://10.141.211.180:30776";
         driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
                 DesiredCapabilities.chrome());
-        baseUrl = "http://10.141.211.161:30930";
+        baseUrl = "http://10.141.211.179:30914";
         trainType = "2";
         driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
     }

@@ -1,4 +1,4 @@
-package cluster6;
+package cluster7;
 
 import helper.CancelOrderResult;
 import org.springframework.web.client.RestTemplate;
@@ -20,7 +20,7 @@ public class TestMiniSequenceError {
 
         //注意把这里换成你的集群的ip
         CancelOrderResult result = restTemplate.getForObject(
-                "http://10.141.211.161:30085/cancelOrder/5ad7750b-a68b-49c0-a8c0-32776b067703",
+                "http://10.141.211.162:30085/cancelOrder/5ad7750b-a68b-49c0-a8c0-32776b067703",
                 CancelOrderResult.class);
         //[Error Process Seq] - 顺序没控制好的话result.message返回这个 status为false
         //Success.Processes Seq. - 顺序控制好了返回这个 status为true

@@ -1,4 +1,4 @@
-package cluster6;
+package cluster7;
 
 import helper.LoginInfo;
 import helper.LoginResult;
@@ -15,11 +15,13 @@ import org.testng.annotations.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TestServiceLogin {
+public class TestLoginErrorInstance2 {
+
+
     @BeforeClass
     public void setUp() throws Exception {
         //do nothing
-        Thread.sleep(20000);
+        Thread.sleep(2000);
     }
 
     @Test
@@ -38,18 +40,30 @@ public class TestServiceLogin {
 
         HttpEntity requestEntity = new HttpEntity(li, headers);
         //注意把这里换成你的集群的ip
-        ResponseEntity<LoginResult> r = restTemplate.exchange("http://10.141.211.161:30930/login", HttpMethod.POST, requestEntity, LoginResult.class);
+        ResponseEntity<LoginResult> r = restTemplate.exchange("http://10.141.211.162:30082/login",HttpMethod.POST, requestEntity, LoginResult.class);
         LoginResult result = r.getBody();
         //[Error Process Seq] - 顺序没控制好的话result.message返回这个 status为false
         //Success.Processes Seq. - 顺序控制好了返回这个 status为true
         //Something Wrong - 其他不知道什么意外乱七八糟的情况返回这个,status为false
         System.out.println("~~~~LoginResult~~~~~ " + result.getMessage() );
         Assert.assertEquals(result.getMessage().contains("Success"),true);
-
+        int loginNum = result.getLoginNum();
+        if(loginNum > 0){
+            ResponseEntity<LoginResult> r2 = restTemplate.exchange("http://10.141.211.162:30082/login",HttpMethod.POST, requestEntity, LoginResult.class);
+            ResponseEntity<LoginResult> r3 = restTemplate.exchange("http://10.141.211.162:30082/login",HttpMethod.POST, requestEntity, LoginResult.class);
+            ResponseEntity<LoginResult> r4 = restTemplate.exchange("http://10.141.211.162:30082/login",HttpMethod.POST, requestEntity, LoginResult.class);
+            result = r4.getBody();
+            Assert.assertEquals(result.getLoginNum(), loginNum+3);
+            System.out.println(result.getLoginNum() + " VS " + (loginNum+3));
+        } else {
+            throw new Exception("get login number failed!");
+        }
     }
 
 
     @AfterClass
     public void tearDown() throws Exception {
     }
+
+
 }

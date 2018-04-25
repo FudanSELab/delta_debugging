@@ -38,7 +38,7 @@ app.config(['$routeProvider', function($routeProvider){
 ]);
 
 
-app.constant('defaultCluster', 'cluster4');
+app.constant('defaultCluster', 'cluster6');
 
 app.controller('NavController', ['$scope', '$location', function($scope, $location) {
         $scope.isActive = function(destination) {

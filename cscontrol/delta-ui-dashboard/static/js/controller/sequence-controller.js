@@ -114,7 +114,7 @@ sequence.controller('SequenceCtrl', ['$scope', '$http','$window','loadTestCases'
                         //     entry.receivers += receivers[i] + " ";
                         // }
                         for(var j = 0; j < result.length; j++){
-                            entry.tests += result[j].className + ": " + result[j].status + ";   " ;
+                            entry.tests += result[j].className + ": " + result[j].status  + "     " + new Date().toLocaleTimeString() + ";   " ;
                         }
                         $scope.deltaResults.push(entry);
                         $scope.$apply();
@@ -129,8 +129,8 @@ sequence.controller('SequenceCtrl', ['$scope', '$http','$window','loadTestCases'
                     console.log("\n end:");
                     console.log(data);
                     if(data.status){
-                        alert("ddmingResult: " + data.ddminResult );
-                        $scope.sequenceDeltaResult = data.ddminResult;
+                        // alert("ddmingResult: " + data.ddminResult );
+                        $scope.sequenceDeltaResult = JSON.stringify(data.ddminResult) + "   " + new Date().toLocaleTimeString();
                         $scope.$apply();
                     } else {
                         alert(data.message);

@@ -103,7 +103,7 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
                             entry.configs += env[i].serviceName + ": " + env[i].type + ":{" + env[i].key + ": " + env[i].value + "};     ";
                         }
                         for(var j = 0; j < result.length; j++){
-                            entry.tests += result[j].className + ": " + result[j].status + ";   " ;
+                            entry.tests += result[j].className + ": " + result[j].status + "     " + new Date().toLocaleTimeString() + ";   " ;
                         }
                         $scope.configDeltaResponse.push(entry);
                         $scope.$apply();
@@ -117,8 +117,8 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
                     console.log("\n end:");
                     console.log(data);
                     if(data.status){
-                        alert("ddmingResult: " + data.ddminResult );
-                        $scope.configDeltaResult = data.ddminResult;
+                        // alert("ddmingResult: " + data.ddminResult );
+                        $scope.configDeltaResult = JSON.stringify(data.ddminResult) + "   " + new Date().toLocaleTimeString();
                         // console.log("data.ddminResult: " + data.ddminResult);
                         $scope.$apply();
                     } else {

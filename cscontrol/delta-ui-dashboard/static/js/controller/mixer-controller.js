@@ -112,7 +112,7 @@ mixer.controller('MixerCtrl', ['$scope', '$http','$window','loadServiceList',  '
                         }
 
                         for(var j = 0; j < result.length; j++){
-                            entry.tests += result[j].className + ": " + result[j].status + ";   " ;
+                            entry.tests += result[j].className + ": " + result[j].status + "     " + new Date().toLocaleTimeString() + ";   " ;
                         }
                         $scope.mixerDeltaResponse.push(entry);
                         $scope.$apply();
@@ -126,8 +126,8 @@ mixer.controller('MixerCtrl', ['$scope', '$http','$window','loadServiceList',  '
                     console.log("\n end:");
                     console.log(data);
                     if(data.status){
-                        alert("ddminResult: " + data.ddminResult );
-                        $scope.mixerDeltaResult = data.ddminResult;
+                        // alert("ddminResult: " + data.ddminResult );
+                        $scope.mixerDeltaResult = JSON.stringify(data.ddminResult) + "   " + new Date().toLocaleTimeString();
                         // console.log("data.ddminResult: " + data.ddminResult);
                         $scope.$apply();
                     } else {
