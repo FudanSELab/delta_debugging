@@ -51,20 +51,6 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
-    @Override
-    public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspendWithSource(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
-        Cluster cluster = getClusterByName(setUnsetServiceRequestSuspendRequest.getClusterName());
-        System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
-        String svcName = setUnsetServiceRequestSuspendRequest.getSvc();
-        String sourceSvcName = setUnsetServiceRequestSuspendRequest.getSourceSvcName();
-        String executeResult = doSetServiceRequestSuspendWithSourceFile(svcName,sourceSvcName,cluster);
-        System.out.println(executeResult);
-        boolean status = (executeResult != null);
-        SetUnsetServiceRequestSuspendResponse response = new SetUnsetServiceRequestSuspendResponse(status,executeResult);
-        return response;
-
-    }
-
     private String doSetServiceRequestSuspend(String svcName,Cluster cluster){
         String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
 
@@ -79,8 +65,22 @@ public class ApiServiceImpl implements ApiService {
         return executeResult;
     }
 
+    @Override
+    public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspendWithSource(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+        Cluster cluster = getClusterByName(setUnsetServiceRequestSuspendRequest.getClusterName());
+        System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
+        String svcName = setUnsetServiceRequestSuspendRequest.getSvc();
+        String sourceSvcName = setUnsetServiceRequestSuspendRequest.getSourceSvcName();
+        String executeResult = doSetServiceRequestSuspendWithSourceFile(svcName,sourceSvcName,cluster);
+        System.out.println(executeResult);
+        boolean status = (executeResult != null);
+        SetUnsetServiceRequestSuspendResponse response = new SetUnsetServiceRequestSuspendResponse(status,executeResult);
+        return response;
+
+    }
+
     private String doSetServiceRequestSuspendWithSourceFile(String svcName, String sourceSvcName,Cluster cluster){
-        String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
+        String svcLongDelayFilePath = "rule-long-" + svcName + "-to-" + sourceSvcName + ".yml";
 
 //        FileOperation.clearAndWriteFile(svcLongDelayFilePath,svcName);
         RemoteExecuteCommand rec = new RemoteExecuteCommand(cluster.getMasterIp(), cluster.getUsername(),cluster.getPasswd());
@@ -95,7 +95,6 @@ public class ApiServiceImpl implements ApiService {
 
     @Override
     public SetUnsetServiceRequestSuspendResponse unsetServiceRequestSuspend(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
-
         Cluster cluster = getClusterByName(setUnsetServiceRequestSuspendRequest.getClusterName());
         System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
 
@@ -116,18 +115,27 @@ public class ApiServiceImpl implements ApiService {
         return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
     }
 
-    private String applyYml(String fileName, Cluster cluster){
-        String applyRequest = "kubectl apply -f " + fileName;
-        RemoteExecuteCommand rec = new RemoteExecuteCommand(cluster.getMasterIp(), cluster.getUsername(),cluster.getPasswd());
-        //执行脚本
-        return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + applyRequest);
+    @Override
+    public SetUnsetServiceRequestSuspendResponse unsetServiceRequestSuspendWithSource(
+            SetUnsetServiceRequestSuspendRequest request){
+        Cluster cluster = getClusterByName(request.getClusterName());
+        System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
+
+        String svcName = request.getSvc();
+
+        String executeResult = doUnsetServiceRequestSuspendWithSource(svcName,cluster,request.getSourceSvcName());
+        System.out.println(executeResult);
+        boolean status = (executeResult != null);
+        SetUnsetServiceRequestSuspendResponse response = new SetUnsetServiceRequestSuspendResponse(status,executeResult);
+        return response;
     }
 
-    private String deleteYml(String fileName, Cluster cluster){
-        String applyRequest = "kubectl delete -f " + fileName;
+    private String doUnsetServiceRequestSuspendWithSource(String svcName,Cluster cluster,String sourceSvcName){
+        String svcLongDelayFilePath = "rule-long-" + svcName + "-to-" + sourceSvcName + ".yml";
+        String serLongDelayRequest = "kubectl delete -f " + svcLongDelayFilePath;
         RemoteExecuteCommand rec = new RemoteExecuteCommand(cluster.getMasterIp(), cluster.getUsername(),cluster.getPasswd());
         //执行脚本
-        return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + applyRequest);
+        return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
     }
 
     @Override
@@ -153,14 +161,16 @@ public class ApiServiceImpl implements ApiService {
         System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
         ArrayList<String> svcList = request.getSvcList();
         String srcName = request.getSourceName();
+        String sourceSvcName = request.getSourceName();
         for(int i = 0;i < svcList.size(); i++){
             String svcName = svcList.get(i);
-            System.out.println("[=====]Release " + svcName + ": " + doUnsetServiceRequestSuspend(svcName, cluster));
+            System.out.println("[=====]Release " + svcName + ": " + doUnsetServiceRequestSuspendWithSource(svcName, cluster,sourceSvcName));
             //waitForComplete是阻塞式的 会一直等待直到请求返回
             if(waitForCompleteWithSource(srcName,svcName,cluster) == true) {
                 System.out.println("[===== Complete =====] " + svcName);
             }
         }
+        System.out.println("[===== Congratulations! All Complete! =====]");
         SetAsyncRequestSequenceResponse response = new SetAsyncRequestSequenceResponse(true," setAsyncRequestsSequence Complete");
         return response;
     }
@@ -313,12 +323,12 @@ public class ApiServiceImpl implements ApiService {
             }
 
 
-            count += 1;
-            if(count > 15){
-                isRequestComplete = true;
-                System.out.println("没找到这个请求，循环放弃，释放下一个请求");
-                count = 0;
-            }
+//            count += 1;
+//            if(count > 30){
+//                isRequestComplete = true;
+//                System.out.println("没找到这个请求，循环放弃，释放下一个请求");
+//                count = 0;
+//            }
 
         }
         return isRequestComplete;

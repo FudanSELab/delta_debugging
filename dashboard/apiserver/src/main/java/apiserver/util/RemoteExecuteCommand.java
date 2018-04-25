@@ -219,7 +219,7 @@ public class RemoteExecuteCommand {
         String longRuleStr = "apiVersion: config.istio.io/v1alpha2\n" +
                 "kind: RouteRule\n" +
                 "metadata:\n" +
-                "  name: rest-service-delay-long-svcName\n" +
+                "  name: rest-service-delay-long-svcName-to-sourceSvcName\n" +
                 "spec:\n" +
                 "  destination:\n" +
                 "    name: svcName\n" +
