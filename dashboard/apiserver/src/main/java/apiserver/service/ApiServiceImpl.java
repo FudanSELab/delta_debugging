@@ -217,8 +217,8 @@ public class ApiServiceImpl implements ApiService {
         ArrayList<PodInfo> podInfoList = new ArrayList<>(podsListResponse.getPods());
         ArrayList<PodInfo> targetPodInfoList = new ArrayList<>();
         for(PodInfo podInfo : podInfoList){
-            System.out.println("[=====] We are now checking useful POD-NAME:" + podInfo.getName());
             if(podInfo.getName().contains(svcName)){
+                System.out.println("[=====] We are now checking useful POD-NAME:" + podInfo.getName());
                 targetPodInfoList.add(podInfo);
             }else{
                 //do nothing
@@ -269,17 +269,7 @@ public class ApiServiceImpl implements ApiService {
 
     private boolean waitForCompleteWithSource(String srcName, String svcName, Cluster cluster){
         //根据svc的名称，获取svc下的所有pod
-        GetPodsListResponse podsListResponse = getPodsList("default", cluster);
-        ArrayList<PodInfo> podInfoList = new ArrayList<>(podsListResponse.getPods());
-        ArrayList<PodInfo> targetPodInfoList = new ArrayList<>();
-        for(PodInfo podInfo : podInfoList){
-            System.out.println("[=====] We are now checking useful POD-NAME:" + podInfo.getName());
-            if(podInfo.getName().contains(srcName)){ //寻找source pod的日志，在source pod里看看有没有svcName
-                targetPodInfoList.add(podInfo);
-            }else{
-                //do nothing
-            }
-        }
+
         boolean isRequestComplete = false;
 //        try{
 //            Thread.sleep(90000);
@@ -290,6 +280,20 @@ public class ApiServiceImpl implements ApiService {
 
         int count = 0;
         while(isRequestComplete == false){
+
+            GetPodsListResponse podsListResponse = getPodsList("default", cluster);
+            ArrayList<PodInfo> podInfoList = new ArrayList<>(podsListResponse.getPods());
+            ArrayList<PodInfo> targetPodInfoList = new ArrayList<>();
+            for(PodInfo podInfo : podInfoList){
+                System.out.println("[=====] We are now checking useful POD-NAME:" + podInfo.getName());
+                if(podInfo.getName().contains(srcName)){ //寻找source pod的日志，在source pod里看看有没有svcName
+                    targetPodInfoList.add(podInfo);
+                }else{
+                    //do nothing
+                }
+            }
+
+
             //每间隔 0秒，获取一次pods的日志。注意是pod下的istio-proxy的日志
             try{
                 Thread.sleep(5000);
