@@ -221,20 +221,27 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
 //        }
 
         //delta Configs & Instances simultaneously
-        SimpleResponse sr = sendAllDelta(toDeltaAllDS(instanceEnv, configEnv), cluster);
-        if( ! sr.isStatus()){
-            return false;
+        List<SingleDeltaAllRequest> o = toDeltaAllDS(instanceEnv, configEnv);
+        if(null != o  && o.size() > 0){
+            SimpleResponse sr = sendAllDelta(o, cluster);
+            if( ! sr.isStatus()){
+                return false;
+            }
         }
+
 
 
         //sequence
         List<String> seqDeltas = new ArrayList<String>();
         for(String s: deltas) {
-            if (s.contains("seq_")) {
+            if (s.contains("seq")) {
                 seqDeltas.add(s);
             }
         }
         Map<String, String> seq_deltas = getSeqDeltas(seqDeltas);
+        System.out.println();
+        System.out.println("!!!!!!!!!! getSeqDeltas !!!!!!!!! " + seq_deltas);
+        System.out.println();
         List<String> seqUsed = new ArrayList<String>();
         if( ! seq_deltas.isEmpty()){
             for(String key: seq_deltas.keySet()){
@@ -246,6 +253,9 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
                 for(int i = 0; i < tmp.length; i++){
                     orders.add(receivers.get(Integer.parseInt(tmp[i]) - 1 ));
                 }
+                System.out.println();
+                System.out.println("22222222 ! seq_deltas.isEmpty() 2222222222222222 " + orders);
+                System.out.println();
                 SetAsyncRequestSequenceResponse r2 = controlSequence(sender, orders, cluster);
                 if( ! r2.isStatus()){
                     return false;
@@ -256,6 +266,9 @@ public class MixerDDMinDeltaExt extends ParallelDDMinDelta {
             if( ! seqUsed.contains(key)){
                 String sender = preToSender.get(key);
                 ArrayList<String> receivers = preToReceivers.get(key);
+                System.out.println();
+                System.out.println("333333333 ! seqUsed.contains(key) 3333333333333333 " + receivers);
+                System.out.println();
                 SetAsyncRequestSequenceResponse r2 = controlSequence(sender, receivers, cluster);
                 if(! r2.isStatus()){
                     return false;

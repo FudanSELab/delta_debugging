@@ -1,19 +1,15 @@
-package cluster4;
+package cluster9;
 
 import org.openqa.selenium.*;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
-import org.openqa.selenium.support.ui.Select;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.net.URL;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public class TestCancelErrorSequence {
@@ -37,7 +33,7 @@ public class TestCancelErrorSequence {
 //        baseUrl = "http://10.141.211.180:30776";
         driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
                 DesiredCapabilities.chrome());
-        baseUrl = "http://10.141.211.174:31112";
+        baseUrl = "http://10.141.212.21:30070";
         trainType = "2";
         driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
     }

@@ -1,4 +1,4 @@
-package cluster4;
+package cluster10;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -50,7 +50,7 @@ public class TestBookErrorConfig {
 //        baseUrl = "http://10.141.211.180:30776";
         driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
                 DesiredCapabilities.chrome());
-        baseUrl = "http://10.141.211.174:31112";
+        baseUrl = "http://10.141.211.178:30014";
         trainType = "0";//all
         driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
     }

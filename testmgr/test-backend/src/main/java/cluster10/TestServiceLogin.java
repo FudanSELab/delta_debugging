@@ -1,12 +1,7 @@
-package cluster4;
+package cluster10;
 
 import helper.LoginInfo;
 import helper.LoginResult;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.remote.DesiredCapabilities;
-import org.openqa.selenium.remote.RemoteWebDriver;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -15,13 +10,10 @@ import org.springframework.web.client.RestTemplate;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class TestServiceLogin {
     @BeforeClass
@@ -46,7 +38,7 @@ public class TestServiceLogin {
 
         HttpEntity requestEntity = new HttpEntity(li, headers);
         //注意把这里换成你的集群的ip
-        ResponseEntity<LoginResult> r = restTemplate.exchange("http://10.141.211.174:31112/login", HttpMethod.POST, requestEntity, LoginResult.class);
+        ResponseEntity<LoginResult> r = restTemplate.exchange("http://10.141.211.178:30014login", HttpMethod.POST, requestEntity, LoginResult.class);
         LoginResult result = r.getBody();
         //[Error Process Seq] - 顺序没控制好的话result.message返回这个 status为false
         //Success.Processes Seq. - 顺序控制好了返回这个 status为true

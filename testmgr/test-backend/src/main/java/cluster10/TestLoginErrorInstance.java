@@ -1,9 +1,8 @@
-package cluster4;
+package cluster10;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.testng.Assert;
@@ -46,7 +45,7 @@ public class TestLoginErrorInstance {
 //        baseUrl = "http://10.141.211.178:32412";
         driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
                 DesiredCapabilities.chrome());
-        baseUrl = "http://10.141.211.174:31112";
+        baseUrl = "http://10.141.211.178:30014";
         trainType = "0";//all
         driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
     }
