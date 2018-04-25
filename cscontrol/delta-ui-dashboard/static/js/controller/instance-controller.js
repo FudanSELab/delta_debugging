@@ -81,7 +81,7 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
                             entry.services += env[i].serviceName + ": " + env[i].numOfReplicas + "   ";
                         }
                         for(var j = 0; j < result.length; j++){
-                            entry.tests += result[j].className + ": " + result[j].status + "     " + new Date().toLocaleTimeString()  + ";   " ;
+                            entry.tests += result[j].className + ": " + result[j].status + "     " + getTime()  + ";   " ;
                         }
                         $scope.deltaResults.push(entry);
                         $scope.$apply();
@@ -94,7 +94,7 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
                     // console.log(data.body);
                     var data = JSON.parse(data.body);
                     if(data.status){
-                        $scope.instanceDeltaResult = JSON.stringify(data.ddminResult) + "   " + new Date().toLocaleTimeString();
+                        $scope.instanceDeltaResult = JSON.stringify(data.ddminResult) + "   " + getTime();
                         console.log("data.ddminResult: " + data.ddminResult);
                         $scope.$apply();
                     } else {
@@ -111,6 +111,11 @@ instance.controller('InstanceCtrl', ['$scope', '$http','$window','loadTestCases'
 
 
             });
+        }
+
+        function getTime(){
+            var myDate = new Date();
+            return myDate.getHours()+":"+myDate.getMinutes()+":"+myDate.getSeconds();
         }
 
 

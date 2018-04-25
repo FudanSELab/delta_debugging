@@ -103,7 +103,7 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
                             entry.configs += env[i].serviceName + ": " + env[i].type + ":{" + env[i].key + ": " + env[i].value + "};     ";
                         }
                         for(var j = 0; j < result.length; j++){
-                            entry.tests += result[j].className + ": " + result[j].status + "     " + new Date().toLocaleTimeString() + ";   " ;
+                            entry.tests += result[j].className + ": " + result[j].status + "     " + getTime();
                         }
                         $scope.configDeltaResponse.push(entry);
                         $scope.$apply();
@@ -118,7 +118,8 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
                     console.log(data);
                     if(data.status){
                         // alert("ddmingResult: " + data.ddminResult );
-                        $scope.configDeltaResult = JSON.stringify(data.ddminResult) + "   " + new Date().toLocaleTimeString();
+
+                        $scope.configDeltaResult = JSON.stringify(data.ddminResult) + "   " + getTime();
                         // console.log("data.ddminResult: " + data.ddminResult);
                         $scope.$apply();
                     } else {
@@ -135,6 +136,11 @@ config.controller('ConfigCtrl', ['$scope', '$http','$window','loadServiceList', 
                 });
 
             });
+        }
+
+        function getTime(){
+            var myDate = new Date();
+            return myDate.getHours()+":"+myDate.getMinutes()+":"+myDate.getSeconds();
         }
 
 

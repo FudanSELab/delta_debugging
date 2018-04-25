@@ -112,7 +112,7 @@ mixer.controller('MixerCtrl', ['$scope', '$http','$window','loadServiceList',  '
                         }
 
                         for(var j = 0; j < result.length; j++){
-                            entry.tests += result[j].className + ": " + result[j].status + "     " + new Date().toLocaleTimeString() + ";   " ;
+                            entry.tests += result[j].className + ": " + result[j].status + "     " +getTime()+ ";   " ;
                         }
                         $scope.mixerDeltaResponse.push(entry);
                         $scope.$apply();
@@ -127,7 +127,7 @@ mixer.controller('MixerCtrl', ['$scope', '$http','$window','loadServiceList',  '
                     console.log(data);
                     if(data.status){
                         // alert("ddminResult: " + data.ddminResult );
-                        $scope.mixerDeltaResult = JSON.stringify(data.ddminResult) + "   " + new Date().toLocaleTimeString();
+                        $scope.mixerDeltaResult = JSON.stringify(data.ddminResult) + "   " +getTime();
                         // console.log("data.ddminResult: " + data.ddminResult);
                         $scope.$apply();
                     } else {
@@ -150,6 +150,11 @@ mixer.controller('MixerCtrl', ['$scope', '$http','$window','loadServiceList',  '
                 });
 
             });
+        }
+
+        function getTime(){
+            var myDate = new Date();
+            return myDate.getHours()+":"+myDate.getMinutes()+":"+myDate.getSeconds();
         }
 
 
