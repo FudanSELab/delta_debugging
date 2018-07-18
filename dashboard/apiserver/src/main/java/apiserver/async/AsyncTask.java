@@ -22,6 +22,14 @@ public class AsyncTask {
         return new AsyncResult<>(response);
     }
 
+    @Async("myAsync")
+    public Future<SetAsyncRequestSequenceResponse> doAsyncWithMaintainSequence(
+            SetAsyncRequestSequenceRequestWithSource request) throws InterruptedException{
+        SetAsyncRequestSequenceResponse response =
+                apiService.setAsyncRequestSequenceWithSrcCombineWithFullSuspendWithMaintainSequence(request);
+        return new AsyncResult<>(response);
+    }
+
 
 
 }  

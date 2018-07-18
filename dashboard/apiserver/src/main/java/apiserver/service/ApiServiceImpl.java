@@ -24,6 +24,8 @@ public class ApiServiceImpl implements ApiService {
     @Autowired
     private MyConfig myConfig;
 
+    public boolean flag = false;
+
     //Return all the clusters able to control
     @Override
     public GetClustersResponse getClusters() {
@@ -53,17 +55,34 @@ public class ApiServiceImpl implements ApiService {
 
     private String doSetServiceRequestSuspend(String svcName,Cluster cluster){
         String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
-
-//        FileOperation.clearAndWriteFile(svcLongDelayFilePath,svcName);
         RemoteExecuteCommand rec = new RemoteExecuteCommand(cluster.getMasterIp(), cluster.getUsername(),cluster.getPasswd());
         rec.modifyFile(svcLongDelayFilePath,svcName);
-//        rec.uploadFile(svcLongDelayFilePath);
-
         String serLongDelayRequest = "kubectl apply -f " + svcLongDelayFilePath;
         //Execute the script
         String executeResult = rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
         return executeResult;
     }
+
+    @Override
+    public SetUnsetServiceRequestSuspendResponse unsetServiceRequestSuspend(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
+        Cluster cluster = getClusterByName(setUnsetServiceRequestSuspendRequest.getClusterName());
+        System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
+        String svcName = setUnsetServiceRequestSuspendRequest.getSvc();
+        String executeResult = doUnsetServiceRequestSuspend(svcName,cluster);
+        System.out.println(executeResult);
+        boolean status = (executeResult != null);
+        SetUnsetServiceRequestSuspendResponse response = new SetUnsetServiceRequestSuspendResponse(status,executeResult);
+        return response;
+    }
+
+    private String doUnsetServiceRequestSuspend(String svcName,Cluster cluster){
+        String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
+        String serLongDelayRequest = "kubectl delete -f " + svcLongDelayFilePath;
+        RemoteExecuteCommand rec = new RemoteExecuteCommand(cluster.getMasterIp(), cluster.getUsername(),cluster.getPasswd());
+        //执行脚本
+        return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
+    }
+
 
     @Override
     public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspendWithSource(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
@@ -81,12 +100,8 @@ public class ApiServiceImpl implements ApiService {
 
     private String doSetServiceRequestSuspendWithSourceFile(String svcName, String sourceSvcName,Cluster cluster){
         String svcLongDelayFilePath = "rule-long-" + svcName + "-to-" + sourceSvcName + ".yml";
-
-//        FileOperation.clearAndWriteFile(svcLongDelayFilePath,svcName);
         RemoteExecuteCommand rec = new RemoteExecuteCommand(cluster.getMasterIp(), cluster.getUsername(),cluster.getPasswd());
         rec.modifyFileWithSourceSvcName(svcLongDelayFilePath,svcName,sourceSvcName);
-//        rec.uploadFile(svcLongDelayFilePath);
-
         String serLongDelayRequest = "kubectl apply -f " + svcLongDelayFilePath;
         //Execute the script
         String executeResult = rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
@@ -94,35 +109,11 @@ public class ApiServiceImpl implements ApiService {
     }
 
     @Override
-    public SetUnsetServiceRequestSuspendResponse unsetServiceRequestSuspend(SetUnsetServiceRequestSuspendRequest setUnsetServiceRequestSuspendRequest){
-        Cluster cluster = getClusterByName(setUnsetServiceRequestSuspendRequest.getClusterName());
-        System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
-
-        String svcName = setUnsetServiceRequestSuspendRequest.getSvc();
-
-        String executeResult = doUnsetServiceRequestSuspend(svcName,cluster);
-        System.out.println(executeResult);
-        boolean status = (executeResult != null);
-        SetUnsetServiceRequestSuspendResponse response = new SetUnsetServiceRequestSuspendResponse(status,executeResult);
-        return response;
-    }
-
-    private String doUnsetServiceRequestSuspend(String svcName,Cluster cluster){
-        String svcLongDelayFilePath = "rule-long-" + svcName + ".yml";
-        String serLongDelayRequest = "kubectl delete -f " + svcLongDelayFilePath;
-        RemoteExecuteCommand rec = new RemoteExecuteCommand(cluster.getMasterIp(), cluster.getUsername(),cluster.getPasswd());
-        //执行脚本
-        return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
-    }
-
-    @Override
     public SetUnsetServiceRequestSuspendResponse unsetServiceRequestSuspendWithSource(
             SetUnsetServiceRequestSuspendRequest request){
         Cluster cluster = getClusterByName(request.getClusterName());
         System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
-
         String svcName = request.getSvc();
-
         String executeResult = doUnsetServiceRequestSuspendWithSource(svcName,cluster,request.getSourceSvcName());
         System.out.println(executeResult);
         boolean status = (executeResult != null);
@@ -136,6 +127,23 @@ public class ApiServiceImpl implements ApiService {
         RemoteExecuteCommand rec = new RemoteExecuteCommand(cluster.getMasterIp(), cluster.getUsername(),cluster.getPasswd());
         //执行脚本
         return rec.execute("export KUBECONFIG=/etc/kubernetes/admin.conf;" + serLongDelayRequest);
+    }
+
+    @Override
+    public SetAsyncRequestSequenceResponse unsuspendAllRequest(SetAsyncRequestSequenceRequestWithSource request){
+
+        flag = false;
+
+        Cluster cluster = getClusterByName(request.getClusterName());
+        System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
+        ArrayList<String> svcList = request.getSvcList();
+        String resultStr = "";
+        for(String svcName: svcList){
+            String tempStr = doUnsetServiceRequestSuspend(svcName,cluster);
+            resultStr += tempStr;
+            System.out.println(tempStr);
+        }
+        return new SetAsyncRequestSequenceResponse(true,resultStr);
     }
 
     @Override
@@ -176,21 +184,6 @@ public class ApiServiceImpl implements ApiService {
     }
 
     @Override
-    public SetAsyncRequestSequenceResponse unsuspendAllRequest(SetAsyncRequestSequenceRequestWithSource request){
-        Cluster cluster = getClusterByName(request.getClusterName());
-        System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
-        ArrayList<String> svcList = request.getSvcList();
-        String resultStr = "";
-        for(String svcName: svcList){
-            String tempStr = doUnsetServiceRequestSuspend(svcName,cluster);
-            resultStr += tempStr;
-            System.out.println(tempStr);
-        }
-        return new SetAsyncRequestSequenceResponse(true,resultStr);
-
-    }
-
-    @Override
     public SetAsyncRequestSequenceResponse setAsyncRequestSequenceWithSrcCombineWithFullSuspend(SetAsyncRequestSequenceRequestWithSource request){
         Cluster cluster = getClusterByName(request.getClusterName());
         System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
@@ -210,6 +203,57 @@ public class ApiServiceImpl implements ApiService {
         //return setAsyncRequestsSequenceWithSource(request);
     }
 
+    @Override
+    public SetAsyncRequestSequenceResponse controlSequenceAndMaintainIt(SetAsyncRequestSequenceRequestWithSource request){
+
+        flag = true;
+
+        Cluster cluster = getClusterByName(request.getClusterName());
+        System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
+        //丢出一个异步线程，进行控制和解除，以及重新锁定
+        try{
+            asyncTask.doAsyncWithMaintainSequence(request);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        //返回
+        System.out.println("[=====]setAsyncRequestSequenceWithSrcCombineWithFullSuspend返回");
+        return new SetAsyncRequestSequenceResponse(true,"Just return but we do not gaurantee success.");
+    }
+
+    @Override
+    public SetAsyncRequestSequenceResponse setAsyncRequestSequenceWithSrcCombineWithFullSuspendWithMaintainSequence(SetAsyncRequestSequenceRequestWithSource request){
+        Cluster cluster = getClusterByName(request.getClusterName());
+        System.out.println(String.format("The cluster to operate is [%s]", cluster.getName()));
+        ArrayList<String> svcList = request.getSvcList();
+        String srcName = request.getSourceName();
+        String sourceSvcName = request.getSourceName();
+        while(flag){
+            System.out.println("[===] This is a NEW TURN");
+            //开始锁定请求顺序
+            String str = "";
+            for(int i = 0;i < request.getSvcList().size();i++){
+                String executeResult = doSetServiceRequestSuspendWithSourceFile(
+                        request.getSvcList().get(i),request.getSourceName(), cluster);
+                str += executeResult;
+                System.out.println(executeResult);
+            }
+            //然后开始逐步释放
+            for(int i = 0;i < svcList.size(); i++){
+                String svcName = svcList.get(i);
+                System.out.println("[=====]Release " + svcName + ": " + doUnsetServiceRequestSuspendWithSource(svcName, cluster,sourceSvcName));
+                //waitForComplete是阻塞式的 会一直等待直到请求返回
+                if(waitForCompleteWithSource(srcName,svcName,cluster) == true) {
+                    System.out.println("[===== Complete =====] " + svcName);
+                }
+            }
+            System.out.println("[===== Congratulations! All Complete! =====]");
+        }
+        SetAsyncRequestSequenceResponse response = new SetAsyncRequestSequenceResponse(true," setAsyncRequestsSequence Complete");
+        return response;
+    }
+
+
 
     private boolean waitForComplete(String svcName, Cluster cluster){
         //根据svc的名称，获取svc下的所有pod
@@ -225,12 +269,6 @@ public class ApiServiceImpl implements ApiService {
             }
         }
         boolean isRequestComplete = false;
-//        try{
-//            Thread.sleep(90000);
-//            isRequestComplete = true;
-//        }catch (Exception e){
-//            e.printStackTrace();
-//        }
         while(isRequestComplete == false){
             //每间隔20秒，获取一次pods的日志。注意是pod下的istio-proxy的日志
             try{
@@ -238,7 +276,6 @@ public class ApiServiceImpl implements ApiService {
             }catch (InterruptedException e){
                 e.printStackTrace();
             }
-
             //获取各个pod的日志，并截取最后四条
             for(PodInfo podInfo : targetPodInfoList) {
                 if(isRequestComplete == true){
@@ -269,17 +306,8 @@ public class ApiServiceImpl implements ApiService {
 
     private boolean waitForCompleteWithSource(String srcName, String svcName, Cluster cluster){
         //根据svc的名称，获取svc下的所有pod
-
         boolean isRequestComplete = false;
-//        try{
-//            Thread.sleep(90000);
-//            isRequestComplete = true;
-//        }catch (Exception e){
-//            e.printStackTrace();
-//        }
-
         int count = 0;
-
         GetPodsListResponse podsListResponse = getPodsList("default", cluster);
         ArrayList<PodInfo> podInfoList = new ArrayList<>(podsListResponse.getPods());
         ArrayList<PodInfo> targetPodInfoList = new ArrayList<>();
@@ -291,16 +319,13 @@ public class ApiServiceImpl implements ApiService {
                 //do nothing
             }
         }
-
         while(isRequestComplete == false){
-
             //每间隔 0秒，获取一次pods的日志。注意是pod下的istio-proxy的日志
             try{
                 Thread.sleep(5000);
             }catch (InterruptedException e){
                 e.printStackTrace();
             }
-
             //获取各个pod的日志，并截取最后5条
             for(PodInfo podInfo : targetPodInfoList) {
                 if(isRequestComplete == true){
@@ -325,21 +350,17 @@ public class ApiServiceImpl implements ApiService {
                     }
                 }
             }
-
-
             count += 1;
             if(count > 15){
                 isRequestComplete = true;
                 System.out.println("没找到这个请求，循环放弃，释放下一个请求");
                 count = 0;
             }
-
         }
         return isRequestComplete;
     }
 
     private boolean checkLogCanComfirmRequestComplete(String log, String svcName){
-
         //[2018-04-04T06:18:18.275Z]
         // "GET /helloRestServiceSubOne HTTP/1.1"
         // 200 - 0 29 254 243 "-"

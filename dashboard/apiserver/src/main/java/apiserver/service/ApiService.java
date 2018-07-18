@@ -30,4 +30,13 @@ public interface ApiService {
     SetAsyncRequestSequenceResponse setAsyncRequestSequenceWithSrcCombineWithFullSuspend(SetAsyncRequestSequenceRequestWithSource request);
     SetAsyncRequestSequenceResponse unsuspendAllRequest(SetAsyncRequestSequenceRequestWithSource request);
     SimpleResponse deltaAll(DeltaAllRequest deltaAllRequest);
+
+
+
+    SetAsyncRequestSequenceResponse controlSequenceAndMaintainIt(SetAsyncRequestSequenceRequestWithSource request);
+    SetAsyncRequestSequenceResponse setAsyncRequestSequenceWithSrcCombineWithFullSuspendWithMaintainSequence(
+            SetAsyncRequestSequenceRequestWithSource request);
+
+
+
 }

@@ -26,6 +26,11 @@ public class ApiController {
         return apiService.getClusters();
     }
 
+
+    /**
+     * 将所有发往某个服务的请求的传送延迟设置为10000秒（拦截请求）
+     * (尽管传入参数中有source服务和destination服务，但是source服务这个参数并未被使用)
+     */
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/setServiceRequestSuspend", method= RequestMethod.POST)
     public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspend(
@@ -37,19 +42,9 @@ public class ApiController {
         return apiService.setServiceRequestSuspend(request);
     }
 
-    @CrossOrigin(origins = "*")
-    @RequestMapping(value="/api/setServiceRequestSuspendWithSourceSvc", method= RequestMethod.POST)
-    public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspendWithSourceSvc(
-            @RequestBody SetUnsetServiceRequestSuspendRequest request){
-
-        System.out.println("[=====] /api/setServiceRequestSuspendWithSourceSvc");
-        System.out.println("[=====] svcName:" + request.getSvc());
-        System.out.println("[=====] sourceSvcName:" + request.getSourceSvcName());
-
-        return apiService.setServiceRequestSuspendWithSource(request);
-    }
-
-
+    /**
+     * 解除掉发往某个服务的传送延迟（请求拦截）
+     */
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/unsetServiceRequestSuspend", method= RequestMethod.POST)
     public SetUnsetServiceRequestSuspendResponse unsetServiceRequestSuspend(
@@ -61,29 +56,9 @@ public class ApiController {
         return apiService.unsetServiceRequestSuspend(request);
     }
 
-    @CrossOrigin(origins = "*")
-    @RequestMapping(value="/api/setAsyncRequestSequence", method= RequestMethod.POST)
-    public SetAsyncRequestSequenceResponse setAsyncRequestSequenceResponse(
-            @RequestBody SetAsyncRequestSequenceRequest request){
-
-        System.out.println("[=====] /api/setAsyncRequestSequence");
-        System.out.println("[=====] svc Number:" + request.getSvcList().size());
-
-        return apiService.setAsyncRequestsSequence(request);
-    }
-
-    @CrossOrigin(origins = "*")
-    @RequestMapping(value="/api/setAsyncRequestSequenceWithSrc", method = RequestMethod.POST)
-    public SetAsyncRequestSequenceResponse setAsyncRequestSequenceResponseWithSrc(
-            @RequestBody SetAsyncRequestSequenceRequestWithSource request){
-
-        System.out.println("[=====] /api/setAsyncRequestSequence");
-        System.out.println("[=====] src Name:" + request.getSourceName());
-        System.out.println("[=====] svc Name:" + request.getSvcList().size());
-
-        return apiService.setAsyncRequestsSequenceWithSource(request);
-    }
-
+    /**
+     * 批量解除掉发往某组服务的传送延迟（批量解除请求拦截）
+     */
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/unsuspendAllRequests", method = RequestMethod.POST)
     public SetAsyncRequestSequenceResponse unsuspendAllRequests(
@@ -97,6 +72,54 @@ public class ApiController {
     }
 
 
+    /**
+     * 将两个服务之间的请求传送延迟设置为10000秒（拦截请求）
+     */
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/setServiceRequestSuspendWithSourceSvc", method= RequestMethod.POST)
+    public SetUnsetServiceRequestSuspendResponse setServiceRequestSuspendWithSourceSvc(
+            @RequestBody SetUnsetServiceRequestSuspendRequest request){
+
+        System.out.println("[=====] /api/setServiceRequestSuspendWithSourceSvc");
+        System.out.println("[=====] svcName:" + request.getSvc());
+        System.out.println("[=====] sourceSvcName:" + request.getSourceSvcName());
+
+        return apiService.setServiceRequestSuspendWithSource(request);
+    }
+
+
+    /**
+     * 按顺序依次解除发往一组服务的请求的顺序，变相达到控制请求顺序的目的
+     */
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/setAsyncRequestSequence", method= RequestMethod.POST)
+    public SetAsyncRequestSequenceResponse setAsyncRequestSequenceResponse(
+            @RequestBody SetAsyncRequestSequenceRequest request){
+
+        System.out.println("[=====] /api/setAsyncRequestSequence");
+        System.out.println("[=====] svc Number:" + request.getSvcList().size());
+
+        return apiService.setAsyncRequestsSequence(request);
+    }
+
+    /**
+     * 按顺序依次解除一个服务发往一组服务之间的请求的顺序，变相达到控制请求顺序的目的
+     */
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/setAsyncRequestSequenceWithSrc", method = RequestMethod.POST)
+    public SetAsyncRequestSequenceResponse setAsyncRequestSequenceResponseWithSrc(
+            @RequestBody SetAsyncRequestSequenceRequestWithSource request){
+
+        System.out.println("[=====] /api/setAsyncRequestSequence");
+        System.out.println("[=====] src Name:" + request.getSourceName());
+        System.out.println("[=====] svc Name:" + request.getSvcList().size());
+
+        return apiService.setAsyncRequestsSequenceWithSource(request);
+    }
+
+    /**
+     * 先设置好一个服务发往一组服务的请求的延迟，然后调用一个异步线程依次放开请求
+     */
     @CrossOrigin(origins = "*")
     @RequestMapping(value="/api/setAsyncRequestSequenceWithSrcCombineWithFullSuspend", method = RequestMethod.POST)
     public SetAsyncRequestSequenceResponse setAsyncRequestSequenceWithSrcCombineWithFullSuspend(
@@ -107,6 +130,23 @@ public class ApiController {
         System.out.println("[=====] svc Name:" + request.getSvcList().size());
 
         return apiService.setAsyncRequestSequenceWithSrcCombineWithFullSuspend(request);
+    }
+
+    /**
+     * 先设置好一个服务发往一组服务的请求的延迟，然后调用一个异步线程依次放开请求
+     * 只不过在每次放开请求之后，延迟会被重新加上去，以便模拟持续不断的请求控制
+     */
+    @CrossOrigin(origins = "*")
+    @RequestMapping(value="/api/controlSequenceAndMaintainIt", method = RequestMethod.POST)
+    public SetAsyncRequestSequenceResponse controlSequenceAndMaintainIt(
+            @RequestBody SetAsyncRequestSequenceRequestWithSource request){
+
+        System.out.println("[=====] /api/controlSequenceAndMaintainIt");
+        System.out.println("[=====] Control From:" + request.getSourceName());
+        System.out.println("[=====] Control To:" + request.getSvcList().toString());
+
+        return apiService.controlSequenceAndMaintainIt(request);
+
     }
 
 
