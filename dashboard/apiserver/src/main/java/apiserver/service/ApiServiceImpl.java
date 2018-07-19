@@ -24,7 +24,7 @@ public class ApiServiceImpl implements ApiService {
     @Autowired
     private MyConfig myConfig;
 
-    public boolean flag = false;
+    public static boolean flag = false;
 
     //Return all the clusters able to control
     @Override
@@ -229,7 +229,7 @@ public class ApiServiceImpl implements ApiService {
         String srcName = request.getSourceName();
         String sourceSvcName = request.getSourceName();
         while(flag){
-            System.out.println("[===] This is a NEW TURN");
+            System.out.println("[===] NEW TURN");
             //开始锁定请求顺序
             String str = "";
             for(int i = 0;i < request.getSvcList().size();i++){
@@ -239,6 +239,7 @@ public class ApiServiceImpl implements ApiService {
                 System.out.println(executeResult);
             }
             //然后开始逐步释放
+            System.out.println("[===] READY TO RELEASE");
             for(int i = 0;i < svcList.size(); i++){
                 String svcName = svcList.get(i);
                 System.out.println("[=====]Release " + svcName + ": " + doUnsetServiceRequestSuspendWithSource(svcName, cluster,sourceSvcName));
