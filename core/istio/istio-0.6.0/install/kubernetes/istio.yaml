@@ -255,8 +255,8 @@ spec:
         - name: config-volume
           mountPath: /etc/statsd
       - name: mixer
-        # image: docker.io/istio/mixer:0.6.0
-        image: 10.141.212.25:5555/mixer:root
+        image: docker.io/istio/mixer:0.6.0
+        # image: 10.141.212.25:5555/mixer:root
         imagePullPolicy: Always
         ports:
         - containerPort: 9091
@@ -271,8 +271,8 @@ spec:
           - -v
           - "2"
       - name: istio-proxy
-        # image: docker.io/istio/proxy:0.6.0
-        image: 10.141.212.25:5555/proxy:root
+        image: docker.io/istio/proxy:0.6.0
+        # image: 10.141.212.25:5555/proxy:root
         imagePullPolicy: Always
         ports:
         - containerPort: 15004
@@ -1428,8 +1428,8 @@ spec:
       serviceAccountName: istio-pilot-service-account
       containers:
       - name: discovery
-        # image: docker.io/istio/pilot:0.6.0
-        image: 10.141.212.25:5555/pilot:root
+        image: docker.io/istio/pilot:0.6.0
+        # image: 10.141.212.25:5555/pilot:root
         imagePullPolicy: Always
         args: ["discovery", "-v", "2", "--admission-service", "istio-pilot"]
         ports:
@@ -1452,8 +1452,8 @@ spec:
         - name: config-volume
           mountPath: /etc/istio/config
       - name: istio-proxy
-        #image: docker.io/istio/proxy:0.6.0
-        image: 10.141.212.25:5555/proxy:root
+        image: docker.io/istio/proxy:0.6.0
+        # image: 10.141.212.25:5555/proxy:root
         imagePullPolicy: Always
         ports:
         - containerPort: 15003
@@ -1525,8 +1525,8 @@ spec:
       serviceAccountName: istio-ingress-service-account
       containers:
       - name: istio-ingress
-        #image: docker.io/istio/proxy:0.6.0
-        image: 10.141.212.25:5555/proxy:root
+        image: docker.io/istio/proxy:0.6.0
+        # image: 10.141.212.25:5555/proxy:root
         args:
         - proxy
         - ingress
@@ -1613,8 +1613,8 @@ spec:
       serviceAccountName: istio-ca-service-account
       containers:
       - name: istio-ca
-        #image: docker.io/istio/istio-ca:0.6.0
-        image: 10.141.212.25:5555/istio-ca:root
+        image: docker.io/istio/istio-ca:0.6.0
+        # image: 10.141.212.25:5555/istio-ca:root
         imagePullPolicy: Always
         command: ["/usr/local/bin/istio_ca"]
         args:
