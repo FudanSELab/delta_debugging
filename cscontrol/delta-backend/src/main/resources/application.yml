@@ -8,9 +8,9 @@ spring:
 
 myConfig:
   zipkinUrl:
-    cluster1: http://10.141.212.23:30005
+#    cluster1: http://10.141.212.23:30005
     cluster2: http://10.141.211.179:30005
 
   clusters:
-    - cluster1
+#    - cluster1
     - cluster2
