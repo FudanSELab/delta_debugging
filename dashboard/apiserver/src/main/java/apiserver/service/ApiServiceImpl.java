@@ -599,7 +599,7 @@ public class ApiServiceImpl implements ApiService {
             while(!b && count > 0){
                 try{
                     //Check every 10 seconds
-                    Thread.sleep(10000);
+                    Thread.sleep(60000);
                 }catch(Exception e){
                     e.printStackTrace();
                 }
@@ -741,7 +741,7 @@ public class ApiServiceImpl implements ApiService {
         while(!b && count > 0){
             try{
                 //Check every 10 seconds
-                Thread.sleep(10000);
+                Thread.sleep(60000);
             }catch(Exception e){
                 e.printStackTrace();
             }
@@ -824,7 +824,7 @@ public class ApiServiceImpl implements ApiService {
         while(!b && count > 0){
             try{
                 //Check every 10 seconds
-                Thread.sleep(10000);
+                Thread.sleep(60000);
             }catch(Exception e){
                 e.printStackTrace();
             }
@@ -1140,7 +1140,7 @@ public class ApiServiceImpl implements ApiService {
         while(!b && count > 0){
             try{
                 //Check every 2 seconds
-                Thread.sleep(2000);
+                Thread.sleep(60000);
             }catch(Exception e){
                 e.printStackTrace();
             }
@@ -1282,14 +1282,14 @@ public class ApiServiceImpl implements ApiService {
         while(!b && count > 0){
             try{
                 //Check every 2 seconds
-                Thread.sleep(2000);
+                Thread.sleep(60000);
             }catch(Exception e){
                 e.printStackTrace();
             }
             b = isAllReady(NAMESPACE,cluster);
             count--;
         }
-        if(!b){
+        if(b){
             System.out.println("All the services are able to serve");
             response.setMessage("All the services are able to serve");
             response.setStatus(true);
