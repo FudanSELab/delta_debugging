@@ -428,12 +428,12 @@ public class ApiServiceImpl implements ApiService {
             return response;
         }
         //Check if all the pods are able to serve
-        boolean result = isAllAbleToServe(serviceNames,cluster);
-        if(result){
-            System.out.println("All the services are able to serve");
-        }else{
-            System.out.println("There are still some services not able to serve");
-        }
+//        boolean result = isAllAbleToServe(serviceNames,cluster);
+//        if(result){
+//            System.out.println("All the services are able to serve");
+//        }else{
+//            System.out.println("There are still some services not able to serve");
+//        }
         response.setStatus(true);
         response.setMessage("All the required service replicas have been already set!");
         return response;
@@ -1058,6 +1058,13 @@ public class ApiServiceImpl implements ApiService {
         GetServicesAndConfigResponse response = new GetServicesAndConfigResponse();
         //Get the current deployments information
         QueryDeploymentsListResponse deploymentsList = getDeploymentList(NAMESPACE,cluster);
+        if (null == deploymentsList.getItems()){
+            System.out.println("No Deployments!");
+        }
+        else {
+            System.out.println("The number of Deployments is " + deploymentsList.getItems().size());
+        }
+
         //Iterate the list and return the result
         List<ServiceWithConfig> services = new ArrayList<ServiceWithConfig>();
         if(deploymentsList.getItems() != null && deploymentsList.getItems().size() > 0){
@@ -1067,6 +1074,7 @@ public class ApiServiceImpl implements ApiService {
                 serviceWithConfig.setServiceName(singleDeploymentInfo.getMetadata().getName());
                 serviceWithConfig.setLimits(resourceRequirements.getLimits());
                 serviceWithConfig.setRequests(resourceRequirements.getRequests());
+                serviceWithConfig.setInstanceNumber(singleDeploymentInfo.getSpec().getReplicas());
                 services.add(serviceWithConfig);
             }
         }else{
@@ -1146,13 +1154,14 @@ public class ApiServiceImpl implements ApiService {
             return response;
         }
         //Check if all the pods are able to serve
-        boolean result = isAllAbleToServe(serviceNames,cluster);
-        if(result){
-            System.out.println("All the services are able to serve");
-        }else{
-            System.out.println("There are still some services not able to serve");
-        }
-
+//        boolean result = isAllAbleToServe(serviceNames,cluster);
+//        if(result){
+//            System.out.println("All the services are able to serve");
+//        }else{
+//            System.out.println("There are still some services not able to serve");
+//        }
+        response.setMessage("All the services are able to serve");
+        response.setStatus(true);
         return response;
     }
 
@@ -1281,18 +1290,21 @@ public class ApiServiceImpl implements ApiService {
             count--;
         }
         if(!b){
+            System.out.println("All the services are able to serve");
+            response.setMessage("All the services are able to serve");
+            response.setStatus(true);
+        } else {
             System.out.println("There are still some pods are not ready after delta all");
             response.setMessage("There are still some pods are not ready after delta all");
             response.setStatus(false);
-            return response;
         }
         //Check if all the pods are able to serve
-        boolean result = isAllAbleToServe(serviceNames,cluster);
-        if(result){
-            System.out.println("All the services are able to serve");
-        }else{
-            System.out.println("There are still some services not able to serve");
-        }
+//        boolean result = isAllAbleToServe(serviceNames,cluster);
+//        if(result){
+//            System.out.println("All the services are able to serve");
+//        }else{
+//            System.out.println("There are still some services not able to serve");
+//        }
 
         return response;
     }
@@ -2030,6 +2042,7 @@ public class ApiServiceImpl implements ApiService {
         QueryDeploymentsListResponse deploymentsList = new QueryDeploymentsListResponse();
         String apiUrl = String.format("%s/apis/apps/v1beta1/namespaces/%s/deployments",cluster.getApiServer() ,namespace);
         System.out.println(String.format("The constructed api url for getting the deploymentlist is %s", apiUrl));
+        System.out.println(cluster.getToken());
         String[] cmds ={
                 "/bin/sh","-c",String.format("curl -X GET %s --header \"Authorization: Bearer %s\" --insecure >> %s",apiUrl,cluster.getToken(),filePath)
         };
@@ -2045,7 +2058,7 @@ public class ApiServiceImpl implements ApiService {
 
             String json = readWholeFile(filePath);
             //Parse the response to the SetServicesReplicasResponseFromAPI Bean
-//            System.out.println(json);
+            System.out.println("APIServer Response: " + json);
             deploymentsList = JSON.parseObject(json,QueryDeploymentsListResponse.class);
         } catch (Exception e) {
             e.printStackTrace();

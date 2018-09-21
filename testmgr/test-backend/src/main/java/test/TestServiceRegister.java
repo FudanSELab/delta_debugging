@@ -31,7 +31,7 @@ public class TestServiceRegister {
 //        driver = new ChromeDriver();
         driver = new RemoteWebDriver(new URL("http://hub:4444/wd/hub"),
                 DesiredCapabilities.chrome());
-        baseUrl = "http://10.141.211.180:30776";
+        baseUrl = "http://10.141.211.179:30099";
         driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
     }
     @DataProvider(name="user")
