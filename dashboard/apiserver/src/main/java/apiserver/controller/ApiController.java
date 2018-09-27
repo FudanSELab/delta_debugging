@@ -1,5 +1,6 @@
 package apiserver.controller;
 
+import apiserver.bean.Metrics.Response.NodesMetricsResponse;
 import apiserver.response.SetUnsetServiceRequestSuspendResponse;
 import apiserver.request.*;
 import apiserver.response.*;
@@ -227,5 +228,11 @@ public class ApiController {
     @RequestMapping(value="/api/deltaAll", method= RequestMethod.POST)
     public SimpleResponse deltaAll(@RequestBody DeltaAllRequest deltaAllRequest) {
         return apiService.deltaAll(deltaAllRequest);
+    }
+
+    @CrossOrigin(origins = "*")
+    @PostMapping("/api/nodeMetrics")
+    public NodesMetricsResponse getNodesMetrics(@RequestBody String clustername) throws Exception {
+        return apiService.getNodesMetrics(clustername);
     }
 }

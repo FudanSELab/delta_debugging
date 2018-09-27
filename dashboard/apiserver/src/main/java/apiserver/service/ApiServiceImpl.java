@@ -2,6 +2,10 @@ package apiserver.service;
 
 import apiserver.async.AsyncTask;
 import apiserver.bean.*;
+import apiserver.bean.Metrics.NodeMetrics.V1beta1NodeItem;
+import apiserver.bean.Metrics.NodeMetrics.V1beta1NodeList;
+import apiserver.bean.Metrics.Response.NodeMetrics;
+import apiserver.bean.Metrics.Response.NodesMetricsResponse;
 import apiserver.request.*;
 import apiserver.response.*;
 import apiserver.util.Cluster;
@@ -9,7 +13,13 @@ import apiserver.util.MyConfig;
 import apiserver.util.RemoteExecuteCommand;
 import com.alibaba.fastjson.JSON;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
 import java.io.*;
 import java.util.*;
 
@@ -23,6 +33,9 @@ public class ApiServiceImpl implements ApiService {
 
     @Autowired
     private MyConfig myConfig;
+
+    @Autowired
+    private RestTemplate restTemplate;
 
     //Return all the clusters able to control
     @Override
@@ -1305,6 +1318,41 @@ public class ApiServiceImpl implements ApiService {
 //        }else{
 //            System.out.println("There are still some services not able to serve");
 //        }
+
+        return response;
+    }
+
+    @Override
+    public NodesMetricsResponse getNodesMetrics(String clusterName) throws Exception {
+        Cluster cluster = getClusterByName(clusterName);
+        if (null == cluster) {
+            throw new Exception("Error, can not find the cluster: " + clusterName + "！");
+        }
+        String url = cluster.getApiServer() + "/apis/metrics.k8s.io/v1beta1/nodes";
+        System.out.println(url);
+        HttpHeaders requestHeaders = new HttpHeaders();
+        requestHeaders.add("Authorization", "Bearer " + cluster.getToken());
+        HttpEntity<String> requestEntity = new HttpEntity<>(null, requestHeaders);
+        System.out.println(requestEntity.toString());
+        ResponseEntity<V1beta1NodeList> nodeListResponse = restTemplate.exchange(url, HttpMethod.GET, requestEntity, V1beta1NodeList.class);
+        if (null == nodeListResponse.getBody()) {
+            throw new Exception("Error, can not get nodes metrics!");
+        }
+
+        V1beta1NodeList nodeList = nodeListResponse.getBody();
+        System.out.println(nodeList.toString());
+
+        NodesMetricsResponse response = new NodesMetricsResponse();
+        List<NodeMetrics> nodesMetrics = new ArrayList<>();
+        NodeMetrics nodeMetrics;
+        for (V1beta1NodeItem node : nodeList.getItems()) {
+            nodeMetrics = new NodeMetrics();
+            nodeMetrics.setNodeId(node.getMetadata().getName());
+            nodeMetrics.setUsage(node.getUsage());
+            nodesMetrics.add(nodeMetrics);
+        }
+
+        response.setNodesMetrics(nodesMetrics);
 
         return response;
     }
