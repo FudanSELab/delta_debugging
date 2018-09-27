@@ -1414,7 +1414,7 @@ public class ApiServiceImpl implements ApiService {
         else{
             System.out.println("There is some error in the application.yml. Please check!");
         }
-        System.out.println(String.format("The cluster corresponding to the name [%s] doesn't exist! Please check."));
+        System.out.println(String.format("The cluster corresponding to the name [%s] doesn't exist! Please check.", clusterName));
         return null;
     }
 

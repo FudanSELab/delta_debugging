@@ -231,8 +231,8 @@ public class ApiController {
     }
 
     @CrossOrigin(origins = "*")
-    @PostMapping("/api/nodeMetrics")
-    public NodesMetricsResponse getNodesMetrics(@RequestBody String clustername) throws Exception {
-        return apiService.getNodesMetrics(clustername);
+    @GetMapping("/api/nodeMetrics/{clusterName}")
+    public NodesMetricsResponse getNodesMetrics(@PathVariable String clusterName) throws Exception {
+        return apiService.getNodesMetrics(clusterName);
     }
 }
