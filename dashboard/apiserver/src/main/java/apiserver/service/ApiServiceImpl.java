@@ -1343,7 +1343,7 @@ public class ApiServiceImpl implements ApiService {
             throw new Exception("Error, can not find the cluster: " + clusterName + "！");
         }
 
-        String url = cluster.getApiServer() + "/apis/Metrics.k8s.io/v1beta1/nodes";
+        String url = cluster.getApiServer() + "/apis/metrics.k8s.io/v1beta1/nodes";
         System.out.println(url);
         HttpHeaders requestHeaders = new HttpHeaders();
         requestHeaders.add("Authorization", "Bearer " + cluster.getToken());
@@ -1388,7 +1388,7 @@ public class ApiServiceImpl implements ApiService {
 
         V1PodList podList = getPodList(NAMESPACE, cluster);
         if (!CollectionUtils.isEmpty(podList.getItems())) {
-            String url = cluster.getApiServer() + "/apis/Metrics.k8s.io/v1beta1/pods";
+            String url = cluster.getApiServer() + "/apis/metrics.k8s.io/v1beta1/pods";
             System.out.println(url);
             HttpHeaders requestHeaders = new HttpHeaders();
             requestHeaders.add("Authorization", "Bearer " + cluster.getToken());
