@@ -1,6 +1,7 @@
 package apiserver.service;
 
-import apiserver.bean.Metrics.Response.NodesMetricsResponse;
+import apiserver.bean.metrics.Response.NodesMetricsResponse;
+import apiserver.bean.metrics.Response.PodsMetricsResponse;
 import apiserver.request.*;
 import apiserver.response.*;
 
@@ -32,4 +33,5 @@ public interface ApiService {
     SetAsyncRequestSequenceResponse unsuspendAllRequest(SetAsyncRequestSequenceRequestWithSource request);
     SimpleResponse deltaAll(DeltaAllRequest deltaAllRequest);
     NodesMetricsResponse getNodesMetrics(String clusterName) throws Exception;
+    PodsMetricsResponse getPodsMetrics(String clusterName) throws Exception;
 }

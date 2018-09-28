@@ -1,14 +1,15 @@
-package apiserver.bean.Metrics.PodMetrics;
+package apiserver.bean.metrics.PodMetrics;
 
-import apiserver.bean.Metrics.NodeMetrics.V1beta1NodeMetadata;
+import apiserver.bean.metrics.NodeMetrics.V1beta1NodeMetadata;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class V1beta1PodList {
     private String kind;
     private String apiVersion;
     private V1beta1NodeMetadata metadata;
-    private List<V1beta1PodItem> items;
+    private List<V1beta1PodItem> items = new ArrayList<>();
 
     public String getKind() {
         return kind;

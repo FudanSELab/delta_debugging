@@ -2,10 +2,16 @@ package apiserver.service;
 
 import apiserver.async.AsyncTask;
 import apiserver.bean.*;
-import apiserver.bean.Metrics.NodeMetrics.V1beta1NodeItem;
-import apiserver.bean.Metrics.NodeMetrics.V1beta1NodeList;
-import apiserver.bean.Metrics.Response.NodeMetrics;
-import apiserver.bean.Metrics.Response.NodesMetricsResponse;
+import apiserver.bean.metrics.Common.V1beta1ItemsUsage;
+import apiserver.bean.metrics.NodeMetrics.V1beta1NodeItem;
+import apiserver.bean.metrics.NodeMetrics.V1beta1NodeList;
+import apiserver.bean.metrics.NodeMetrics.NodeMetrics;
+import apiserver.bean.metrics.PodMetrics.PodMetrics;
+import apiserver.bean.metrics.PodMetrics.V1beta1Container;
+import apiserver.bean.metrics.PodMetrics.V1beta1PodItem;
+import apiserver.bean.metrics.PodMetrics.V1beta1PodList;
+import apiserver.bean.metrics.Response.NodesMetricsResponse;
+import apiserver.bean.metrics.Response.PodsMetricsResponse;
 import apiserver.request.*;
 import apiserver.response.*;
 import apiserver.util.Cluster;
@@ -23,10 +29,14 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestTemplate;
 
 import javax.net.ssl.SSLContext;
 import java.io.*;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.security.cert.X509Certificate;
 import java.util.*;
 
@@ -1333,6 +1343,7 @@ public class ApiServiceImpl implements ApiService {
         if (null == cluster) {
             throw new Exception("Error, can not find the cluster: " + clusterName + "！");
         }
+
         String url = cluster.getApiServer() + "/apis/metrics.k8s.io/v1beta1/nodes";
         System.out.println(url);
         HttpHeaders requestHeaders = new HttpHeaders();
@@ -1349,7 +1360,6 @@ public class ApiServiceImpl implements ApiService {
         }
 
         V1beta1NodeList nodeList = nodeListResponse.getBody();
-        System.out.println(nodeList.toString());
 
         NodesMetricsResponse response = new NodesMetricsResponse();
         List<NodeMetrics> nodesMetrics = new ArrayList<>();
@@ -1362,10 +1372,91 @@ public class ApiServiceImpl implements ApiService {
         }
 
         response.setNodesMetrics(nodesMetrics);
+        response.setStatus(true);
+        response.setMessage("Get nodes metrics successfully!");
 
         return response;
     }
 
+    @Override
+    public PodsMetricsResponse getPodsMetrics(String clusterName) throws Exception {
+        Cluster cluster = getClusterByName(clusterName);
+        if (null == cluster) {
+            throw new Exception("Error, can not find the cluster: " + clusterName + "！");
+        }
+
+        PodsMetricsResponse response = new PodsMetricsResponse();
+
+        V1PodList podList = getPodList(NAMESPACE, cluster);
+        if (!CollectionUtils.isEmpty(podList.getItems())) {
+            String url = cluster.getApiServer() + "/apis/metrics.k8s.io/v1beta1/pods";
+            System.out.println(url);
+            HttpHeaders requestHeaders = new HttpHeaders();
+            requestHeaders.add("Authorization", "Bearer " + cluster.getToken());
+            HttpEntity<String> requestEntity = new HttpEntity<>(null, requestHeaders);
+            System.out.println(requestEntity.toString());
+
+            // Special handle for rest template because of https requests.
+            RestTemplate restTemplate = new RestTemplate(generateHttpsRequestWithoutLocalCert());
+            ResponseEntity<V1beta1PodList> podListResponse = restTemplate.exchange(url, HttpMethod.GET, requestEntity, V1beta1PodList.class);
+            if (null == podListResponse.getBody()) {
+                throw new Exception("Error, can not get pods metrics!");
+            }
+
+            V1beta1PodList podMetricsList = podListResponse.getBody();
+            List<PodMetrics> podsMetrics = new ArrayList<>();
+            PodMetrics podMetrics;
+            for (V1beta1PodItem pod : podMetricsList.getItems()) {
+                if (NAMESPACE.equalsIgnoreCase(pod.getMetadata().getNamespace())) {
+                    podMetrics = new PodMetrics();
+                    podMetrics.setPodId(pod.getMetadata().getName());
+                    podMetrics.setNodeId(getNodeIdByPodId(podList, pod.getMetadata().getName()));
+                    podMetrics.setUsage(getPodMetricsUsage(pod));
+                    podsMetrics.add(podMetrics);
+                }
+            }
+
+            response.setStatus(true);
+            response.setMessage("Get pods information successfully!");
+            response.setPodsMetrics(podsMetrics);
+        }
+        else {
+            response.setStatus(false);
+            response.setMessage("There is no pods information in namespace 'default'!");
+        }
+
+        return response;
+    }
+
+    private V1beta1ItemsUsage getPodMetricsUsage(V1beta1PodItem pod) {
+        V1beta1ItemsUsage itemsUsage = new V1beta1ItemsUsage();
+
+        BigDecimal cpu = new BigDecimal(0);
+        BigDecimal memory = new BigDecimal(0);
+        for (V1beta1Container container : pod.getContainers()) {
+            cpu = cpu.add(new BigDecimal(container.getUsage().getCpu().split("m")[0]));
+            memory = memory.add(new BigDecimal(container.getUsage().getMemory().split("Ki")[0]));
+        }
+
+        itemsUsage.setCpu(cpu.toString() + "m");
+        itemsUsage.setMemory(memory.divide(new BigDecimal(1024), RoundingMode.DOWN).toString() + "Mi");
+
+        return itemsUsage;
+    }
+
+    private String getNodeIdByPodId(V1PodList podList, String podId) throws Exception {
+        if (CollectionUtils.isEmpty(podList.getItems())) {
+            throw new Exception("Error, the pod list is empty!");
+        }
+
+        for (V1Pod pod : podList.getItems()) {
+            if (podId.equalsIgnoreCase(pod.getMetadata().getName())) {
+                return pod.getSpec().getNodeName();
+            }
+        }
+
+        return null;
+    }
     /**
      *
      * @return Request Factory that trust all at local.

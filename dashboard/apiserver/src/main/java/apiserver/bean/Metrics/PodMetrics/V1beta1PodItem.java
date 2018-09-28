@@ -1,12 +1,13 @@
-package apiserver.bean.Metrics.PodMetrics;
+package apiserver.bean.metrics.PodMetrics;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class V1beta1PodItem {
     private V1beta1PodItemsMetadata metadata;
     private String timestamp;
     private String window;
-    private List<V1beta1Container> containers;
+    private List<V1beta1Container> containers = new ArrayList<>();
 
     public V1beta1PodItemsMetadata getMetadata() {
         return metadata;

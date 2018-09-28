@@ -1,6 +1,7 @@
 package apiserver.controller;
 
-import apiserver.bean.Metrics.Response.NodesMetricsResponse;
+import apiserver.bean.metrics.Response.NodesMetricsResponse;
+import apiserver.bean.metrics.Response.PodsMetricsResponse;
 import apiserver.response.SetUnsetServiceRequestSuspendResponse;
 import apiserver.request.*;
 import apiserver.response.*;
@@ -234,5 +235,11 @@ public class ApiController {
     @GetMapping("/api/nodeMetrics/{clusterName}")
     public NodesMetricsResponse getNodesMetrics(@PathVariable String clusterName) throws Exception {
         return apiService.getNodesMetrics(clusterName);
+    }
+
+    @CrossOrigin(origins = "*")
+    @GetMapping("/api/podMetrics/{clusterName}")
+    public PodsMetricsResponse getPodsMetrics(@PathVariable String clusterName) throws Exception {
+        return apiService.getPodsMetrics(clusterName);
     }
 }

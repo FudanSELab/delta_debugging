@@ -1,6 +1,6 @@
-package apiserver.bean.Metrics.NodeMetrics;
+package apiserver.bean.metrics.Common;
 
-public class V1beta1NodeItemsUsage {
+public class V1beta1ItemsUsage {
     private String cpu;
     private String memory;
 

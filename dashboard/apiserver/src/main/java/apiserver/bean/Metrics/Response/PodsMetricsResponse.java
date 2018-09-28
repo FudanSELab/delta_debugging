@@ -1,13 +1,13 @@
 package apiserver.bean.metrics.Response;
 
-import apiserver.bean.metrics.NodeMetrics.NodeMetrics;
+import apiserver.bean.metrics.PodMetrics.PodMetrics;
 
 import java.util.List;
 
-public class NodesMetricsResponse {
+public class PodsMetricsResponse {
     private boolean status;
     private String message;
-    private List<NodeMetrics> nodesMetrics;
+    private List<PodMetrics> podsMetrics;
 
     public boolean isStatus() {
         return status;
@@ -25,13 +25,11 @@ public class NodesMetricsResponse {
         this.message = message;
     }
 
-    public List<NodeMetrics> getNodesMetrics() {
-        return nodesMetrics;
+    public List<PodMetrics> getPodsMetrics() {
+        return podsMetrics;
     }
 
-    public void setNodesMetrics(List<NodeMetrics> nodesMetrics) {
-        this.nodesMetrics = nodesMetrics;
+    public void setPodsMetrics(List<PodMetrics> podsMetrics) {
+        this.podsMetrics = podsMetrics;
     }
-
-
 }
