@@ -1,6 +1,6 @@
-package apiserver.bean.metrics.PodMetrics;
+package apiserver.bean.Metrics.PodMetrics;
 
-import apiserver.bean.metrics.Common.V1beta1ItemsUsage;
+import apiserver.bean.Metrics.Common.V1beta1ItemsUsage;
 
 public class PodMetrics {
     private String podId;

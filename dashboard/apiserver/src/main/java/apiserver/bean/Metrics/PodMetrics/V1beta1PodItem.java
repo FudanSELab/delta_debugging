@@ -1,4 +1,4 @@
-package apiserver.bean.metrics.PodMetrics;
+package apiserver.bean.Metrics.PodMetrics;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -2,16 +2,16 @@ package apiserver.service;
 
 import apiserver.async.AsyncTask;
 import apiserver.bean.*;
-import apiserver.bean.metrics.Common.V1beta1ItemsUsage;
-import apiserver.bean.metrics.NodeMetrics.V1beta1NodeItem;
-import apiserver.bean.metrics.NodeMetrics.V1beta1NodeList;
-import apiserver.bean.metrics.NodeMetrics.NodeMetrics;
-import apiserver.bean.metrics.PodMetrics.PodMetrics;
-import apiserver.bean.metrics.PodMetrics.V1beta1Container;
-import apiserver.bean.metrics.PodMetrics.V1beta1PodItem;
-import apiserver.bean.metrics.PodMetrics.V1beta1PodList;
-import apiserver.bean.metrics.Response.NodesMetricsResponse;
-import apiserver.bean.metrics.Response.PodsMetricsResponse;
+import apiserver.bean.Metrics.Common.V1beta1ItemsUsage;
+import apiserver.bean.Metrics.NodeMetrics.V1beta1NodeItem;
+import apiserver.bean.Metrics.NodeMetrics.V1beta1NodeList;
+import apiserver.bean.Metrics.NodeMetrics.NodeMetrics;
+import apiserver.bean.Metrics.PodMetrics.PodMetrics;
+import apiserver.bean.Metrics.PodMetrics.V1beta1Container;
+import apiserver.bean.Metrics.PodMetrics.V1beta1PodItem;
+import apiserver.bean.Metrics.PodMetrics.V1beta1PodList;
+import apiserver.bean.Metrics.Response.NodesMetricsResponse;
+import apiserver.bean.Metrics.Response.PodsMetricsResponse;
 import apiserver.request.*;
 import apiserver.response.*;
 import apiserver.util.Cluster;
@@ -35,7 +35,6 @@ import org.springframework.web.client.RestTemplate;
 import javax.net.ssl.SSLContext;
 import java.io.*;
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.math.RoundingMode;
 import java.security.cert.X509Certificate;
 import java.util.*;
@@ -1344,7 +1343,7 @@ public class ApiServiceImpl implements ApiService {
             throw new Exception("Error, can not find the cluster: " + clusterName + "！");
         }
 
-        String url = cluster.getApiServer() + "/apis/metrics.k8s.io/v1beta1/nodes";
+        String url = cluster.getApiServer() + "/apis/Metrics.k8s.io/v1beta1/nodes";
         System.out.println(url);
         HttpHeaders requestHeaders = new HttpHeaders();
         requestHeaders.add("Authorization", "Bearer " + cluster.getToken());
@@ -1356,7 +1355,7 @@ public class ApiServiceImpl implements ApiService {
 
         ResponseEntity<V1beta1NodeList> nodeListResponse = restTemplate.exchange(url, HttpMethod.GET, requestEntity, V1beta1NodeList.class);
         if (null == nodeListResponse.getBody()) {
-            throw new Exception("Error, can not get nodes metrics!");
+            throw new Exception("Error, can not get nodes Metrics!");
         }
 
         V1beta1NodeList nodeList = nodeListResponse.getBody();
@@ -1373,7 +1372,7 @@ public class ApiServiceImpl implements ApiService {
 
         response.setNodesMetrics(nodesMetrics);
         response.setStatus(true);
-        response.setMessage("Get nodes metrics successfully!");
+        response.setMessage("Get nodes Metrics successfully!");
 
         return response;
     }
@@ -1389,7 +1388,7 @@ public class ApiServiceImpl implements ApiService {
 
         V1PodList podList = getPodList(NAMESPACE, cluster);
         if (!CollectionUtils.isEmpty(podList.getItems())) {
-            String url = cluster.getApiServer() + "/apis/metrics.k8s.io/v1beta1/pods";
+            String url = cluster.getApiServer() + "/apis/Metrics.k8s.io/v1beta1/pods";
             System.out.println(url);
             HttpHeaders requestHeaders = new HttpHeaders();
             requestHeaders.add("Authorization", "Bearer " + cluster.getToken());
@@ -1400,7 +1399,7 @@ public class ApiServiceImpl implements ApiService {
             RestTemplate restTemplate = new RestTemplate(generateHttpsRequestWithoutLocalCert());
             ResponseEntity<V1beta1PodList> podListResponse = restTemplate.exchange(url, HttpMethod.GET, requestEntity, V1beta1PodList.class);
             if (null == podListResponse.getBody()) {
-                throw new Exception("Error, can not get pods metrics!");
+                throw new Exception("Error, can not get pods Metrics!");
             }
 
             V1beta1PodList podMetricsList = podListResponse.getBody();

@@ -1,6 +1,6 @@
-package apiserver.bean.metrics.Response;
+package apiserver.bean.Metrics.Response;
 
-import apiserver.bean.metrics.PodMetrics.PodMetrics;
+import apiserver.bean.Metrics.PodMetrics.PodMetrics;
 
 import java.util.List;
 

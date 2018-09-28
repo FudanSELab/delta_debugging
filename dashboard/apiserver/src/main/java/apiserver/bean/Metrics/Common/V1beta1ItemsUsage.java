@@ -1,4 +1,4 @@
-package apiserver.bean.metrics.Common;
+package apiserver.bean.Metrics.Common;
 
 public class V1beta1ItemsUsage {
     private String cpu;

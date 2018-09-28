@@ -1,6 +1,6 @@
-package apiserver.bean.metrics.NodeMetrics;
+package apiserver.bean.Metrics.NodeMetrics;
 
-import apiserver.bean.metrics.Common.V1beta1ItemsUsage;
+import apiserver.bean.Metrics.Common.V1beta1ItemsUsage;
 
 public class NodeMetrics {
     private String nodeId;

@@ -1,6 +1,6 @@
-package apiserver.bean.metrics.PodMetrics;
+package apiserver.bean.Metrics.PodMetrics;
 
-import apiserver.bean.metrics.NodeMetrics.V1beta1NodeMetadata;
+import apiserver.bean.Metrics.NodeMetrics.V1beta1NodeMetadata;
 
 import java.util.ArrayList;
 import java.util.List;
