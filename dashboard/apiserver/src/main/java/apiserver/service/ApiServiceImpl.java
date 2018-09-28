@@ -12,15 +12,22 @@ import apiserver.util.Cluster;
 import apiserver.util.MyConfig;
 import apiserver.util.RemoteExecuteCommand;
 import com.alibaba.fastjson.JSON;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustStrategy;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import javax.net.ssl.SSLContext;
 import java.io.*;
+import java.security.cert.X509Certificate;
 import java.util.*;
 
 @Service
@@ -34,8 +41,6 @@ public class ApiServiceImpl implements ApiService {
     @Autowired
     private MyConfig myConfig;
 
-    @Autowired
-    private RestTemplate restTemplate;
 
     //Return all the clusters able to control
     @Override
@@ -1334,6 +1339,10 @@ public class ApiServiceImpl implements ApiService {
         requestHeaders.add("Authorization", "Bearer " + cluster.getToken());
         HttpEntity<String> requestEntity = new HttpEntity<>(null, requestHeaders);
         System.out.println(requestEntity.toString());
+
+        // Special handle for rest template because of https requests.
+        RestTemplate restTemplate = new RestTemplate(generateHttpsRequestWithoutLocalCert());
+
         ResponseEntity<V1beta1NodeList> nodeListResponse = restTemplate.exchange(url, HttpMethod.GET, requestEntity, V1beta1NodeList.class);
         if (null == nodeListResponse.getBody()) {
             throw new Exception("Error, can not get nodes metrics!");
@@ -1355,6 +1364,29 @@ public class ApiServiceImpl implements ApiService {
         response.setNodesMetrics(nodesMetrics);
 
         return response;
+    }
+
+    /**
+     *
+     * @return Request Factory that trust all at local.
+     * @throws Exception all Exception
+     */
+    private HttpComponentsClientHttpRequestFactory generateHttpsRequestWithoutLocalCert() throws Exception {
+
+        // local trust strategy is always true, trust all.
+        TrustStrategy acceptingTrustStrategy = (X509Certificate[] chain, String authType) -> true;
+
+        SSLContext sslContext = org.apache.http.ssl.SSLContexts.custom()
+                .loadTrustMaterial(null, acceptingTrustStrategy)
+                .build();
+
+        SSLConnectionSocketFactory csf = new SSLConnectionSocketFactory(sslContext);
+
+        CloseableHttpClient httpClient = HttpClients.custom()
+                .setSSLSocketFactory(csf)
+                .build();
+
+        return new HttpComponentsClientHttpRequestFactory(httpClient);
     }
 
     //Check if all the services in the list are able to serve
