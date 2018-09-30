@@ -1358,15 +1358,20 @@ public class ApiServiceImpl implements ApiService {
             throw new Exception("Error, can not get nodes Metrics!");
         }
 
-        V1beta1NodeList nodeList = nodeListResponse.getBody();
+        // node list with usage metrics
+        V1beta1NodeList nodeListUsage = nodeListResponse.getBody();
+
+        // node list with config metrics
+        V1NodeList nodeListConfig = getNodeList(cluster);
 
         NodesMetricsResponse response = new NodesMetricsResponse();
         List<NodeMetrics> nodesMetrics = new ArrayList<>();
         NodeMetrics nodeMetrics;
-        for (V1beta1NodeItem node : nodeList.getItems()) {
+        for (V1beta1NodeItem node : nodeListUsage.getItems()) {
             nodeMetrics = new NodeMetrics();
             nodeMetrics.setNodeId(node.getMetadata().getName());
             nodeMetrics.setUsage(node.getUsage());
+            nodeMetrics.setConfig(getNodeMetricsConfig(node.getMetadata().getName(), nodeListConfig));
             nodesMetrics.add(nodeMetrics);
         }
 
@@ -1427,6 +1432,17 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
+    private V1beta1ItemsUsage getNodeMetricsConfig(String nodeName, V1NodeList nodeListConfig) {
+        V1beta1ItemsUsage itemsConfig = new V1beta1ItemsUsage();
+        for (V1Node node : nodeListConfig.getItems()) {
+            if (nodeName.equalsIgnoreCase(node.getMetadata().getName())) {
+                itemsConfig.setCpu(node.getStatus().getAllocatable().get("cpu"));
+                itemsConfig.setMemory(node.getStatus().getAllocatable().get("memory"));
+            }
+        }
+
+        return itemsConfig;
+    }
     private V1beta1ItemsUsage getPodMetricsUsage(V1beta1PodItem pod) {
         V1beta1ItemsUsage itemsUsage = new V1beta1ItemsUsage();
 

@@ -5,6 +5,15 @@ import apiserver.bean.Metrics.Common.V1beta1ItemsUsage;
 public class NodeMetrics {
     private String nodeId;
     private V1beta1ItemsUsage usage;
+    private V1beta1ItemsUsage config;
+
+    public V1beta1ItemsUsage getConfig() {
+        return config;
+    }
+
+    public void setConfig(V1beta1ItemsUsage config) {
+        this.config = config;
+    }
 
     public String getNodeId() {
         return nodeId;
