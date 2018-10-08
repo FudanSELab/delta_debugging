@@ -247,7 +247,7 @@ public class ApiController {
     }
 
     @CrossOrigin(origins = "*")
-    @GetMapping("/api/getPodIds")
+    @PostMapping("/api/getPodIds")
     public PodIPToIdResponse getPodIdByIp(@RequestBody @NotNull PodIPToIdRequest request) throws Exception {
         return apiService.getPodIdByIp(request);
     }
