@@ -5,6 +5,8 @@ import apiserver.bean.Metrics.Response.PodsMetricsResponse;
 import apiserver.request.*;
 import apiserver.response.*;
 
+import java.util.List;
+
 public interface ApiService {
     GetClustersResponse getClusters();
     SetServiceReplicasResponse setServiceReplica(SetServiceReplicasRequest setServiceReplicasRequest);
@@ -34,4 +36,5 @@ public interface ApiService {
     SimpleResponse deltaAll(DeltaAllRequest deltaAllRequest);
     NodesMetricsResponse getNodesMetrics(String clusterName) throws Exception;
     PodsMetricsResponse getPodsMetrics(String clusterName) throws Exception;
+    PodIPToIdResponse getPodIdByIp(PodIPToIdRequest request) throws Exception;
 }

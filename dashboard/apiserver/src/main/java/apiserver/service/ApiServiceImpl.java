@@ -1432,6 +1432,46 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
+    @Override
+    public PodIPToIdResponse getPodIdByIp(PodIPToIdRequest request) throws Exception {
+        Cluster cluster = getClusterByName(request.getCluster());
+        if (null == cluster) {
+            throw new Exception("Error, can not find the cluster: " + request.getCluster() + "！");
+        }
+
+        PodIPToIdResponse response = new PodIPToIdResponse();
+        V1PodList podList = getPodList(NAMESPACE, cluster);
+        Map<String, String> ipToId = new HashMap<>();
+
+        if (!CollectionUtils.isEmpty(podList.getItems())) {
+            for (V1Pod pod : podList.getItems()) {
+                ipToId.put(pod.getStatus().getPodIP(), pod.getMetadata().getName());
+            }
+        }
+        else {
+            response.setStatus(false);
+            response.setMessage("There is no pods information in namespace 'default'!");
+            return response;
+        }
+
+        if (CollectionUtils.isEmpty(request.getIps())) {
+            response.setIpToIdMap(ipToId);
+
+        }
+        else {
+            Map<String, String> ipToIdPart = new HashMap<>();
+            for (String ip : request.getIps()) {
+                ipToIdPart.put(ip, ipToId.get(ip));
+            }
+            response.setIpToIdMap(ipToIdPart);
+        }
+
+        response.setStatus(true);
+        response.setMessage("Get id of pods succeed!");
+
+        return response;
+    }
+
     private V1beta1ItemsUsage getNodeMetricsConfig(String nodeName, V1NodeList nodeListConfig) {
         V1beta1ItemsUsage itemsConfig = new V1beta1ItemsUsage();
         for (V1Node node : nodeListConfig.getItems()) {

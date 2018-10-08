@@ -9,6 +9,9 @@ import apiserver.service.ApiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.constraints.NotNull;
+import java.util.List;
+
 @RestController
 public class ApiController {
 
@@ -241,5 +244,11 @@ public class ApiController {
     @GetMapping("/api/podMetrics/{clusterName}")
     public PodsMetricsResponse getPodsMetrics(@PathVariable String clusterName) throws Exception {
         return apiService.getPodsMetrics(clusterName);
+    }
+
+    @CrossOrigin(origins = "*")
+    @GetMapping("/api/getPodIds")
+    public PodIPToIdResponse getPodIdByIp(@RequestBody @NotNull PodIPToIdRequest request) throws Exception {
+        return apiService.getPodIdByIp(request);
     }
 }
