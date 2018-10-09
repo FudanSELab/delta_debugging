@@ -1489,8 +1489,14 @@ public class ApiServiceImpl implements ApiService {
         BigDecimal cpu = new BigDecimal(0);
         BigDecimal memory = new BigDecimal(0);
         for (V1beta1Container container : pod.getContainers()) {
-            cpu = cpu.add(new BigDecimal(container.getUsage().getCpu().split("m")[0]));
-            memory = memory.add(new BigDecimal(container.getUsage().getMemory().split("Ki")[0]));
+            cpu = cpu.add(container.getUsage().getCpu().contains("m")
+                    ? new BigDecimal(container.getUsage().getCpu().split("m")[0])
+                    : new BigDecimal(container.getUsage().getCpu()).multiply(new BigDecimal(1000)));
+
+
+            memory = memory.add(container.getUsage().getMemory().contains("Ki")
+                    ? new BigDecimal(container.getUsage().getMemory().split("Ki")[0])
+                    : new BigDecimal(container.getUsage().getMemory().split("Mi")[0]).multiply(new BigDecimal(1024)));
         }
 
         itemsUsage.setCpu(cpu.toString() + "m");
