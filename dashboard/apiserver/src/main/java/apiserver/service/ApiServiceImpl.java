@@ -43,6 +43,7 @@ import java.util.*;
 public class ApiServiceImpl implements ApiService {
 
     private final String NAMESPACE = "default";
+    private final String EMPTY_STRING = "";
 
     @Autowired
     private AsyncTask asyncTask;
@@ -1416,6 +1417,7 @@ public class ApiServiceImpl implements ApiService {
                     podMetrics.setPodId(pod.getMetadata().getName());
                     podMetrics.setNodeId(getNodeIdByPodId(podList, pod.getMetadata().getName()));
                     podMetrics.setUsage(getPodMetricsUsage(pod));
+                    podMetrics.setServiceVersion(getServiceVersion(podList, pod.getMetadata().getName()));
                     podsMetrics.add(podMetrics);
                 }
             }
@@ -1472,6 +1474,29 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
+    // get service version from service container image
+    private String getServiceVersion(V1PodList podList, String podId) throws Exception{
+        if (CollectionUtils.isEmpty(podList.getItems())) {
+            throw new Exception("Error, the pod list is empty!");
+        }
+
+        for (V1Pod pod : podList.getItems()) {
+            if (podId.equalsIgnoreCase(pod.getMetadata().getName())) {
+                if (CollectionUtils.isEmpty(pod.getSpec().getContainers())) {
+                    break;
+                }
+                else {
+                    for (V1Container container : pod.getSpec().getContainers()) {
+                        if (podId.contains(container.getName())) {
+                            return container.getImage().contains(":") ? container.getImage().split(":")[1] : EMPTY_STRING;
+                        }
+                    }
+                }
+            }
+        }
+
+        return EMPTY_STRING;
+    }
     private V1beta1ItemsUsage getNodeMetricsConfig(String nodeName, V1NodeList nodeListConfig) {
         V1beta1ItemsUsage itemsConfig = new V1beta1ItemsUsage();
         for (V1Node node : nodeListConfig.getItems()) {
