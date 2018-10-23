@@ -6,6 +6,15 @@ public class PodMetrics {
     private String podId;
     private String nodeId;
     private V1beta1ItemsUsage usage;
+    private String serviceId;
+
+    public String getServiceId() {
+        return serviceId;
+    }
+
+    public void setServiceId(String serviceId) {
+        this.serviceId = serviceId;
+    }
 
     public String getServiceVersion() {
         return serviceVersion;

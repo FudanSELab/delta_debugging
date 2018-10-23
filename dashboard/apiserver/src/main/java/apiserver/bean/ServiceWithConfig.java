@@ -6,7 +6,7 @@ public class ServiceWithConfig {
     private String serviceName;
     private Map<String, String> limits;
     private Map<String, String> requests;
-    private String instanceNumber;
+    private String confNumber; // replicates in config
 
     public ServiceWithConfig(){
 
@@ -36,11 +36,11 @@ public class ServiceWithConfig {
         this.requests = requests;
     }
 
-    public String  getInstanceNumber() {
-        return instanceNumber;
+    public String getConfNumber() {
+        return confNumber;
     }
 
-    public void setInstanceNumber(String  instanceNumber) {
-        this.instanceNumber = instanceNumber;
+    public void setConfNumber(String confNumber) {
+        this.confNumber = confNumber;
     }
 }

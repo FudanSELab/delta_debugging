@@ -1102,7 +1102,7 @@ public class ApiServiceImpl implements ApiService {
                 serviceWithConfig.setServiceName(singleDeploymentInfo.getMetadata().getName());
                 serviceWithConfig.setLimits(resourceRequirements.getLimits());
                 serviceWithConfig.setRequests(resourceRequirements.getRequests());
-                serviceWithConfig.setInstanceNumber(singleDeploymentInfo.getSpec().getReplicas());
+                serviceWithConfig.setConfNumber(singleDeploymentInfo.getSpec().getReplicas());
                 services.add(serviceWithConfig);
             }
         }else{
@@ -1418,6 +1418,7 @@ public class ApiServiceImpl implements ApiService {
                     podMetrics.setNodeId(getNodeIdByPodId(podList, pod.getMetadata().getName()));
                     podMetrics.setUsage(getPodMetricsUsage(pod));
                     podMetrics.setServiceVersion(getServiceVersion(podList, pod.getMetadata().getName()));
+                    podMetrics.setServiceId(getServiceName(pod.getMetadata().getName()));
                     podsMetrics.add(podMetrics);
                 }
             }
@@ -1472,6 +1473,25 @@ public class ApiServiceImpl implements ApiService {
         response.setMessage("Get id of pods succeed!");
 
         return response;
+    }
+
+    // get service name
+    private String getServiceName(String podId) {
+        if (podId.contains("mongo")) {
+            return (podId.split("mongo")[0] + "mongo").replaceAll("-", "_");
+        }
+        else if (podId.contains("dashboard")) {
+            return (podId.split("dashboard")[0] + "dashboard" ).replaceAll("-", "_");
+        }
+        else if (podId.contains("mysql")) {
+            return (podId.split("mysql")[0] + "mysql" ).replaceAll("-", "_");
+        }
+        else if (podId.contains("service")){
+            return (podId.split("service")[0] + "service").replaceAll("-", "_");
+        }
+        else {
+            return EMPTY_STRING;
+        }
     }
 
     // get service version from service container image
