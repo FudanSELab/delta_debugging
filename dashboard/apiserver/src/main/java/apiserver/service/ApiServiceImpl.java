@@ -437,7 +437,7 @@ public class ApiServiceImpl implements ApiService {
             System.out.println("Error! Please check the parameter in the request!");
         }
         //Check if all the required replicas are ready: running status
-        int count = 10;
+        int count = 60;
         boolean b = isAllReady(setServiceReplicasRequest, cluster);
         while(!b && count > 0){
             try{
