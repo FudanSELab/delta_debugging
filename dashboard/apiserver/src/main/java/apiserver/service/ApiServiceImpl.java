@@ -2335,7 +2335,6 @@ public class ApiServiceImpl implements ApiService {
 
             String json = readWholeFile(filePath);
             //Parse the response to the SetServicesReplicasResponseFromAPI Bean
-            System.out.println("APIServer Response: " + json);
             deploymentsList = JSON.parseObject(json,QueryDeploymentsListResponse.class);
         } catch (Exception e) {
             e.printStackTrace();
