@@ -1518,12 +1518,17 @@ public class ApiServiceImpl implements ApiService {
         return EMPTY_STRING;
     }
 
-    private HashMap<String, String> specialHandleForServiceMetricsConfig(Map<String, String> serviceMetricsConfig) {
+    private Map<String, String> specialHandleForServiceMetricsConfig(Map<String, String> serviceMetricsConfig) {
         HashMap<String, String> serviceMetricsConfigWithoutUnit = new HashMap<>();
-        serviceMetricsConfigWithoutUnit.put("memory",  null == serviceMetricsConfig.get("memory") ?
-                "" : serviceMetricsConfig.get("memory").split("Mi")[0]);
-        serviceMetricsConfigWithoutUnit.put("cpu", null == serviceMetricsConfig.get("cpu") ?
-                "" : serviceMetricsConfig.get("cpu").split("m")[0]);
+        if (null == serviceMetricsConfig) {
+            return null;
+        }
+        else {
+            serviceMetricsConfigWithoutUnit.put("memory", null == serviceMetricsConfig.get("memory") ?
+                    "" : serviceMetricsConfig.get("memory").split("Mi")[0]);
+            serviceMetricsConfigWithoutUnit.put("cpu", null == serviceMetricsConfig.get("cpu") ?
+                    "" : serviceMetricsConfig.get("cpu").split("m")[0]);
+        }
 
         return serviceMetricsConfigWithoutUnit;
     }
