@@ -1520,8 +1520,10 @@ public class ApiServiceImpl implements ApiService {
 
     private HashMap<String, String> specialHandleForServiceMetricsConfig(Map<String, String> serviceMetricsConfig) {
         HashMap<String, String> serviceMetricsConfigWithoutUnit = new HashMap<>();
-        serviceMetricsConfigWithoutUnit.put("memory", serviceMetricsConfig.get("memory").split("Mi")[0]);
-        serviceMetricsConfigWithoutUnit.put("cpu", serviceMetricsConfig.get("cpu").split("m")[0]);
+        serviceMetricsConfigWithoutUnit.put("memory",  null == serviceMetricsConfig.get("memory") ?
+                "" : serviceMetricsConfig.get("memory").split("Mi")[0]);
+        serviceMetricsConfigWithoutUnit.put("cpu", null == serviceMetricsConfig.get("cpu") ?
+                "" : serviceMetricsConfig.get("cpu").split("m")[0]);
 
         return serviceMetricsConfigWithoutUnit;
     }
