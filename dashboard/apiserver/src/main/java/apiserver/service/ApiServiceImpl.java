@@ -1100,8 +1100,8 @@ public class ApiServiceImpl implements ApiService {
                 V1ResourceRequirements resourceRequirements = singleDeploymentInfo.getSpec().getTemplate().getSpec().getContainers().get(0).getResources();
                 ServiceWithConfig serviceWithConfig = new ServiceWithConfig();
                 serviceWithConfig.setServiceName(singleDeploymentInfo.getMetadata().getName());
-                serviceWithConfig.setLimits(resourceRequirements.getLimits());
-                serviceWithConfig.setRequests(resourceRequirements.getRequests());
+                serviceWithConfig.setLimits(specialHandleForServiceMetricsConfig(resourceRequirements.getLimits()));
+                serviceWithConfig.setRequests(specialHandleForServiceMetricsConfig(resourceRequirements.getRequests()));
                 serviceWithConfig.setConfNumber(singleDeploymentInfo.getSpec().getReplicas());
                 services.add(serviceWithConfig);
             }
@@ -1371,7 +1371,7 @@ public class ApiServiceImpl implements ApiService {
         for (V1beta1NodeItem node : nodeListUsage.getItems()) {
             nodeMetrics = new NodeMetrics();
             nodeMetrics.setNodeId(node.getMetadata().getName());
-            nodeMetrics.setUsage(node.getUsage());
+            nodeMetrics.setUsage(specialHandleForNodeMetricsUsage(node.getUsage()));
             nodeMetrics.setConfig(getNodeMetricsConfig(node.getMetadata().getName(), nodeListConfig));
             nodesMetrics.add(nodeMetrics);
         }
@@ -1517,12 +1517,32 @@ public class ApiServiceImpl implements ApiService {
 
         return EMPTY_STRING;
     }
+
+    private HashMap<String, String> specialHandleForServiceMetricsConfig(Map<String, String> serviceMetricsConfig) {
+        HashMap<String, String> serviceMetricsConfigWithoutUnit = new HashMap<>();
+        serviceMetricsConfigWithoutUnit.put("memory", serviceMetricsConfig.get("memory").split("Mi")[0]);
+        serviceMetricsConfigWithoutUnit.put("cpu", serviceMetricsConfig.get("cpu").split("m")[0]);
+
+        return serviceMetricsConfigWithoutUnit;
+    }
+
+    private V1beta1ItemsUsage specialHandleForNodeMetricsUsage(V1beta1ItemsUsage nodeMetricsUsage) {
+        V1beta1ItemsUsage nodeMetricsUsageWithoutUnit = new V1beta1ItemsUsage();
+        nodeMetricsUsageWithoutUnit.setCpu(nodeMetricsUsage.getCpu().split("m")[0]);
+        nodeMetricsUsageWithoutUnit.setMemory(new BigDecimal(nodeMetricsUsage.getMemory().split("Ki")[0])
+                .divide(new BigDecimal(1024), RoundingMode.DOWN).toString());
+
+        return nodeMetricsUsageWithoutUnit;
+    }
+
     private V1beta1ItemsUsage getNodeMetricsConfig(String nodeName, V1NodeList nodeListConfig) {
         V1beta1ItemsUsage itemsConfig = new V1beta1ItemsUsage();
         for (V1Node node : nodeListConfig.getItems()) {
             if (nodeName.equalsIgnoreCase(node.getMetadata().getName())) {
-                itemsConfig.setCpu(node.getStatus().getAllocatable().get("cpu"));
-                itemsConfig.setMemory(node.getStatus().getAllocatable().get("memory"));
+                itemsConfig.setCpu(new BigDecimal(node.getStatus().getAllocatable().get("cpu")).multiply(new BigDecimal(1000)).toString());
+                itemsConfig.setMemory(new BigDecimal(node.getStatus().getAllocatable().get("memory").split("Ki")[0])
+                        .divide(new BigDecimal(1024), RoundingMode.DOWN).toString());
+
             }
         }
 
@@ -1544,8 +1564,8 @@ public class ApiServiceImpl implements ApiService {
                     : new BigDecimal(container.getUsage().getMemory().split("Mi")[0]).multiply(new BigDecimal(1024)));
         }
 
-        itemsUsage.setCpu(cpu.toString() + "m");
-        itemsUsage.setMemory(memory.divide(new BigDecimal(1024), RoundingMode.DOWN).toString() + "Mi");
+        itemsUsage.setCpu(cpu.toString());
+        itemsUsage.setMemory(memory.divide(new BigDecimal(1024), RoundingMode.DOWN).toString());
 
         return itemsUsage;
     }
