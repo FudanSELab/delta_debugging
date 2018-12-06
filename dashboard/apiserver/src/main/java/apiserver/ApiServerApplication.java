@@ -22,8 +22,8 @@ public class ApiServerApplication {
     @Bean
     public RestTemplate restTemplate(RestTemplateBuilder restTemplateBuilder) {
         return restTemplateBuilder
-                .setConnectTimeout(60000)
-                .setReadTimeout(60000)
+                .setConnectTimeout(10000)
+                .setReadTimeout(3600000)
                 .build();
 
     }
