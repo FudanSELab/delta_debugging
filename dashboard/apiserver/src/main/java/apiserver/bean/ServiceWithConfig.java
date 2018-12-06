@@ -6,7 +6,16 @@ public class ServiceWithConfig {
     private String serviceName;
     private Map<String, String> limits;
     private Map<String, String> requests;
-    private String confNumber; // replicates in config
+    private String confNumber; // replicas in config
+    private String readyNumber; // ready replicas
+
+    public String getReadyNumber() {
+        return readyNumber;
+    }
+
+    public void setReadyNumber(String readyNumber) {
+        this.readyNumber = readyNumber;
+    }
 
     public ServiceWithConfig(){
 

@@ -7,6 +7,7 @@ public class PodMetrics {
     private String nodeId;
     private V1beta1ItemsUsage usage;
     private String serviceId;
+    private String serviceVersion;
 
     public String getServiceId() {
         return serviceId;
@@ -23,8 +24,6 @@ public class PodMetrics {
     public void setServiceVersion(String serviceVersion) {
         this.serviceVersion = serviceVersion;
     }
-
-    private String serviceVersion;
 
     public String getPodId() {
         return podId;
