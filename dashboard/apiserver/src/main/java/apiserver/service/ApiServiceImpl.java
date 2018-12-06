@@ -1529,7 +1529,7 @@ public class ApiServiceImpl implements ApiService {
                     "" : serviceMetricsConfig.get("memory").split("Mi")[0]);
             serviceMetricsConfigWithoutUnit.put("cpu", null == serviceMetricsConfig.get("cpu") ?
                     "" : new BigDecimal(serviceMetricsConfig.get("cpu").split("m")[0])
-                        .divide(new BigDecimal(1000), 2, RoundingMode.HALF_UP).toString());
+                        .divide(new BigDecimal(1000), 3, RoundingMode.HALF_UP).toString());
         }
 
         return serviceMetricsConfigWithoutUnit;
@@ -1538,7 +1538,7 @@ public class ApiServiceImpl implements ApiService {
     private V1beta1ItemsUsage specialHandleForNodeMetricsUsage(V1beta1ItemsUsage nodeMetricsUsage) {
         V1beta1ItemsUsage nodeMetricsUsageWithoutUnit = new V1beta1ItemsUsage();
         nodeMetricsUsageWithoutUnit.setCpu(new BigDecimal(nodeMetricsUsage.getCpu().split("m")[0])
-                .divide(new BigDecimal(1000), 2, RoundingMode.HALF_UP).toString());
+                .divide(new BigDecimal(1000), 3, RoundingMode.HALF_UP).toString());
         nodeMetricsUsageWithoutUnit.setMemory(new BigDecimal(nodeMetricsUsage.getMemory().split("Ki")[0])
                 .divide(new BigDecimal(1024), RoundingMode.DOWN).toString());
 
@@ -1565,7 +1565,7 @@ public class ApiServiceImpl implements ApiService {
         BigDecimal memory = new BigDecimal(0);
         for (V1beta1Container container : pod.getContainers()) {
             cpu = cpu.add(container.getUsage().getCpu().contains("m")
-                    ? new BigDecimal(container.getUsage().getCpu().split("m")[0]).divide(new BigDecimal(1000), 2, RoundingMode.HALF_UP)
+                    ? new BigDecimal(container.getUsage().getCpu().split("m")[0]).divide(new BigDecimal(1000), 3, RoundingMode.HALF_UP)
                     : new BigDecimal(container.getUsage().getCpu()));
 
 
