@@ -1164,12 +1164,12 @@ public class ApiServiceImpl implements ApiService {
             e.printStackTrace();
         }
         //Check whether all of the services are available again in certain internals
-        int count = 10;
+        int count = 180;
         boolean b = isAllReady(NAMESPACE,cluster);
         while(!b && count > 0){
             try{
                 //Check every 2 seconds
-                Thread.sleep(60000);
+                Thread.sleep(20000);
             }catch(Exception e){
                 e.printStackTrace();
             }
