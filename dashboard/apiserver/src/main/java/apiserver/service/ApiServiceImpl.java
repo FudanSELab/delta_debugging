@@ -1509,7 +1509,7 @@ public class ApiServiceImpl implements ApiService {
                 else {
                     for (V1Container container : pod.getSpec().getContainers()) {
                         if (podId.contains(container.getName())) {
-                            return container.getImage().contains(":") ? container.getImage().split(":")[1] : EMPTY_STRING;
+                            return container.getImage().contains("service:") ? container.getImage().split("service:")[1] : EMPTY_STRING;
                         }
                     }
                 }
