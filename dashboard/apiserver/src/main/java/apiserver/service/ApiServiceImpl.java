@@ -1141,9 +1141,9 @@ public class ApiServiceImpl implements ApiService {
                     if(singleDeploymentInfo.getMetadata().getName().equals(request.getServiceName())){
                         V1ResourceRequirements resourceRequirements = singleDeploymentInfo.getSpec().getTemplate().getSpec().getContainers().get(0).getResources();
                         if(resourceRequirements.getLimits() == null || resourceRequirements.getRequests() == null){
-                            response.setMessage("There is no corresponding config in the cluster!");
+                            response.setMessage("There is no corresponding config in the deployment: " + singleDeploymentInfo.getMetadata().getName());
                             response.setStatus(false);
-                            //TODO: Add the config through add option
+                            return response;
                         }
                         else{
                             boolean result = deltaCMResource(NAMESPACE,request, cluster);
