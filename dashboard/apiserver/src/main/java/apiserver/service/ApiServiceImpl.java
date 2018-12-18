@@ -1537,10 +1537,23 @@ public class ApiServiceImpl implements ApiService {
 
     private V1beta1ItemsUsage specialHandleForNodeMetricsUsage(V1beta1ItemsUsage nodeMetricsUsage) {
         V1beta1ItemsUsage nodeMetricsUsageWithoutUnit = new V1beta1ItemsUsage();
-        nodeMetricsUsageWithoutUnit.setCpu(new BigDecimal(nodeMetricsUsage.getCpu().split("m")[0])
-                .divide(new BigDecimal(1000), 3, RoundingMode.HALF_UP).toString());
-        nodeMetricsUsageWithoutUnit.setMemory(new BigDecimal(nodeMetricsUsage.getMemory().split("Ki")[0])
-                .divide(new BigDecimal(1024), RoundingMode.DOWN).toString());
+        System.out.println("=====Node CPU usage: " + nodeMetricsUsage.getCpu() + "==============");
+        System.out.println("=====Node memory usage: " + nodeMetricsUsage.getMemory() + "==============");
+
+        String cpu = nodeMetricsUsage.getCpu().contains("m")
+                ? new BigDecimal(nodeMetricsUsage.getCpu().split("m")[0])
+                    .divide(new BigDecimal(1000), 3, RoundingMode.HALF_UP).toString()
+                : nodeMetricsUsage.getCpu();
+
+        String memory = nodeMetricsUsage.getMemory().contains("Ki")
+                ? new BigDecimal(nodeMetricsUsage.getMemory().split("Ki")[0])
+                    .divide(new BigDecimal(1024), RoundingMode.DOWN).toString()
+                : (nodeMetricsUsage.getMemory().contains("Mi")
+                    ? nodeMetricsUsage.getMemory().split("Mi")[0]
+                    : new BigDecimal(nodeMetricsUsage.getMemory().split("Gi")[0]).multiply(new BigDecimal(1024)).toString());
+
+        nodeMetricsUsageWithoutUnit.setCpu(cpu);
+        nodeMetricsUsageWithoutUnit.setMemory(memory);
 
         return nodeMetricsUsageWithoutUnit;
     }
