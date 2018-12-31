@@ -1421,13 +1421,14 @@ public class ApiServiceImpl implements ApiService {
             for (V1beta1PodItem pod : podMetricsList.getItems()) {
                 if (NAMESPACE.equalsIgnoreCase(pod.getMetadata().getNamespace())) {
                     podMetrics = new PodMetrics();
-                    podMetrics.setPodId(pod.getMetadata().getName());
-                    podMetrics.setNodeId(getNodeIdByPodId(podList, pod.getMetadata().getName()));
+                    PodInfo podInfo = getPodInfo(podList, pod.getMetadata().getName());
+                    podMetrics.setPodId(podInfo.getName());
+                    podMetrics.setNodeId(podInfo.getNodeName());
                     podMetrics.setUsage(getPodMetricsUsage(pod));
-                    podMetrics.setServiceVersion(getServiceVersion(podList, pod.getMetadata().getName()));
+                    podMetrics.setServiceVersion(podInfo.getServiceVersion());
                     podMetrics.setServiceId(getServiceName(pod.getMetadata().getName()));
-                    podMetrics.setCreateTime(String.valueOf(sdf.parse(pod.getMetadata().getCreationTimestamp()).getTime()));
-                    podMetrics.setThreadCount(getAppThreadCount(getNodeIpOfPod(podList, pod.getMetadata().getName())));
+                    podMetrics.setCreateTime(String.valueOf(sdf.parse(podInfo.getStartTime()).getTime()));
+                    podMetrics.setThreadCount(getAppThreadCount(podInfo.getNodeIP()));
                     podsMetrics.add(podMetrics);
                 }
             }
@@ -1484,6 +1485,34 @@ public class ApiServiceImpl implements ApiService {
         return response;
     }
 
+    private PodInfo getPodInfo(V1PodList podList, String podId) throws Exception {
+        PodInfo podInfo = new PodInfo();
+
+        if (CollectionUtils.isEmpty(podList.getItems())) {
+            throw new Exception("Error, the pod list is empty!");
+        }
+
+        boolean flag = false;
+        for (V1Pod pod : podList.getItems()) {
+            if (podId.equalsIgnoreCase(pod.getMetadata().getName())) {
+                 podInfo.setName(podId);
+                 podInfo.setNodeIP(pod.getStatus().getHostIP());
+                 podInfo.setNodeName(pod.getSpec().getNodeName());
+                 podInfo.setStartTime(pod.getMetadata().getCreationTimestamp());
+                 podInfo.setServiceVersion(getServiceVersion(pod.getSpec().getContainers(), podId));
+                 flag = true;
+                 break;
+            }
+        }
+
+        if (flag) {
+            return podInfo;
+        }
+        else {
+            throw new Exception("Error, find pod info failed! The pod id is: " + podId);
+        }
+    }
+
     private String getNodeIpOfPod(V1PodList podList, String podId) throws Exception {
         if (CollectionUtils.isEmpty(podList.getItems())) {
             throw new Exception("Error, the pod list is empty!");
@@ -1530,23 +1559,14 @@ public class ApiServiceImpl implements ApiService {
     }
 
     // get service version from service container image
-    private String getServiceVersion(V1PodList podList, String podId) throws Exception{
-        if (CollectionUtils.isEmpty(podList.getItems())) {
-            throw new Exception("Error, the pod list is empty!");
+    private String getServiceVersion(List<V1Container> podContainers, String podId) throws Exception{
+        if (CollectionUtils.isEmpty(podContainers)) {
+            throw new Exception("Error, the pod containers list is empty!");
         }
 
-        for (V1Pod pod : podList.getItems()) {
-            if (podId.equalsIgnoreCase(pod.getMetadata().getName())) {
-                if (CollectionUtils.isEmpty(pod.getSpec().getContainers())) {
-                    break;
-                }
-                else {
-                    for (V1Container container : pod.getSpec().getContainers()) {
-                        if (podId.contains(container.getName())) {
-                            return container.getImage().contains("service:") ? container.getImage().split("service:")[1] : EMPTY_STRING;
-                        }
-                    }
-                }
+        for (V1Container container : podContainers) {
+            if (podId.contains(container.getName())) {
+                return container.getImage().contains("service:") ? container.getImage().split("service:")[1] : EMPTY_STRING;
             }
         }
 

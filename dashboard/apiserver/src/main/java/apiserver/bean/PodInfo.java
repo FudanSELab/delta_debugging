@@ -1,12 +1,13 @@
 package apiserver.bean;
 
 public class PodInfo {
-    private String name;
-    private String nodeName;
+    private String name; // pod id
+    private String nodeName; // node id
     private String status;
     private String nodeIP;
     private String podIP;
     private String startTime;
+    private String serviceVersion;
 
     public PodInfo(){
 
@@ -58,5 +59,13 @@ public class PodInfo {
 
     public void setStartTime(String startTime) {
         this.startTime = startTime;
+    }
+
+    public String getServiceVersion() {
+        return serviceVersion;
+    }
+
+    public void setServiceVersion(String serviceVersion) {
+        this.serviceVersion = serviceVersion;
     }
 }
