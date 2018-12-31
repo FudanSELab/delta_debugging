@@ -37,6 +37,7 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 @Service
@@ -1104,6 +1105,8 @@ public class ApiServiceImpl implements ApiService {
                 serviceWithConfig.setRequests(specialHandleForServiceMetricsConfig(resourceRequirements.getRequests()));
                 serviceWithConfig.setConfNumber(singleDeploymentInfo.getSpec().getReplicas());
                 serviceWithConfig.setReadyNumber(String.valueOf(singleDeploymentInfo.getStatus().getReadyReplicas()));
+                serviceWithConfig.setHealthCheckDownDelay(String.valueOf(singleDeploymentInfo.getSpec().getTemplate().getSpec().getTerminationGracePeriodSeconds()));
+                serviceWithConfig.setHealthCheckReadyDelay(getHealthCheckReadyDelay(singleDeploymentInfo.getSpec().getTemplate().getSpec().getContainers().get(0).getReadinessProbe()));
                 services.add(serviceWithConfig);
             }
         }else{
@@ -1386,6 +1389,8 @@ public class ApiServiceImpl implements ApiService {
 
     @Override
     public PodsMetricsResponse getPodsMetrics(String clusterName) throws Exception {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
         Cluster cluster = getClusterByName(clusterName);
         if (null == cluster) {
             throw new Exception("Error, can not find the cluster: " + clusterName + "！");
@@ -1420,6 +1425,8 @@ public class ApiServiceImpl implements ApiService {
                     podMetrics.setUsage(getPodMetricsUsage(pod));
                     podMetrics.setServiceVersion(getServiceVersion(podList, pod.getMetadata().getName()));
                     podMetrics.setServiceId(getServiceName(pod.getMetadata().getName()));
+                    podMetrics.setCreateTime(String.valueOf(sdf.parse(pod.getMetadata().getCreationTimestamp()).getTime()));
+                    podMetrics.setThreadCount(getAppThreadCount(getNodeIpOfPod(podList, pod.getMetadata().getName())));
                     podsMetrics.add(podMetrics);
                 }
             }
@@ -1474,6 +1481,32 @@ public class ApiServiceImpl implements ApiService {
         response.setMessage("Get id of pods succeed!");
 
         return response;
+    }
+
+    private String getNodeIpOfPod(V1PodList podList, String podId) throws Exception {
+        if (CollectionUtils.isEmpty(podList.getItems())) {
+            throw new Exception("Error, the pod list is empty!");
+        }
+
+        for (V1Pod pod : podList.getItems()) {
+            if (podId.equalsIgnoreCase(pod.getMetadata().getName())) {
+                return pod.getStatus().getHostIP();
+            }
+        }
+
+        throw new Exception("Error, find node ip failed! The pod id is: " + podId);
+    }
+
+    private String getAppThreadCount(String nodeIp) {
+        return String.valueOf(new Random().nextInt(10) + 1);
+    }
+
+    private String getHealthCheckReadyDelay(V1HealthCheck v1HealthCheck) {
+        int initialDelaySeconds = v1HealthCheck.getInitialDelaySeconds();
+        int periodSeconds = v1HealthCheck.getPeriodSeconds();
+        int successThreshold = v1HealthCheck.getSuccessThreshold();
+
+        return String.valueOf(initialDelaySeconds + periodSeconds * successThreshold);
     }
 
     // get service name

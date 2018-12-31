@@ -7,6 +7,7 @@ public class V1PodSpec {
     private String nodeName = null;
     private String schedulerName = null;
     private List<V1Container> containers = new ArrayList<V1Container>();
+    private int terminationGracePeriodSeconds;
 
     public V1PodSpec(){
 
@@ -34,5 +35,13 @@ public class V1PodSpec {
 
     public void setContainers(List<V1Container> containers) {
         this.containers = containers;
+    }
+
+    public int getTerminationGracePeriodSeconds() {
+        return terminationGracePeriodSeconds;
+    }
+
+    public void setTerminationGracePeriodSeconds(int terminationGracePeriodSeconds) {
+        this.terminationGracePeriodSeconds = terminationGracePeriodSeconds;
     }
 }

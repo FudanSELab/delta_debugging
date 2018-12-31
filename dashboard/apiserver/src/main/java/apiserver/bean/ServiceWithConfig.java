@@ -8,6 +8,8 @@ public class ServiceWithConfig {
     private Map<String, String> requests;
     private String confNumber; // replicas in config
     private String readyNumber; // ready replicas
+    private String health_check_ready_delay;
+    private String health_check_down_delay;
 
     public String getReadyNumber() {
         return readyNumber;
@@ -51,5 +53,21 @@ public class ServiceWithConfig {
 
     public void setConfNumber(String confNumber) {
         this.confNumber = confNumber;
+    }
+
+    public String getHealthCheckReadyDelay() {
+        return health_check_ready_delay;
+    }
+
+    public void setHealthCheckReadyDelay(String health_check_ready_delay) {
+        this.health_check_ready_delay = health_check_ready_delay;
+    }
+
+    public String getHealthCheckDownDelay() {
+        return health_check_down_delay;
+    }
+
+    public void setHealthCheckDownDelay(String health_check_down_delay) {
+        this.health_check_down_delay = health_check_down_delay;
     }
 }

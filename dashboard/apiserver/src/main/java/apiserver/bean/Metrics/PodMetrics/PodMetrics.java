@@ -8,6 +8,8 @@ public class PodMetrics {
     private V1beta1ItemsUsage usage;
     private String serviceId;
     private String serviceVersion;
+    private String createTime;
+    private String threadCount;
 
     public String getServiceId() {
         return serviceId;
@@ -47,5 +49,21 @@ public class PodMetrics {
 
     public void setUsage(V1beta1ItemsUsage usage) {
         this.usage = usage;
+    }
+
+    public String getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(String createTime) {
+        this.createTime = createTime;
+    }
+
+    public String getThreadCount() {
+        return threadCount;
+    }
+
+    public void setThreadCount(String threadCount) {
+        this.threadCount = threadCount;
     }
 }

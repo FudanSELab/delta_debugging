@@ -8,6 +8,7 @@ public class V1Container {
     private String imagePullPolicy = null;
     private List<V1ContainerPort> ports = null;
     private V1ResourceRequirements resources = null;
+    private V1HealthCheck readinessProbe = new V1HealthCheck();
 
     public V1Container(){
 
@@ -51,5 +52,13 @@ public class V1Container {
 
     public void setResources(V1ResourceRequirements resources) {
         this.resources = resources;
+    }
+
+    public V1HealthCheck getReadinessProbe() {
+        return readinessProbe;
+    }
+
+    public void setReadinessProbe(V1HealthCheck readinessProbe) {
+        this.readinessProbe = readinessProbe;
     }
 }
