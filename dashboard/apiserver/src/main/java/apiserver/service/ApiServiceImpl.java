@@ -1389,7 +1389,8 @@ public class ApiServiceImpl implements ApiService {
 
     @Override
     public PodsMetricsResponse getPodsMetrics(String clusterName) throws Exception {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
         Cluster cluster = getClusterByName(clusterName);
         if (null == cluster) {
