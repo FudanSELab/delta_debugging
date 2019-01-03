@@ -1534,9 +1534,9 @@ public class ApiServiceImpl implements ApiService {
     private String getHealthCheckReadyDelay(V1HealthCheck v1HealthCheck) {
         int initialDelaySeconds = v1HealthCheck.getInitialDelaySeconds();
         int periodSeconds = v1HealthCheck.getPeriodSeconds();
-        int successThreshold = v1HealthCheck.getSuccessThreshold();
+        int failureThreshold = v1HealthCheck.getFailureThreshold();
 
-        return String.valueOf(initialDelaySeconds + periodSeconds * successThreshold);
+        return String.valueOf(initialDelaySeconds + periodSeconds * failureThreshold);
     }
 
     // get service name
